@@ -1,0 +1,5 @@
+module Route exposing ( Route, trivial, current )
+
+type alias Route = {}
+trivial = {}
+current = trivial

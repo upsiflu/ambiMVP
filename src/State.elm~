@@ -1,0 +1,8 @@
+module State exposing ( State, trivial, current )
+
+
+type alias State = {}
+    
+trivial = {}
+current = always trivial
+                         

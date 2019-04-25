@@ -1,0 +1,5 @@
+module Ui exposing (view)
+import Html exposing (..)
+import Browser
+
+view m = { title = "MVP", body = [ h1 [] [ text "MVP 1: Trivial" ] ] }
