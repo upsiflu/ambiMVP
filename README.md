@@ -1,3 +1,18 @@
+# Implementing the Tangible Model interface
+
+Each commit mirrors a chapter in the tutorial on how to create the tangible model interface. The individual steps are described in the tutorial text.
+
+The following sections are coming from the create-elm-app readme.
+
+
+
+
+
+
+
+
+
+
 # Elm App
 
 This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/create-elm-app).
