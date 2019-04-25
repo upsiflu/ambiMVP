@@ -6,4 +6,4 @@ import Route exposing ( Route )
 import State exposing ( State )
 
 view : { m | route : Route, state : State } -> { title : String, body : List ( Html msg ) }
-view m = { title = "MVP", body = [ h1 [] [ text "MVP 1: Trivial" ] ] }
+view m = { title = "MVP", body = [ h1 [] [ text "MVP 2: Trivial, but now with a State History" ] ] }
