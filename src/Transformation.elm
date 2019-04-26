@@ -1,5 +1,5 @@
 module Transformation exposing
-    ( Transformation, engage, invert, isAbove, isBelow )
+    ( Transformation, engage, invert, isAbove, isBelow, create, trivial, serialize )
 
 
         
@@ -24,11 +24,12 @@ module Transformation exposing
 
 
 type Transformation s
-    = Transformation { signature : Signature 
+    = Transformation { signature : Signature
+                     , serial : String
                      , function : ( s -> s ) 
                      , inverse : ( s -> s )
                      }
-
+                   
 type alias Nominal = String
 
 type alias Signature =
@@ -37,20 +38,27 @@ type alias Signature =
     , contextual : Maybe Nominal -- reference to a Nominal if there is a unique context.
     }
 
-trivial
-    = Transformation { signature = { ordinal = 0, nominal = "", contextual = Nothing }
-                     , function = identity
-                     , inverse = identity
-                     }
+trivial = Debug.log "trivial transformation" <|
+    Transformation { signature = { ordinal = 0, nominal = "", contextual = Nothing }
+                   , serial = "trivial"
+                   , function = identity
+                   , inverse = identity
+                   }
 
+
+create : String -> ( s -> s ) -> ( s -> s ) -> Transformation s -> Transformation s
+create s f i after = Debug.log "creating a singleton Transformation"
+    Transformation { signature = succidencial after, serial = s, function = f, inverse = i }
+                   
     
 -- signature of preceding transformation
-precedencial : { t | signature : Signature } -> Signature
-precedencial t =
+precedencial : Transformation s -> Signature
+precedencial ( Transformation t ) =
     case t.signature.ordinal of
         0 -> t.signature --first entry in session <ordinal>
         o -> { ordinal = o-1, nominal = t.signature.contextual |> Maybe.withDefault "", contextual = Nothing }
-
+succidencial : Transformation s -> Signature
+succidencial ( Transformation t ) = { ordinal = t.signature.ordinal+1, nominal = t.signature.nominal, contextual = Just t.signature.nominal }
 
 -- applying a transformation's function 
 engage : Transformation s -> s -> s
@@ -58,7 +66,7 @@ engage ( Transformation t ) = t.function
 
 -- turning a transformation around
 invert : Transformation s -> Transformation s
-invert ( Transformation t ) = Transformation { t | inverse = t.function, function = t.inverse }
+invert ( Transformation t ) = Transformation { t | inverse = t.function, function = t.inverse, serial = String.reverse t.serial }
 
 
 -- order
@@ -81,49 +89,7 @@ isBelow ( Transformation t ) ( Transformation u ) =
 -- SERIAL FORM
 
 serialize : Transformation t -> String
-serialize ( Transformation t ) = "todo: serialize"
-    
+serialize ( Transformation t ) = t.serial
 
 deserialize : String -> Transformation t
-deserialize = always trivial
-
-
-
-
-
-         {--
-    Endofunctions advance the state.
-    Each endofunction has exactly one inverse.
-
-    THIS HAS TO MOVE INTO STATE!
-    
-    An endofunction mutates one node. It either affects the node's data
-    or its type ('line' of Ambilang).
-    Data is referred to via Locus (a stack of concepts)
-    while type is referred to via its signature of appending (a unique line).
-    I.e. type references hinge on previous endofunctions while data
-    references hinge on opaque 'current' state and may encompass zero or more lines.
-
-    This has implications for later ('future') transformations:
-    - setting data may influence infinitely many type nodes
-    - setting type only ever influences one node
-    - appending data adds a type node that may have an ambiguous definition ("multiprototype")
-    - appending type adds a unique node (Zero)
-    - choosing from a multiprototype is how data disambiguates type
-    - choosing a filter is how type disambiguates data
-    - moving data makes all previous data-transformations apply to a different locus,
-      and these transformations may partially be inert in their new type.
-    - moving type makes all previous type-transformations apply to a different context node,
-      and this automatically includes the very definition of Locus, so this operation
-      is isomorphic to a visual reordering in the combined tree of data and type!
-    - Ack and Undo trace the synchronization history of the whole stack,
-      so they are never affecting 'future' transformations.
-
-    We get two sorts of ORPHANS:
-    Locus orphan is a data manipulation on an erased locus.
-    Signature orphan is a signature reference that doesn't yield.
-    While the first is incurred by a type tree manipulation
-    and may resolve once the tree is repaired,
-    the latter should indeed not occur unless the network garbles
-    transformations, and will be auto-erased on versioning.
---}
+deserialize = always trivial -- TODO! It's not trivial.
