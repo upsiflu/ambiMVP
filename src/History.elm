@@ -1,23 +1,31 @@
-module History exposing ( History, singleton, insert, browse, state, transformation, view )
-import Transformation exposing ( Transformation, engage, invert, isAbove, isBelow, serialize )
+module History exposing
+    ( History   -- only used in main. Can we get rid of this?
+    , singleton -- wrapping a State.
+    , insert    -- appending any Transformation on the same State type.
+    , browse    -- walk around (edges will be soft).
+    , state     -- the state you walked to.
+    , own       -- your own transformation, ready to append to the future.
+    , view )    -- representation
+
+import Transformation exposing (..)
+import Helpers exposing (..)
 
 
-{-  History
 
+{-  HISTORY
 
-        singleton State -> a zipper without transformation.
-        insert Transformation History -> pushes a transformation
-          at the orderly position, rebuilding next states.
-        current -> State at the current position in the stack.
-        prev -> travel down the stack.
-        next -> travel up the stack.
-        top -> integreta all transformations in order.
-        bottom -> suspend all transformations in order.
-
-
-    This structure caches the latest State of the application.
+    This structure lazily zips from an initial State over
+    transformations to an accumulated State, in both directions.
     It can be fed with Transformations which will be inserted
     in alphanumeric order.
+
+    The only way to create a Transformation is to demand
+    an "additional" on an existing History, which will always
+    reference the author of this History and the most recently
+    received Transformation (the contextual). Thus, all Transfor-
+    mation Signatures are unique as well as authored.
+
+      --> Todo: Add authoring (later...)
 
     History enables collaboration over unreliable networks:
     Instances that receive the same Transformations in any order
@@ -26,10 +34,7 @@ import Transformation exposing ( Transformation, engage, invert, isAbove, isBelo
     History is a zipper; it represents a hole in a stack.
     A Transformation can be inverted. History stores
     positive transformations to the top of the current state
-    and inverted ones towards the bottom.
-
-
--}
+    and inverted ones towards the bottom ("future"/"past"). -}
 
 
 
@@ -40,17 +45,32 @@ type History s =
             , state: s
             , future: List ( Transformation s )
             }
-
-
+    
+-- create
+        
 singleton : s -> History s
-singleton s = Debug.log "creating a singleton History" <|
+singleton s =
     History { past = [], state = s, future = [] }
 
+
+        
+-- read
+
+state : History s -> s
+state ( History h ) = h.state
+
+
+
+-- modify
+        
 insert : Transformation s -> History s -> History s
 insert t ( History h ) =
-    let here =   \_-> History { past = ( invert t )::h.past, state = Debug.log "state" ( h.state |> engage t ), future = h.future }
-        lower =  \_-> History h |> prev >> insert t >> next
-        higher = \_-> History h |> next >> insert t >> prev
+    let here =   \_->
+                 History { past = h.past, state = h.state, future = t::h.future } |> next |> prev
+        lower =  \_->
+                 History h |> prev >> insert t >> next
+        higher = \_->
+                 History h |> next >> insert t >> prev
     in case ( h.past, h.future ) of
         ( [],     [] ) ->
             here ()
@@ -62,12 +82,28 @@ insert t ( History h ) =
             if      Transformation.isBelow p t then lower ()
             else if Transformation.isAbove f t then higher () else here ()
 
+                
+own ( History h ) =
+    let ( ini, con ) =
+            h.future |> List.reverse |> \l->l++h.past
+                     |> both ( List.reverse, identity )
+                     |> each List.head
+                     |> each ( Maybe.withDefault ( initial "flupsi" h.state ) )
+    in follow ini con
+
+
+
+-- browse
+
 browse by =
-    case Debug.log "browse by" by of
-        Nothing -> top
-        Just 0 -> identity
-        Just n -> if n > 0 then browse ( n-1 |> Just ) >> next
-             else browse ( n+1 |> Just ) >> prev
+    case by of
+        Nothing ->
+            top
+        Just 0 ->
+            identity
+        Just n ->
+            if n > 0 then browse ( n-1 |> Just ) >> next
+            else browse ( n+1 |> Just ) >> prev
 
 prev : History s -> History s
 prev ( History h ) =
@@ -86,13 +122,8 @@ next ( History h ) =
             History { past = ( invert f )::h.past, state = ( h.state |> engage f ), future = uture }
 
 
-state : History s -> s
-state ( History h ) = h.state
 
-transformation : History s -> Transformation s
-transformation ( History h ) = h.past |> List.head |> Maybe.withDefault Transformation.trivial
 
-                               
 isTop ( History h ) = h.future == []
 
 top : History s -> History s
@@ -104,14 +135,11 @@ isBottom ( History h ) = h.past == []
 bottom : History s -> History s
 bottom = prev |> until isBottom
 
-view ( History h ) = { past = List.map serialize h.past, future = List.map serialize h.future }
+
+
+-- present
+
+view ( History h ) = { past = List.map serialize ( List.reverse h.past ), future = List.map serialize h.future }
 
 
 
-
---------------- HELPERS ---------------
-
-        
-until : ( a -> Bool ) -> ( a -> a ) -> a -> a
-until predicate succ variable =
-    if predicate variable then variable else until predicate succ <| succ variable

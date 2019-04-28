@@ -1,0 +1,14 @@
+module Helpers exposing
+    ( both
+    , each
+    , until)
+
+both ( f, g ) a = ( f a, g a )
+each f ( a, b ) = ( f a, f b )
+
+until : ( a -> Bool ) -> ( a -> a ) -> a -> a
+until predicate succ variable =
+    if predicate variable
+    then variable
+    else until predicate succ <| succ variable
+                                      

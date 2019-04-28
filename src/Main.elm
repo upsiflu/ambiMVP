@@ -8,6 +8,7 @@ import Html exposing (..)
 
 -- helper libs
 import History exposing ( History )
+import Helpers
 
 -- applicationlayers
 import State exposing ( State )
@@ -37,7 +38,7 @@ type Msg
 update msg model =
     case msg of
         Insert transformation -> ( { model | persist = model.persist |> History.insert transformation }, Cmd.none )
-        BrowseHistory by -> Debug.log "browse..." <| ( { model | persist = model.persist |> History.browse by }, Cmd.none )
+        BrowseHistory by -> ( { model | persist = model.persist |> History.browse by }, Cmd.none )
         _ -> ( model, Cmd.none )
 
 -- PROGRAM

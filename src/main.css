@@ -14,14 +14,15 @@ body {
 }
 
 h1 {
-    font-size: 4em; margin-top:3em; padding:0;
+    font-size: 4rem; margin-top:2rem; padding:0;
     font-weight:400;
     color: #a34;
+    line-height: 5rem;
 }
 
 img {
     margin: 0;
-  max-width: 32em;
+    max-width: 32em;
 }
 
 button {

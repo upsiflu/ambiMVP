@@ -1,49 +1,45 @@
 module State exposing
-    ( State, trivial, serialize, possibleTransformations, Transformations )
+    ( State                    -- create
+    , trivial 
+    , serialize                -- present
+    , possibleTransformations  -- permutations
+    )
 
-import Transformation exposing
-    ( Transformation, invert )
+import Helpers exposing (..)
 
-
-type State = State { count : Int }
-
-
-
-
-{-  STATE
-
-    A data structure that will eventually be synced with a server.
-
-    At this stage, we implement a counter.
-    Its history is managed by Main.elm.
--}
+type State = State { count : Float }
+    
 
 
--- initialize an empty state.
+-- create
+
 trivial : State
 trivial = State { count = 0 }
 
 
--- Endofunctions:
+          
+-- modify
+
 increment : State -> State 
 increment ( State s ) = State { count = s.count+1 }
 
 decrement : State -> State
 decrement ( State s ) = State { count = s.count-1 }
 
+double : State -> State
+double ( State s ) = State { count = s.count*2 }
 
--- Possible Transformations after the recent one:
--- we export all transformations possible "after" a preceding transformation.
-type alias Transformations = ( Transformation State, Transformation State )
-possibleTransformations : Transformation State -> Transformations
-possibleTransformations after = Transformation.create "Inc" increment decrement after |> both ( identity, invert )
+half : State -> State
+half ( State s ) = State { count = s.count/2 }
+                                                                                                
+possibleTransformations generate =
+    ( generate "Inc" increment decrement, generate "Mul" double half )
+
+
+        
+-- present
+
+serialize ( State s ) = s.count |> round |> String.fromInt
+
 
                         
--- serialize
-serialize ( State s ) = s.count |> String.fromInt
-
-
-                        
--- helper
-
-both ( f, g ) a = ( f a, g a )
