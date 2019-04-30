@@ -11,6 +11,7 @@ import List.Extra exposing ( last )
 import Transformation exposing (..)
 
 
+
 {-  HISTORY
 
     This structure lazily zips from an initial State over
@@ -18,17 +19,9 @@ import Transformation exposing (..)
     It can be fed with Transformations which will be inserted
     in alphanumeric order.
 
-    The only way to create a Transformation is to demand
-    an "additional" on an existing History, which will always
-    reference the author of this History and the most recently
-    received Transformation (the contextual). Thus, all Transfor-
-    mation Signatures are unique as well as authored.
-
-      --> Todo: Add authoring (later...)
-
     History enables collaboration over unreliable networks:
     Instances that receive the same Transformations in any order
-    eventually synch.
+    eventually sync.
 
     History is a zipper; it represents a hole in a stack.
     A Transformation can be inverted. History stores
@@ -44,16 +37,23 @@ type History s =
             , state: s
             , future: List ( Transformation s )
             }
-    
--- create
+
+
+        
+-- create and append
         
 singleton : s -> History s
 singleton s =
     History { past = [], state = s, future = [] }
 
+beyond : History s -> ( Transformation.Copy s -> Transformation s )
+beyond =
+    transformations >> last >> Transformation.follow
+    
+
                                     
 
--- modify
+-- map
         
 insert : Transformation s -> History s -> History s
 insert t h =
@@ -72,10 +72,6 @@ insert t h =
             if      Transformation.isBelow p t then lower h
             else if Transformation.isAbove f t then higher h else here h
 
-beyond : History s -> ( Transformation.Copy s -> Transformation s )
-beyond =
-     transformations >> last >> Transformation.follow
-    
 
 
 -- browse
@@ -111,7 +107,6 @@ isTop h = future h == []
 
 top : History s -> History s
 top = next |> until isTop
-
 
 isBottom h = past h == []
 

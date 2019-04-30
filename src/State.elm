@@ -32,8 +32,10 @@ double ( State s ) = State { count = s.count*2 }
 half : State -> State
 half ( State s ) = State { count = s.count/2 }
                                                                                                 
-possibleTransformations generate =
-    ( generate "Inc" increment decrement, generate "Mul" double half )
+possibleTransformations assemble =
+    ( assemble { serial = "Inc", function = increment, inverse = decrement }
+    , assemble { serial = "Mul", function = double, inverse = half }
+    )
 
 
         

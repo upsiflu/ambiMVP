@@ -1,11 +1,18 @@
 module Transformation exposing
-    ( Transformation
-    , initial    -- curate an identity transformation as the basis for a history.
-    , follow     -- upon any previous transformation as context.
-    , engage     -- your function.
-    , invert     -- invert >> invert === id
+    ( Transformation, Copy
+    -- create
+    , initial             -- given a Copy, create a 'first' 
+    , follow              -- upon an optional previous Transformation (context), you can create Do and Undo Transformations.
+    , do, undo            -- create Transformation Copies (without signature) for use in <follow>.
+    -- read
+    , nominal             -- from the signature
+    , engage              -- applies your function to your state. Identity in the cases of Curator and Undo.
+    -- map
+    , invert              -- invert >> invert === id
+    -- compare
     , isAbove
     , isBelow
+    -- present
     , serialize )
 
         
@@ -26,89 +33,129 @@ module Transformation exposing
 
 
 type Transformation s
-    = Transformation { signature : Signature
-                     , serial : Serial
-                     , function : ( s -> s ) 
-                     , inverse : ( s -> s )
-                     }
+    = Transformation Signature ( Copy s )
 
-type Nominal = Nominal String -- unique to each session.
-type alias Serial = String
-type alias Initial s = Transformation s
-    
+type Copy s
+    = Do { serial : String
+         , function : ( s -> s ) 
+         , inverse : ( s -> s )
+         }
+    | Undo Signature
+
+trivial = Do { serial = "trivial", function = identity, inverse = identity }
+      
 type alias Signature =
-    { ordinal : Int -- locally generated increment. Unique only with Nominal.
-    , nominal : Nominal -- remotely generated ( unique ) string. Unique to a session.
-    , contextual : Maybe Nominal -- reference to a Nominal only if there is a unique context.
+    { ordinal : Int                -- locally generated increment. Unique only with Nominal.
+    , nominal : Nominal            -- remotely generated ( unique ) string. Unique to a session.
+    , contextual : Maybe Nominal   -- reference to a Nominal only if there is a unique context.
     }
 
+type Nominal
+    = External String
+    | Id String
 
-    
+
+      
 -- create
 
-initial : String -> s -> Initial s
-initial name state =
-    Transformation { signature = { ordinal = 0, nominal = Nominal name, contextual = Nothing }
-                   , serial = "trivial"  -- canonical serialization of the function
-                   , function = identity -- cache
-                   , inverse = identity  -- cache
-                   }
-
-follow : Initial s -> Transformation s -> ( Serial -> ( s -> s ) -> ( s-> s ) -> Transformation s )
-follow ( Transformation ini ) ( Transformation con ) =
-    \ser f i ->
-        let sig = { ordinal = con.signature.ordinal+1
-                  , nominal = ini.signature.nominal
-                  , contextual = Just con.signature.nominal }
-        in Transformation
-            { signature = sig, serial = ser, function = f, inverse = i }
-
-
+initial : Copy s -> Transformation s
+initial =
+    Transformation
+        { ordinal = 0
+        , nominal = Id "flupsi"
+        , contextual = Nothing
+        }
+        
+follow : Maybe ( Transformation s ) -> ( Copy s -> Transformation s )
+follow =
+    Maybe.withDefault ( initial trivial ) >> signature >> \context ->
+        Transformation
+            { ordinal = context.ordinal+1
+            , nominal = Id "flupsi"
+            , contextual = Just context.nominal
+            }
 
 
-precedencial : Transformation s -> Signature
-precedencial ( Transformation t ) =
-    case t.signature.ordinal of
-        0 -> t.signature --first entry in session <ordinal>
-        o -> { ordinal = o-1, nominal = t.signature.contextual |> Maybe.withDefault ( Nominal "" ), contextual = Nothing }
 
+-- specify copy
 
+do = Do
+
+undo : Transformation s -> Copy s
+undo =
+    signature >> Undo
+
+        
              
 -- read
 
 engage : Transformation s -> s -> s
-engage ( Transformation t ) = t.function
+engage t =
+    case copy t of
+        Do x -> x.function
+        _    -> identity
+        
 
 
-                              
+
+
 -- modify
 
 invert : Transformation s -> Transformation s
-invert ( Transformation t ) = Transformation { t | inverse = t.function, function = t.inverse, serial = String.reverse t.serial }
-
+invert =
+    mapCopy <|\c->
+        case c of
+            Do x -> do { serial = ( String.reverse x.serial ), function = x.inverse, inverse = x.function }
+            _    -> c
 
                               
 -- compare
-
-gt ( Nominal n ) ( Nominal o ) = n>o
-st ( Nominal n ) ( Nominal o ) = n<o
                                  
 isAbove : Transformation s -> Transformation s -> Bool
-isAbove ( Transformation t ) ( Transformation u ) =
-    u.signature.ordinal > t.signature.ordinal
-    || ( t.signature.ordinal == u.signature.ordinal ) && ( gt u.signature.nominal t.signature.nominal )
+isAbove t u =
+    ordinal u > ordinal t
+    || ( ordinal u == ordinal t )
+        && ( nominal u > nominal t )
 
 isBelow : Transformation s -> Transformation s -> Bool
-isBelow ( Transformation t ) ( Transformation u ) =
-    u.signature.ordinal < t.signature.ordinal
-    || ( t.signature.ordinal == u.signature.ordinal ) && ( st u.signature.nominal t.signature.nominal )
+isBelow t u =
+    ordinal u < ordinal t
+    || ( ordinal u == ordinal t )
+        && ( nominal u < nominal t )
+
+match : Transformation s -> Transformation s -> Bool
+match t u =
+    signature u == signature t
 
 
 
-
-
--- SERIAL FORM
+-- serial form
 
 serialize : Transformation t -> String
-serialize ( Transformation t ) = t.serial
+serialize t =
+    case copy t of
+        Do x -> x.serial
+        Undo u -> "undo " ++ ( idString u.nominal ) ++ "#" ++ ( String.fromInt u.ordinal )
 
+
+
+
+-- helper readers
+
+signature ( Transformation sig _ ) = sig
+
+copy : Transformation s -> Copy s                                     
+copy ( Transformation _ cop ) = cop
+
+idString id = case id of 
+    External s -> s
+    Id s -> s
+                                
+nominal = signature >> .nominal >> idString
+                                            
+ordinal = signature >> .ordinal
+
+-- helper mapper
+    
+mapCopy : ( Copy s -> Copy s ) -> Transformation s -> Transformation s
+mapCopy f ( Transformation s c ) = Transformation s ( f c )          
