@@ -2,7 +2,7 @@ module Transformation exposing
     ( Transformation, Copy
     -- create
     , initial             -- given a Copy, create a 'first' 
-    , follow              -- upon an optional previous Transformation (context), you can create Do and Undo Transformations.
+    , successive          -- upon an optional previous Transformation (context), you can create Do and Undo Transformations.
     , do, undo            -- create Transformation Copies (without signature) for use in <follow>.
     -- read
     , nominal             -- from the signature
@@ -42,6 +42,7 @@ type Copy s
          }
     | Undo Signature
 
+trivial : Copy s
 trivial = Do { serial = "trivial", function = identity, inverse = identity }
       
 type alias Signature =
@@ -58,22 +59,24 @@ type Nominal
       
 -- create
 
-initial : Copy s -> Transformation s
+initial : Transformation s
 initial =
     Transformation
         { ordinal = 0
         , nominal = Id "flupsi"
         , contextual = Nothing
-        }
+        } trivial
         
-follow : Maybe ( Transformation s ) -> ( Copy s -> Transformation s )
-follow =
-    Maybe.withDefault ( initial trivial ) >> signature >> \context ->
-        Transformation
-            { ordinal = context.ordinal+1
-            , nominal = Id "flupsi"
-            , contextual = Just context.nominal
-            }
+successive : Transformation s -> Copy s -> Transformation s
+successive previous =
+    let context = signature previous
+    in
+    Transformation
+        { ordinal = context.ordinal+1
+        , nominal = Id "flupsi"
+        , contextual = Just context.nominal
+        }
+
 
 
 
@@ -159,3 +162,5 @@ ordinal = signature >> .ordinal
     
 mapCopy : ( Copy s -> Copy s ) -> Transformation s -> Transformation s
 mapCopy f ( Transformation s c ) = Transformation s ( f c )          
+
+mapSignature f ( Transformation s c ) = Transformation ( f s ) c

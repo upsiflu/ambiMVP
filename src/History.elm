@@ -1,14 +1,15 @@
 module History exposing
     ( History   -- only used in main. Can we get rid of this?
     , singleton -- wrapping a State.
-    , insert    -- appending any Transformation on the same State type.
-    , beyond    -- a Transformation that will go beyond the future of this History.
+    , insert    -- inserting any Transformation on the same State type.
+    , do, undo  -- create Transformations for appending to the history. They will slot in right after the current future.
     , browse    -- walk around (edges will be soft).
     , summary   -- a useful summary of the current components.
     )
 import Helpers exposing (..)
 import List.Extra exposing ( last )
-import Transformation exposing (..)
+import Transformation exposing ( Transformation )
+
 
 
 {-  HISTORY
@@ -18,17 +19,9 @@ import Transformation exposing (..)
     It can be fed with Transformations which will be inserted
     in alphanumeric order.
 
-    The only way to create a Transformation is to demand
-    an "additional" on an existing History, which will always
-    reference the author of this History and the most recently
-    received Transformation (the contextual). Thus, all Transfor-
-    mation Signatures are unique as well as authored.
-
-      --> Todo: Add authoring (later...)
-
     History enables collaboration over unreliable networks:
     Instances that receive the same Transformations in any order
-    eventually synch.
+    eventually sync.
 
     History is a zipper; it represents a hole in a stack.
     A Transformation can be inverted. History stores
@@ -44,16 +37,33 @@ type History s =
             , state: s
             , future: List ( Transformation s )
             }
-    
--- create
+
+        
+-- create and append
         
 singleton : s -> History s
 singleton s =
     History { past = [], state = s, future = [] }
 
-                                    
+-- what dows it do?
+-- It takes a history and an action.
+-- It wraps the action into a Copy.
+-- It finds the latest transformation in the history and creates a successor.
 
--- modify
+slot : History s -> Transformation.Copy s -> Transformation s
+slot = transformations >> last >> Maybe.withDefault ( Transformation.initial ) >> Transformation.successive
+    
+do : History s -> { function : s -> s, inverse : s -> s, serial : String } -> Transformation s
+do h =
+    Transformation.do >> ( slot h )
+
+             
+undo : History s -> Transformation s -> Transformation s
+undo h =
+    Transformation.undo >> ( slot h )
+
+                   
+-- map
         
 insert : Transformation s -> History s -> History s
 insert t h =
@@ -72,10 +82,6 @@ insert t h =
             if      Transformation.isBelow p t then lower h
             else if Transformation.isAbove f t then higher h else here h
 
-beyond : History s -> ( Transformation.Copy s -> Transformation s )
-beyond =
-     transformations >> last >> Transformation.follow
-    
 
 
 -- browse
@@ -95,14 +101,18 @@ prev h =
     case past h of
         [] -> h
         p::ast ->
-            History { past = ast, state = state h |> engage p, future = ( invert p )::( future h ) }
+            History { past = ast
+                    , state = state h |> Transformation.engage p
+                    , future = ( Transformation.invert p )::( future h ) }
 
 next : History s -> History s
 next h =
     case future h of
         [] -> h
         f::uture ->
-            History { past = ( invert f )::( past h ), state = state h |> engage f, future = uture }
+            History { past = ( Transformation.invert f )::( past h )
+                    , state = state h |> Transformation.engage f
+                    , future = uture }
 
 
 
@@ -111,7 +121,6 @@ isTop h = future h == []
 
 top : History s -> History s
 top = next |> until isTop
-
 
 isBottom h = past h == []
 
@@ -122,7 +131,7 @@ bottom = prev |> until isBottom
 
 -- for further consumption
 
-summary h = { past = past h |> List.reverse >> List.map serialize, state = state h, future = future h |> List.map serialize }
+summary h = { past = past h |> List.reverse >> List.map Transformation.serialize, state = state h, future = future h |> List.map Transformation.serialize }
 
 
 

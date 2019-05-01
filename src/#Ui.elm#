@@ -11,7 +11,6 @@ import State exposing ( serialize, possibleTransformations )
 
 
 
-
 view actions m =
     let
         summary =    History.summary m.composition
