@@ -29,7 +29,7 @@ view : { transform : Transformation s -> msg, browse_history : Maybe Int -> msg 
        ) ->
        List  ( Intent s ) ->
        { body : List (Html msg), title : String }
-
+           
 view messages history preview possible_intents =
     let
         summary  =

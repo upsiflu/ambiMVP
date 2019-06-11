@@ -1,5 +1,5 @@
 module Compositron exposing
-    ( State, trivial, possible_transformations, preview )
+    ( State, trivial, possible_intents, preview )
 
 import Tree exposing ( Tree )
 import Tree.Zipper exposing  ( Zipper, mapLabel, root, tree, forward, append, findFromRoot, fromTree )
@@ -99,14 +99,21 @@ untarget sig =
 
 choose : Signature -> Item -> Compositron -> Compositron
 choose new choice =
-    append (
-            Tree.tree
-                 { signature = new, item = choice }
-                 [ Tree.singleton { signature = new++"+", item = Ambiguous } ]
-           )
-   >> next_sibling
-  
-next_sibling c = forward c |> Maybe.withDefault c
+    logTree
+    >> Tree.Zipper.replaceTree ( Tree.tree { signature = new, item = choice }
+                 [
+                  Tree.singleton { signature = new++"inside", item = Ambiguous }
+                 ] ) >> logTree
+        >> addNode { signature = new++"before", item = Ambiguous } >> logTree
+
+logTree = Debug.log "tree"
+    
+addNode : Node -> Compositron -> Compositron
+addNode n z =
+    case Tree.Zipper.parent z of
+        Nothing -> z
+        Just p -> p |>
+           Tree.Zipper.mapTree ( \t -> Tree.mapChildren ( \c-> ( Tree.singleton n ) :: c ) t ) 
                 
 clear : Item -> Compositron -> Compositron
 clear choice =
@@ -121,6 +128,7 @@ preview :
         -> ( Intent Compositron -> msg )
         -> Compositron
         -> Html msg
+           
 preview sig intent_to_message compositron =
     let
         click =
@@ -183,26 +191,26 @@ toHtml sig intent_to_message structure =
         of
         Style ->
             div [ class "style", navigate_here ]
-                <|  [ text node.signature
-                    , text ": style"
+                <|  [ label [] [ text node.signature
+                               , text ": style" ]
                     ] ++ ( inner () )
 
         Value string ->
             div [ class "value", navigate_here ]
-                <| [ text node.signature
-                   , text ": value: "
+                <| [ label [] [ text node.signature
+                              , text ": value: " ]
                    , input [ class "input", value ( string |> Maybe.withDefault "" ) ][]
                    ] ++ ( inner () )
                 
         Parag ->
             p   [ class "paragraph", navigate_here ]
-                <| [ text node.signature
-                   , text ": paragraph"
+                <| [ label [] [ text node.signature
+                              , text ": paragraph" ]
                    ] ++ ( inner () )
 
         Ambiguous ->
             div [ class "ambiguous", navigate_here ]
-                [ text node.signature
+                [ label [] [ text node.signature ]
                 ]
                 
         Highlight i ->
@@ -210,21 +218,21 @@ toHtml sig intent_to_message structure =
             of
             Style ->
                 div [ class "style targeted", navigate_here ]
-                    <| [ text node.signature
-                       , text ": style"
+                    <| [ label [] [ text node.signature
+                                  , text ": style" ]
                        ] ++ ( inner () )
                     
             Value string ->
                 div [ class "value targeted", navigate_here ]
-                    <| [ text node.signature
-                       , text ": value: "
+                    <| [ label [] [ text node.signature
+                                  , text ": value: " ]
                        , input [ class "input", value ( string |> Maybe.withDefault "" ) ][]
                        ] ++ ( inner () )
                     
             Parag ->
                   p   [ class "paragraph targeted", navigate_here ]
-                      <| [ text node.signature
-                         , text ": paragraph"
+                      <| [ label [] [ text node.signature
+                                    , text ": paragraph" ]
                          ] ++ ( inner () )
                       
             Ambiguous ->
@@ -264,12 +272,11 @@ type Edit
     | Clear Item
 
 
-possible_transformations :
+possible_intents :
     Signature
         -> Compositron
         -> List ( Intent Compositron )
-    
-possible_transformations sig compositron =
+possible_intents sig compositron =
     List.map
         ( \edit -> create_intent sig compositron edit )
         ( allEdits compositron )
@@ -280,7 +287,6 @@ create_intent :
         -> Compositron
         -> Edit
         -> Intent Compositron
-
 create_intent sig compositron edit =
     let
         verbalize choice =
