@@ -1,15 +1,18 @@
 module History exposing
-    ( History   -- only used in main. Can we get rid of this?
-    , singleton -- wrapping a State.
+    ( History
+    , singleton -- wrapping a single State.
     , insert    -- inserting any Transformation on the same State type.
-    , do, undo  -- create Transformations for appending to the history. They will slot in right after the current future.
-    , browse    -- walk around (edges will be soft).
-    , summary   -- a useful summary of the current components.
+    , do        -- create Transformations for inserting later.
+                -- They'll slot in right after the current future.
+                -- TODO: You get a tuple with a unique, serialized signature.
+    , browse    -- walk around (edges will be soft so you stay in bounds).
+    , summary   -- past, present and future.
+    , recent_signature_string -- recent signature
     )
-import Helpers exposing (..)
+import Helpers exposing ( .. )
 import List.Extra exposing ( last )
-import Transformation exposing ( Transformation )
-
+import History.Transformation as Transformation exposing ( Transformation, Copy ( .. ) )
+import History.Intent as Intent exposing ( .. )
 
 
 {-  HISTORY
@@ -33,35 +36,36 @@ import Transformation exposing ( Transformation )
 
 
 type History s =
-    History { past: List ( Transformation s )
-            , state: s
-            , future: List ( Transformation s )
+    History { past:    List ( Transformation s )
+            , present: s
+            , future:  List ( Transformation s )
             }
 
         
 -- create and append
         
-singleton : s -> History s
+singleton:s -> History s
 singleton s =
-    History { past = [], state = s, future = [] }
-
--- what dows it do?
--- It takes a history and an action.
--- It wraps the action into a Copy.
--- It finds the latest transformation in the history and creates a successor.
+    History { past = [], present = s, future = [] }
 
 slot : History s -> Transformation.Copy s -> Transformation s
-slot = transformations >> last >> Maybe.withDefault ( Transformation.initial ) >> Transformation.successive
-    
-do : History s -> { function : s -> s, inverse : s -> s, serial : String } -> Transformation s
+slot =
+    transformations
+        >> last
+        >> Maybe.withDefault ( Transformation.initial )
+        >> Transformation.successive
+
+recent_signature_string =
+    transformations
+        >> last
+        >> Maybe.withDefault ( Transformation.initial )
+        >> Transformation.serialize_signature
+
+do : History s -> Intent s -> Transformation s
 do h =
     Transformation.do >> ( slot h )
 
-             
-undo : History s -> Transformation s -> Transformation s
-undo h =
-    Transformation.undo >> ( slot h )
-
+         
                    
 -- map
         
@@ -86,6 +90,7 @@ insert t h =
 
 -- browse
 
+browse : Maybe Int -> History s -> History s
 browse by =
     case by of
         Nothing ->
@@ -101,27 +106,29 @@ prev h =
     case past h of
         [] -> h
         p::ast ->
-            History { past = ast
-                    , state = state h |> Transformation.engage p
-                    , future = ( Transformation.invert p )::( future h ) }
+            History { past    = ast
+                    , present = present h |> Transformation.engage p
+                    , future  = ( Transformation.invert p )::( future h )
+                    }
 
 next : History s -> History s
 next h =
     case future h of
         [] -> h
         f::uture ->
-            History { past = ( Transformation.invert f )::( past h )
-                    , state = state h |> Transformation.engage f
-                    , future = uture }
+            History { past    = ( Transformation.invert f )::( past h )
+                    , present = present h |> Transformation.engage f
+                    , future  = uture
+                    }
 
 
-
-
+isTop : History s -> Bool                
 isTop h = future h == []
 
 top : History s -> History s
 top = next |> until isTop
 
+isBottom : History s -> Bool
 isBottom h = past h == []
 
 bottom : History s -> History s
@@ -129,21 +136,24 @@ bottom = prev |> until isBottom
 
 
 
--- for further consumption
+-- for further consumption or debugging
 
-summary h = { past = past h |> List.reverse >> List.map Transformation.serialize, state = state h, future = future h |> List.map Transformation.serialize }
-
+summary h = { past = past h |> List.reverse >> List.map Transformation.serialize
+            , present = present h
+            , future = future h |> List.map Transformation.serialize
+            }
 
 
 -- type helpers
 
 future ( History h ) = h.future
 mapFuture f ( History h ) = History { h | future = f h.future }
-                       
+
 past ( History h ) = h.past
 
-state ( History h ) = h.state
-
+present ( History h ) = h.present
+mapPresent f ( History h ) = History { h | present = f h.present }
+                      
 transformations : History s -> List ( Transformation s )
 transformations =
     both ( past >> List.reverse, future ) >> \(a, b) -> a++b

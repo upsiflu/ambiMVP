@@ -1,0 +1,7 @@
+module History.Intent exposing ( .. )
+
+type alias Endofunction s =
+    s -> s
+         
+type alias Intent s =
+    { serial : String, function : Endofunction s, inverse : Endofunction s }

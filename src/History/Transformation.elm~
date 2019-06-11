@@ -1,12 +1,12 @@
-module Transformation exposing
-    ( Transformation, Copy
+module History.Transformation exposing
+    ( Transformation, Copy (..)
     -- create
     , initial             -- given a Copy, create a 'first' 
     , successive          -- upon an optional previous Transformation (context), you can create Do and Undo Transformations.
     , do, undo            -- create Transformation Copies (without signature) for use in <follow>.
     -- read
-    , nominal             -- from the signature
     , engage              -- applies your function to your state. Identity in the cases of Curator and Undo.
+    , copy                -- a Do or an Undo
     -- map
     , invert              -- invert >> invert === id
     -- compare
@@ -40,7 +40,7 @@ type Copy s
          , function : ( s -> s ) 
          , inverse : ( s -> s )
          }
-    | Undo Signature
+    | Undo ( Transformation s )
 
 trivial : Copy s
 trivial = Do { serial = "trivial", function = identity, inverse = identity }
@@ -83,10 +83,7 @@ successive previous =
 -- specify copy
 
 do = Do
-
-undo : Transformation s -> Copy s
-undo =
-    signature >> Undo
+undo = Undo
 
         
              
@@ -138,7 +135,7 @@ serialize : Transformation t -> String
 serialize t =
     case copy t of
         Do x -> x.serial
-        Undo u -> "undo " ++ ( idString u.nominal ) ++ "#" ++ ( String.fromInt u.ordinal )
+        Undo u -> "undo " ++ ( nominal u ) ++ "#" ++ ( String.fromInt ( ordinal u ) )
 
 
 

@@ -5,6 +5,47 @@
 @import url('https://fonts.googleapis.com/css?family=Alegreya');
 
 
+.paragraph {background:white;}
+.style { background: #ff9999; }
+.value { background:silver;}
+.ambiguous { background:white; color:blue; opacity:0; visibility: hidden;
+	     transition: all .3s; }
+
+/* showing targeted controls */
+.targeted { background:yellow; }
+
+/* add child */
+.targeted > .ambiguous { opacity:1; visibility:visible; }
+
+/* add sibling */
+
+/* choose kind */
+.ambiguous.targeted { opacity:1; visibility:visible; background:black; color:orange; }
+
+
+
+div {margin:1em;}
+
+/* global layout */
+
+.ok { position:fixed; bottom:0; left:0; transition:height .2s; height:auto; overflow:hidden;}
+.ok button { width:100vw; background:black; color: white; }
+.targeted + .ok { height:0; }
+
+
+/* history bar */
+
+.edit {display:block;width:7rem;position:relative; line-height:3rem; white-space:nowrap; font-size:.6rem;}
+.sig {display:block;position:relative; top:-3.2rem; color:cyan; right:-2.5rem; line-height:1rem; padding:.2em;background:blue; border-radius:1rem;} 
+
+.history {background:black;position:relative;}
+.history button.scrollable {overflow:scroll;width:50vw; background:black; color:yellow;}
+.longline {white-space:nowrap; font-size:.5em;}
+button.hovering {position:absolute; border-radius:2rem; background:red; color:black; bottom:-1.5rem; right:2rem; max-width:3rem;min-height:3rem; font-size:.7rem; line-height:.7rem; padding:.2rem;}
+
+button {border:0;}
+*[onClick]:hover, button:hover {outline:1px solid red; outline-offset:-2px;}
+
 body {
   font-family: 'Alegreya', 'Cormorant Garamond', 'EB Garamond', serif;
   margin: 0;

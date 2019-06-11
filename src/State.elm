@@ -1,11 +1,13 @@
 module State exposing
-    ( State                    -- create
+    ( State
     , trivial 
-    , serialize                -- present
-    , possibleTransformations  -- permutations
+    , preview
+    , possible_transformations  -- all valid permutations
     )
 
-import Helpers exposing (..)
+import Html exposing ( .. )
+
+import Helpers exposing ( .. )
 
 type State = State { count : Float }
     
@@ -31,17 +33,24 @@ double ( State s ) = State { count = s.count*2 }
 
 half : State -> State
 half ( State s ) = State { count = s.count/2 }
-                                                                                                
-possibleTransformations assemble =
-    ( assemble { serial = "Inc", function = increment, inverse = decrement }
-    , assemble { serial = "Mul", function = double, inverse = half }
-    )
+                                                                                 
+possible_transformations _ =
+    [ { serial = "Inc", function = increment, inverse = decrement }
+    , { serial = "Mul", function = double, inverse = half }
+    ]
 
+
+-- read
+
+count ( State s ) = s.count
 
         
 -- present
 
-serialize ( State s ) = s.count |> round |> String.fromInt
+preview : State ->
+          ( { serial : String, function : Endofunction, inverse : Endofunction } -> msg ) ->
+          Html msg
+preview state dispatch = state |> count >> round >> String.fromInt >> text
 
 
                         

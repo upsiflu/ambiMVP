@@ -1,14 +1,15 @@
-module History exposing
+module History.History exposing
     ( History   -- only used in main. Can we get rid of this?
     , singleton -- wrapping a State.
     , insert    -- inserting any Transformation on the same State type.
     , do, undo  -- create Transformations for appending to the history. They will slot in right after the current future.
     , browse    -- walk around (edges will be soft).
     , summary   -- a useful summary of the current components.
+    , undoList
     )
 import Helpers exposing (..)
 import List.Extra exposing ( last )
-import Transformation exposing ( Transformation )
+import History.Transformation as Transformation exposing ( Transformation, Copy (..) )
 
 
 
@@ -45,22 +46,14 @@ singleton : s -> History s
 singleton s =
     History { past = [], state = s, future = [] }
 
--- what dows it do?
--- It takes a history and an action.
--- It wraps the action into a Copy.
--- It finds the latest transformation in the history and creates a successor.
-
 slot : History s -> Transformation.Copy s -> Transformation s
 slot = transformations >> last >> Maybe.withDefault ( Transformation.initial ) >> Transformation.successive
     
-do : History s -> { function : s -> s, inverse : s -> s, serial : String } -> Transformation s
-do h =
-    Transformation.do >> ( slot h )
+do h = Transformation.do >> ( slot h )
 
-undo : History s -> Transformation s -> Transformation s
-undo h =
-    Transformation.undo >> ( slot h )
+undo h = Transformation.undo >> ( slot h )
 
+         
                    
 -- map
         
@@ -99,23 +92,48 @@ prev : History s -> History s
 prev h =
     case past h of
         [] -> h
-        p::ast ->
+        p::ast -> 
+            let hh = case Transformation.copy p of
+                     Undo t -> switch t h
+                     _ -> h in 
             History { past = ast
-                    , state = state h |> Transformation.engage p
-                    , future = ( Transformation.invert p )::( future h ) }
+                    , state = state hh |> Transformation.engage p
+                    , future = ( Transformation.invert p )::( future hh )
+                    }
 
 next : History s -> History s
 next h =
     case future h of
         [] -> h
         f::uture ->
+            let hh = case Transformation.copy f of
+                     Undo t -> switch t h
+                     _ -> h in
+            History { past = ( Transformation.invert f )::( past hh )
+                    , state = state hh |> Transformation.engage f
+                    , future = uture
+                    }
+                       
+switch : Transformation s -> History s -> History s
+switch t h =
+    case past h of
+        [] -> h
+        p::ast ->
+            if  p == t
+            then h |> prev |> skip
+            else h |> prev |> switch t |> next
+
+skip : History s -> History s
+skip h =
+    case future h of
+        [] -> h
+        f::uture ->
             History { past = ( Transformation.invert f )::( past h )
-                    , state = state h |> Transformation.engage f
+                    , state = state h
                     , future = uture }
 
 
-
-
+                
 isTop h = future h == []
 
 top : History s -> History s
@@ -131,6 +149,7 @@ bottom = prev |> until isBottom
 -- for further consumption
 
 summary h = { past = past h |> List.reverse >> List.map Transformation.serialize, state = state h, future = future h |> List.map Transformation.serialize }
+undoList h = { past = past h |> List.reverse, future = future h }
 
 
 
@@ -138,11 +157,12 @@ summary h = { past = past h |> List.reverse >> List.map Transformation.serialize
 
 future ( History h ) = h.future
 mapFuture f ( History h ) = History { h | future = f h.future }
-                       
+
 past ( History h ) = h.past
 
 state ( History h ) = h.state
-
+mapState f ( History h ) = History { h | state = f h.state }
+                      
 transformations : History s -> List ( Transformation s )
 transformations =
     both ( past >> List.reverse, future ) >> \(a, b) -> a++b

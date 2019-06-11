@@ -3,34 +3,65 @@ module Ui exposing
         
 import Html exposing (..)
 import Html.Events exposing (..)
+import Html.Attributes exposing ( .. )
 
 import Helpers exposing (..)
-import History
 
-import State exposing ( serialize, possibleTransformations )
+import History exposing ( History )
+import History.Transformation exposing ( Transformation )
+import History.Intent exposing ( .. )
 
+{-  VIEW
 
+    messages:
+       browse_history: how to browse inside the History.
+       intend: how to add a Transformation to the History.
+    history: just a history.
+    preview: how to turn a state within the history into Html.
+    modifications: how to continue the history (create a subsequent transformation).
+-}
 
+view : { transform : Transformation s -> msg, browse_history : Maybe Int -> msg } ->
+       History s ->
+       ( ( Intent s -> msg ) ->
+         s -> 
+         Html msg
+       ) ->
+       List  ( Intent s ) ->
+       { body : List (Html msg), title : String }
 
-view actions m =
+view messages history preview modifications =
     let
-        summary =    History.summary m.composition
-        (inc, mul) = History.do m.composition |> State.possibleTransformations
-                      
-        --undo =       m.persist |> History.beyond >> undo
+        summary  =
+            History.summary history
+        option_button copy =
+            button
+                 [ messages.transform ( History.do history copy ) |> onClick ]
+                 [ text copy.serial ]
+        options  =
+            modifications
+                 |> List.map option_button
+        view_transformation ( sig, edit ) =
+            span []
+                [ span [ class "edit" ] [ text edit, span [ class "sig"  ] [ text sig  ] ] ]
     in
-        { title = "MVP"
+        { title = "Kai!"
          , body =
-               [ p []
-                     [ button [ actions.browseHistory (Just -1) |> onClick ] [ text <| ( String.join "<" ( ""::summary.past ) ) ++ "-" ]
-                     , button [ actions.browseHistory (Just 1)  |> onClick ] [ text <| "-" ++ ( String.join ">" ( ""::summary.future ) ) ]
+               [ p   [ class "history" ]
+                     [ button [ class "scrollable"
+                              , messages.browse_history (Just -1) |> onClick ]
+                              ( List.map view_transformation summary.past )
+                     , button [ class "scrollable"
+                              , messages.browse_history (Just 1)  |> onClick ]
+                              ( List.map view_transformation summary.future )
                      , br [] []
-                     , button [ actions.browseHistory (Nothing)  |> onClick ] [ text "visit the end of history" ]
-                     --, button [ actions.insert undo |> onClick ] [ text "undo" ]
+                     , button [ class "hovering", messages.browse_history (Nothing) |> onClick ]
+                              [ text "go to end of history" ]
                      ]
-               , h1 [] [ text "MVP 2 (still! But undo is on the go)" ]
-               , h2 [] [ text "state:" ], h2 [] [ summary.state |> serialize |> text ]
-               , button [ actions.insert mul |> onClick ] [ text "×2" ]
-               , button [ actions.insert inc |> onClick ] [ text "+1" ]
-               ]
+               , h1 [] [ text "Kai's" ]
+               , p  [] [ let
+                           intent_to_message = History.do history >> messages.transform
+                          in preview intent_to_message summary.present
+                       ]
+               ] ++ options 
          } 
