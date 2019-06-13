@@ -36,7 +36,7 @@ view messages history preview possible_intents =
             History.summary history
         option_button copy =
             button
-                 [ messages.transform ( History.do history copy ) |> onClick ]
+                 [ class "opt", messages.transform ( History.do history copy ) |> onClick ]
                  [ text copy.serial ]
         options  =
             possible_intents
@@ -58,10 +58,15 @@ view messages history preview possible_intents =
                      , button [ class "hovering", messages.browse_history (Nothing) |> onClick ]
                               [ text "go to end of history" ]
                      ]
-               , h1 [] [ text "Kai's" ]
-               , p  [] [ let
+               , p  [ class "two_up" ] <| 
+                       let
                              intent_to_message = History.do history >> messages.transform
-                          in preview intent_to_message summary.present
-                       ]
+                          in 
+                             [ section [ class "tree" ] 
+                                       [ preview intent_to_message summary.present ],
+                               section [ class "layout" ] 
+                                       [ preview intent_to_message summary.present ]
+                             ]
+                       
                ] ++ options 
          } 

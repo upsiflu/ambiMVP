@@ -154,7 +154,7 @@ preview sig intent_to_message compositron =
                 |> both ( root >> tree, identity )
                 |> toHtml sig intent_to_message
 
-    in div [] [ header, composition, ok ]
+    in section [ class "compositron" ] [ header, composition, ok ]
 
        
 toHtml :
@@ -210,7 +210,7 @@ toHtml sig intent_to_message structure =
 
         Ambiguous ->
             div [ class "ambiguous", navigate_here ]
-                [ label [] [ text node.signature ]
+                [ span [ class "ellipsis" ] [ text "..." ], label [] [ text node.signature ]
                 ]
                 
         Highlight i ->
