@@ -29,10 +29,10 @@ type alias Signature = String
 type Item
 
     -- kinds:
-    = Style
-    | Value ( Maybe String )
+    = Style ( Maybe String )
+    | Span ( Maybe String )
     | Parag
-
+    
     -- automatically inserted:
     | Ambiguous
       
@@ -58,18 +58,18 @@ trivial =
 alternative =
     Tree.tree { signature = "0", item = Parag }
         [ Tree.singleton { signature = "0.0", item = Ambiguous }
-        , Tree.tree      { signature = "0.1", item = Value ( Just "paragraph text" ) }
+        , Tree.tree      { signature = "0.1", item = Span ( Just "paragraph text" ) }
             [ Tree.singleton { signature = "0.1.0", item = Ambiguous } ]
-        , Tree.tree      { signature = "0.2", item = Style }
+        , Tree.tree      { signature = "0.2", item = Style ( Just "align_left" ) }
             [ Tree.singleton { signature = "0.2.0", item = Ambiguous }
-            , Tree.tree      { signature = "0.2.1", item = Value ( Just "align left" ) }
+            , Tree.tree      { signature = "0.2.1", item = Span ( Just "align left" ) }
                 [ Tree.singleton { signature = "0.2.1.0", item = Ambiguous } ]  
-            , Tree.tree      { signature = "0.2.2", item = Value ( Just "red shade" ) } 
+            , Tree.tree      { signature = "0.2.2", item = Span ( Just "red shade" ) } 
                 [ Tree.singleton { signature = "0.2.2.0", item = Ambiguous } ] 
             ]
-        , Tree.tree { signature = "0.3", item = Style }
+        , Tree.tree { signature = "0.3", item = Style Nothing }
             [ Tree.singleton { signature = "0.3.0", item = Ambiguous }  
-            , Tree.tree      { signature = "0.3.1", item = Value ( Just "blue shade" ) }
+            , Tree.tree      { signature = "0.3.1", item = Span ( Just "blue shade" ) }
                 [ Tree.singleton { signature = "0.3.1.0", item = Ambiguous } ] 
             ]
         ]
@@ -101,8 +101,13 @@ untarget sig =
 
 set : ( Maybe String, Maybe String ) -> Map
 set ( string, old ) =
-    mapLabel ( \node -> { node | item = Value string } )
-    
+    mapLabel ( \node -> { node | item = 
+        case node.item of
+            Span _ -> Span string
+            Style _ -> Style string
+            x -> x
+                        } )
+
 choose : Signature -> Item -> Map
 choose new choice =
     logTree
@@ -160,6 +165,7 @@ preview sig intent_to_message compositron =
                 |> mapLabel ( \node -> { node | item = Highlight node.item } )
                 |> both ( root >> tree, identity )
                 |> toHtml sig intent_to_message
+                |> section [ class "tree" ]
 
     in section [ class "compositron" ] [ header, composition, ok ]
 
@@ -168,7 +174,8 @@ toHtml :
     Signature
         -> ( Intent Compositron -> msg )
         -> ( Compositree, Compositron )
-        -> Html msg
+        -> List ( Html msg )
+        
 toHtml sig intent_to_message structure =
     let
         ( compositree, compositron ) =
@@ -180,6 +187,7 @@ toHtml sig intent_to_message structure =
         inner = \_->
             Tree.children compositree
             |> List.map (\child -> toHtml sig intent_to_message ( child, compositron ) )
+            |> List.concat
 
         to_message =
             create_intent sig compositron
@@ -201,87 +209,133 @@ toHtml sig intent_to_message structure =
             case string of
                  ""  -> Nothing
                  str -> Just str
-              
+            
+            
+    -- layout
+    
+    {- every node consists of
+        - an anchor (probably a button)
+        - perhaps a presentation
+        - and a container of its children.
+     -}
+     
+        no_html = text ""
+        default_view item_type =
+            { item_type = item_type
+            , attributes = 
+                [ class item_type 
+                , class "anchor"
+                , navigate_here
+                ]
+            , on_anchor = no_html
+            , on_item = no_html
+            , subsequent = inner
+            }
+
+        interactive params =
+            { params | attributes = ( class "targeted" )::params.attributes }
+
+        with_on_anchor a params = { params | on_anchor = a }
+        with_on_item i params = { params | on_item = i }
+        with_subsequent s params = { params | subsequent = s }
+        
+        present view_parameters =
+            button
+                view_parameters.attributes
+                [ label [ class "signature" ] [ text node.signature ]
+                , label [ class "item_type" ] [ text view_parameters.item_type ]
+                , view_parameters.on_anchor
+                ]
+            |> before ( view_parameters.on_item :: ( view_parameters.subsequent () ) )
+
+        view_style string =
+            default_view "Style"
+                |> with_on_anchor
+                    ( input
+                        [ id ( node.signature ++ "-input" )
+                        , class "input"
+                        , value ( string |> Maybe.withDefault "" )
+                        , set_this string
+                        ] []
+                    )
+        
+        view_span string =
+            default_view "Span"
+                |> with_on_item
+                    ( input
+                        [ id ( node.signature ++ "-input" )
+                        , class "input"
+                        , value ( string |> Maybe.withDefault "" )
+                        , set_this string
+                        ] []
+                    )
+
+        view_parag =
+            default_view "Parag"
+                |> with_subsequent ( always [ p [] ( inner () ) ] )
+                
+        view_ambiguous =
+            default_view "Ambiguous"
+                |> with_on_item
+                    ( button 
+                        [ class "ellipsis" ] 
+                        [ text "+" ]
+                    )
+            
+
+        
+        
     in  case node.item
         of
-        Style ->
-            div [ class "item style", navigate_here ]
-                <|  [ label [] [ text node.signature
-                               , text ": style" ]
-                    ] ++ ( inner () )
-
-        Value string ->
-            let input_id = node.signature ++ "input"
-            in label 
-                   [ class "item value", navigate_here, for input_id ]
-                <| [ label [ for input_id ] [ text node.signature , text ": value: " ]
-                   , input [ id input_id
-                           , class "input"
-                           , value ( string |> Maybe.withDefault "" )
-                           , set_this string
-                           ][]
-                   ] ++ ( inner () )
+        Style string ->
+            view_style string |> present
+            
+        Span string ->
+            view_span string |> present
                 
         Parag ->
-            div [ class "item paragraph", navigate_here ]
-                <| [ label [] [ text node.signature
-                              , text ": paragraph" ]
-                   ] ++ ( inner () )
+            view_parag |> present
 
         Ambiguous ->
-            div [ class "item ambiguous", navigate_here ]
-                [ button [ class "ellipsis" ] [ text "..." ], label [] [ text node.signature ]
-                ]
-                
+            view_ambiguous |> present
+            
         Highlight i ->
            case i
             of
-            Style ->
-                div [ class "item style targeted", navigate_here ]
-                    <| [ label [] [ text node.signature
-                                  , text ": style" ]
-                       ] ++ ( inner () )
-                    
-            Value string ->
-                let input_id = node.signature ++ "input"
-                in label 
-                       [ class "item value targeted", navigate_here, for input_id ]
-                    <| [ label [ for input_id ] [ text node.signature
-                                  , text ": value: " ]
-                       , input [ id input_id
-                               , name input_id
-                               , class "input" 
-                               , value ( string |> Maybe.withDefault "" ) 
-                               , set_this string
-                               ][]
-                       ] ++ ( inner () )
-                    
+            
+            Style string ->
+                view_style string |> interactive |> present
+                
+            Span string ->
+                view_span string 
+                |> interactive >> with_on_item
+                    ( input
+                        [ id ( node.signature ++ "-input" )
+                        , class "input"
+                        , value ( string |> Maybe.withDefault "" )
+                        , set_this string
+                        ] []
+                    )
+                |> present
+                
             Parag ->
-                  p   [ class "item paragraph targeted", navigate_here ]
-                      <| [ label [] [ text node.signature
-                                    , text ": paragraph" ]
-                         ] ++ ( inner () )
+                view_parag |> interactive |> present
                       
             Ambiguous ->
-                let
-                    style =
-                        button [ class "choice", choose_this Style ]
-                               [ text "Style" ]
-
-                    value =
-                        button [ class "choice", choose_this ( Value Nothing ) ]
-                               [ text "Value" ]
-
-                    parag =
-                        button [ class "choice", choose_this Parag ]
-                               [ text "Paragraph" ]
-                 in
-                  div [ class "ambiguous targeted", navigate_here ]
-                      <| [ Html.label [] [ text node.signature ]
-                         , style, value, parag
-                         ]
+                view_ambiguous
+                |> interactive >> with_on_anchor
+                    ( label []
+                        [ button [ class "choice", choose_this ( Style Nothing ) ]
+                                 [ text "Style" ]
+                        , button [ class "choice", choose_this ( Span Nothing ) ]
+                                 [ text "Span" ]
+                        , button [ class "choice", choose_this Parag ]
+                                 [ text "Paragraph" ]
+                        ]
+                    )
+                |> present
                 
-            _ -> text ";"
+            _ -> [text ";"]
                                                         
 
 
@@ -322,9 +376,9 @@ create_intent sig compositron edit =
     let
         verbalize choice =
             case choice of
-                Value _ -> "V"
+                Span _ -> "V"
                 Parag -> "P"
-                Style -> "S"
+                Style _ -> "S"
                 _ -> "weird"
         normalize_str =
             Maybe.withDefault ""

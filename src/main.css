@@ -69,51 +69,51 @@ button.ellipsis:focus { color:red; text-shadow:1px 0 .2rem red; box-shadow:none;
 .tree
     { padding:3rem 0; background:transparent; }
 
-.tree .item
+.tree .anchor
     { background:white; border-left:1rem solid silver;
         position:relative;
         transition:all .1s;
         display:block;
     }
-.tree .item.ambiguous {border-color: transparent;}
-.tree .item label 
+.tree .anchor.Ambiguous {border-color: transparent;}
+.tree .anchor label 
     { position:relative; display:block; width:100%; color:silver; }
 
 .paragraph { }
 .style { }
 .value { }
 
-.ambiguous { color:rgb(255,90,100); opacity:0; visibility: hidden;
+.Ambiguous { color:rgb(255,90,100); opacity:0; visibility: hidden;
 	     transition: all .3s; z-index:1;}
 
 /* showing targeted controls */
-.tree .item.targeted, .tree p.targeted { border-left: 1rem solid rgb(255,90,100) }
+.tree .anchor.targeted, .tree p.targeted { border-left: 1rem solid rgb(255,90,100) }
 
 /* add child */
-.targeted > .ambiguous { opacity:1; visibility:visible; }
+.targeted > .Ambiguous { opacity:1; visibility:visible; }
 .ellipsis {  }
 
 /* add sibling */
 
 /* choose kind */
-.tree .ambiguous
+.tree .Ambiguous
     { white-space: nowrap; position:relative; background:white; height:3rem;}
-.tree .ambiguous.targeted
+.tree .Ambiguous.targeted
     { opacity:1; visibility:visible;}
-.tree .ambiguous button.choice
+.tree .Ambiguous button.choice
     { display: inline; width: 4rem; vertical-align:center; 
     padding:0; height:4rem;
     box-shadow:.1rem .1rem .8rem rgba(200,0,0,.3);
     margin: -.5rem .1rem; background: rgb(255,90,100); z-index:4; color:white; }
-.tree .ambiguous button.choice:hover
+.tree .Ambiguous button.choice:hover
     {background: rgb(200,10,60); color:rgb(255,200,200) }
-.tree .ambiguous label
+.tree .Ambiguous label
     { left: 0; position:fixed; bottom:0rem;
         background:silver; padding:.4 1.5rem; font-size:.75rem; color:black;}
 
 
-.ambiguous.targeted label {opacity:.5; z-index:3;}
-.ambiguous:hover label {opacity:1}
+.Ambiguous.targeted label {opacity:.5; z-index:3;}
+.Ambiguous:hover label {opacity:1}
 
 
 /* global layout */
@@ -175,7 +175,7 @@ button.publish.browse {background:silver;}
 button.publish svg { fill:white; display:block; margin:.5rem auto; transform:scale(2)}
 button.publish:hover{background:rgb(0,52,150)}
 button:focus {box-shadow:.1rem 0 2rem rgba(0,0,100,.5); outline:none;z-index:8;}
-.tree .ambiguous button.choice:focus
+.tree .Ambiguous button.choice:focus
     {box-shadow:.1rem 0 2rem rgba(200,0,10,.5); outline:none;z-index:8;}
     
     

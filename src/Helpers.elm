@@ -24,7 +24,10 @@ until predicate succ variable =
 
 prepend : a -> List a -> List a
 prepend x xs = x::xs
-        
+
+before : List a -> a -> List a
+before xs x = x::xs
+
 -- Html helpers
 
 onClickNoBubble message =
