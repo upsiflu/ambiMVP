@@ -5,70 +5,17 @@
 @import url('https://fonts.googleapis.com/css?family=Alegreya');
 
 .history,.opt, h1,h2 { display:none; }
-
-
-.two_up { display:flex; width:100vw; }
-
 * { box-sizing: border-box; }
 
-.paragraph, .style, .value { background:white; border:1rem solid transparent;}
-
-.paragraph { }
-.style { }
-.value { }
-.ambiguous { color:blue; opacity:0; visibility: hidden;
-	     transition: all .3s; }
-
-/* showing targeted controls */
-.targeted::not(.ambiguous) { border: 1rem solid yellow !important; }
-
-/* add child */
-.targeted > .ambiguous { opacity:1; visibility:visible; }
-.ellipsis {  }
-
-/* add sibling */
-
-/* choose kind */
-.ambiguous { white-space: nowrap; position:relative; background:white; height:3rem;}
-.ambiguous.targeted { opacity:1; visibility:visible; color:orange; }
-.ambiguous button { display: inline; width: 5rem; vertical-align:center; 
-            padding:0; height:5rem;
-		    margin: -1rem .2rem; background: #3070f9; z-index:4; color:white; }
-.ambiguous label { left: 0; position:fixed; bottom:0rem; background:silver; padding:.4 1.5rem; font-size:.75rem; color:black;}
-
-.ambiguous.targeted label {opacity:.5; z-index:3;}
-.ambiguous:hover label {opacity:1}
-
-
-div {margin:1em;}
-
-/* global layout */
-
-.ok { position:fixed; bottom:0; left:0; transition:height .2s; height:auto; overflow:hidden;}
-.ok button { width:100vw; background:black; color: white; }
-.targeted + .ok { height:0; }
-
-
-/* history bar */
-
-.edit {display:block;width:7rem;position:relative; line-height:3rem; white-space:nowrap; font-size:.6rem;}
-.sig {display:block;position:relative; top:-3.2rem; color:cyan; right:-2.5rem; line-height:1rem; padding:.2em;background:blue; border-radius:1rem;} 
-
-.history {background:black;position:relative; height: 20vh; overflow-y:scroll;}
-.history button.scrollable {overflow:scroll;width:50vw; background:black; color:yellow;}
-.longline {white-space:nowrap; font-size:.5em;}
-button.hovering {position:absolute; border-radius:2rem; background:red; color:black; bottom:-1.5rem; right:2rem; max-width:3rem;min-height:3rem; font-size:.7rem; line-height:.7rem; padding:.2rem;}
-
-button {border:0;}
-*[onClick]:hover, button:hover {outline:1px solid red; outline-offset:-2px;}
-
-body {
+body, p, input, h1, h2, h3 {
   font-family: 'Alegreya', 'Cormorant Garamond', 'EB Garamond', serif;
   margin: 0;
-  text-align: center;
   color: #333;
   line-height:1.2em;
+  font-size:1em;
 }
+
+body {padding:0; margin:0; text-align: center;}
 
 h1 {
     font-size: 2rem; margin-top:2rem; padding:0;
@@ -82,11 +29,164 @@ img {
     max-width: 32em;
 }
 
-button, label, .caption, .ellipsis {
+button, .caption {
+    border:0;
     padding:.8rem 1.4rem;
     font-family: sans-serif; font-weight: bold;
     line-height:1.25rem;
     letter-spacing:-.05em;
     font-size:.75rem;
+}
+
+button.choice, .caption {
     border-radius:3rem;
 }
+
+input {
+    border:0; border-bottom: .05rem solid silver; padding:0 1rem .1rem 1rem; 
+    width:calc(100% - 2rem); transition:all .1s;
+}
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-bottom: .15rem solid rgb(255,90,100); padding:0 .1rem 0 .1rem;
+    width:calc(100% - .2rem); 
+    text-indent: 1.8rem;
+}
+
+.avatar_picture { 
+    background: rgb(110,230,150); 
+    width:12rem; height:12rem; margin:1rem auto;
+    line-height:21rem;
+}
+
+button.ellipsis { width:100%; background:white; border:none; height:2rem; }
+button.ellipsis:focus { color:red; text-shadow:1px 0 .2rem red; box-shadow:none; }
+
+/* We style the actual items only as descendants of either .layout or .tree */
+
+.tree
+    { padding:3rem 0; background:transparent; }
+
+.tree .item
+    { background:white; border-left:1rem solid silver;
+        position:relative;
+        transition:all .1s;
+        display:block;
+    }
+.tree .item.ambiguous {border-color: transparent;}
+.tree .item label 
+    { position:relative; display:block; width:100%; color:silver; }
+
+.paragraph { }
+.style { }
+.value { }
+
+.ambiguous { color:rgb(255,90,100); opacity:0; visibility: hidden;
+	     transition: all .3s; z-index:1;}
+
+/* showing targeted controls */
+.tree .item.targeted, .tree p.targeted { border-left: 1rem solid rgb(255,90,100) }
+
+/* add child */
+.targeted > .ambiguous { opacity:1; visibility:visible; }
+.ellipsis {  }
+
+/* add sibling */
+
+/* choose kind */
+.tree .ambiguous
+    { white-space: nowrap; position:relative; background:white; height:3rem;}
+.tree .ambiguous.targeted
+    { opacity:1; visibility:visible;}
+.tree .ambiguous button.choice
+    { display: inline; width: 4rem; vertical-align:center; 
+    padding:0; height:4rem;
+    box-shadow:.1rem .1rem .8rem rgba(200,0,0,.3);
+    margin: -.5rem .1rem; background: rgb(255,90,100); z-index:4; color:white; }
+.tree .ambiguous button.choice:hover
+    {background: rgb(200,10,60); color:rgb(255,200,200) }
+.tree .ambiguous label
+    { left: 0; position:fixed; bottom:0rem;
+        background:silver; padding:.4 1.5rem; font-size:.75rem; color:black;}
+
+
+.ambiguous.targeted label {opacity:.5; z-index:3;}
+.ambiguous:hover label {opacity:1}
+
+
+/* global layout */
+
+.ok { position:fixed; bottom:0; left:0; transition:height .2s; height:auto; overflow:hidden;}
+.ok button { width:100vw; background:black; color: white; }
+.targeted + .ok { height:0; }
+
+
+/* history bar 
+
+.edit {display:block;width:7rem;position:relative; line-height:3rem; white-space:nowrap; font-size:.6rem;}
+.sig {display:block;position:relative; top:-3.2rem; color:cyan; right:-2.5rem; line-height:1rem; padding:.2em;background:blue; border-radius:1rem;} 
+
+.history {background:black;position:relative; height: 20vh; overflow-y:scroll;}
+.history button.scrollable {overflow:scroll;width:50vw; background:black; color:yellow;}
+.longline {white-space:nowrap; font-size:.5em;}
+button.hovering {position:absolute; border-radius:2rem; background:red; color:black; bottom:-1.5rem; right:2rem; max-width:3rem;min-height:3rem; font-size:.7rem; line-height:.7rem; padding:.2rem;}
+
+
+
+
+*/
+
+/* Review */
+
+main { overflow-x:auto; height:calc(100vh - 15.2rem); padding-top:1.8rem;
+    transition:all .4s;
+}
+
+body { overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column;}
+
+.options {transition:height 1s;}
+
+@media only screen and (max-width: 56rem) {
+  .options {height:auto;}
+    main > * > * { width:100%; transition:all .3s; }
+  main.reviewing { margin-left:-100vw; }
+  
+main > * { display:flex; width:200vw; }
+  @media only screen and (max-width: 28rem) {
+    body { width: 28em; font-size: calc(100vw / 28) }
+  }
+      
+}
+@media only screen and (min-width: 56rem) {
+    .options {height:0; overflow:hidden; }
+  main > * > * { min-width:28rem; }
+  .review { max-width:28rem; }
+  .editor { width:calc(100vw - 28rem) }
+  body { width: 100vw; font-size: 1rem}
+   
+}
+
+button.publish {display:block; margin:1rem auto; padding:.8rem 3rem; border:none;
+    background:rgb(0,72,180); color:white; border-radius:.4em;
+}
+button.publish.browse {background:silver;}
+button.publish svg { fill:white; display:block; margin:.5rem auto; transform:scale(2)}
+button.publish:hover{background:rgb(0,52,150)}
+button:focus {box-shadow:.1rem 0 2rem rgba(0,0,100,.5); outline:none;z-index:8;}
+.tree .ambiguous button.choice:focus
+    {box-shadow:.1rem 0 2rem rgba(200,0,10,.5); outline:none;z-index:8;}
+    
+    
+button.mode { color:white; }
+button.edit { background:rgb(255,90,100); }
+button.review { background:rgb(0,72,180); }
+
+button.edit {flex:7;}
+button.review {flex:2;}
+
+button.reviewing.edit {flex:2;}
+button.reviewing.review {flex:7;}
+
+.options {width:100vw; display:flex;}

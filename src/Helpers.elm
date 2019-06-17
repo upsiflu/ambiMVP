@@ -36,3 +36,10 @@ onClickNoBubble message =
                  , preventDefault = True
                  }
             )
+
+last l =
+    case l of 
+              x::[] -> Just x
+              x::xs -> last xs
+              [] -> Nothing
+              

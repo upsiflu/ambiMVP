@@ -5,12 +5,11 @@ module History exposing
     , do        -- create Transformations for inserting later.
                 -- They'll slot in right after the current future.
                 -- TODO: You get a tuple with a unique, serialized signature.
-    , browse    -- walk around (edges will be soft so you stay in bounds).
+    , browse_to -- walk (edges will be soft so you stay in bounds).
     , summary   -- past, present and future.
     , recent_signature_string -- recent signature
     )
 import Helpers exposing ( .. )
-import List.Extra exposing ( last )
 import History.Transformation as Transformation exposing ( Transformation, Copy ( .. ) )
 import History.Intent as Intent exposing ( .. )
 
@@ -89,6 +88,15 @@ insert t h =
 
 
 -- browse
+
+browse_to : Maybe Int -> History s -> History s
+browse_to to h =
+    let position = past h |> List.length |> always
+    in h |> case to of
+        Nothing ->
+            top
+        Just n ->
+            browse ( Just ( n - position () ) )
 
 browse : Maybe Int -> History s -> History s
 browse by =

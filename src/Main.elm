@@ -25,8 +25,32 @@ type alias Route = String
        
 -- init
 
-init : () -> Url.Url -> Nav.Key -> ( { session : History State, route : Route }, Cmd Msg )
-init = \flags url key -> ( { session = History.singleton State.trivial, route = "" }, Cmd.none )
+type alias Model =
+    { session : History State
+    , route : Route
+    , view_options : ViewOptions
+    }
+
+type alias ViewOptions =
+    { layout : Bool
+    , review : Bool
+    , browse_past : Maybe Int } 
+
+init : () ->
+    Url.Url ->
+    Nav.Key ->
+    ( Model
+    , Cmd Msg 
+    )
+init = \flags url key ->
+    ( { session = History.singleton State.trivial
+      , route = ""
+      , view_options =
+        { layout = False
+        , review = False 
+        , browse_past = Nothing
+        }
+      }, Cmd.none )
 
 
 
@@ -38,23 +62,48 @@ type Msg
     | Intend        ( Intent State )
     | Transform     ( Transformation State )
     | BrowseHistory ( Maybe Int )
+    | ToggleLayout
+    | ToggleReview
                  
 update msg model =
     let
-        persist f =
-             ( { model | session = f model.session }, Cmd.none )
-        browse_present = History.browse Nothing
+        commit : ( Model -> Model ) -> ( Model, Cmd msg )
+        commit f =
+             ( model 
+               |> f 
+               |> ( \m -> map_session ( History.browse_to m.view_options.browse_past ) m )
+             , Cmd.none )
+        map_session : ( History State -> History State ) -> Model -> Model
+        map_session f m =
+             { m | session = f m.session }
+        map_view : ( ViewOptions -> ViewOptions ) -> Model -> Model
+        map_view f m =
+             { m | view_options = f m.view_options }
+        browse to =
+             map_view ( \v-> {v| browse_past = to } )
     in
     case msg of
         Intend intent ->
             -- package, send and receive
-            persist identity
+            commit identity
         Transform transformation ->
-            persist ( History.insert transformation >> browse_present )
-        BrowseHistory by ->
-            persist ( History.browse by )
+            map_session ( History.insert transformation )
+            >> browse Nothing --i.e. present
+            |> commit 
+        BrowseHistory to ->
+            browse to
+            |> commit
+        ToggleLayout ->
+            map_view (\v -> 
+                if v.review 
+                then {v| review = not v.review } 
+                else {v| layout = not v.layout })
+            |> commit
+        ToggleReview ->
+            map_view (\v -> {v| review = not v.review } )
+            |> commit
         _ ->
-            ( model, Cmd.none )
+            commit identity
 
              
 -- program
@@ -69,7 +118,10 @@ main = Browser.application
                  Ui.view
                  { transform = Transform
                  , browse_history = BrowseHistory
+                 , toggle_layout = ToggleLayout
+                 , toggle_review = ToggleReview
                  }
+                 model.view_options
                  model.session
                  ( State.preview recent_signature_string )
                  ( State.possible_intents recent_signature_string present )

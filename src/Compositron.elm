@@ -88,16 +88,22 @@ item = Tree.Zipper.label >> .item
 -- map
 
 
-target : Signature -> Compositron -> Compositron
+type alias Map = Compositron -> Compositron
+
+target : Signature -> Map
 target sig =
     findFromRoot ( \node -> .signature node == sig )
     >> Maybe.withDefault trivial
 
-untarget : Signature -> Compositron -> Compositron
+untarget : Signature -> Map
 untarget sig =
     root
 
-choose : Signature -> Item -> Compositron -> Compositron
+set : ( Maybe String, Maybe String ) -> Map
+set ( string, old ) =
+    mapLabel ( \node -> { node | item = Value string } )
+    
+choose : Signature -> Item -> Map
 choose new choice =
     logTree
     >> Tree.Zipper.replaceTree ( Tree.tree { signature = new, item = choice }
@@ -108,14 +114,15 @@ choose new choice =
 
 logTree = Debug.log "tree"
     
-addNode : Node -> Compositron -> Compositron
+addNode : Node -> Map
 addNode n z =
     case Tree.Zipper.parent z of
         Nothing -> z
         Just p -> p |>
-           Tree.Zipper.mapTree ( \t -> Tree.mapChildren ( \c-> ( Tree.singleton n ) :: c ) t ) 
+           Tree.Zipper.mapTree
+                ( \t -> Tree.mapChildren ( \c-> ( Tree.singleton n ) :: c ) t ) 
                 
-clear : Item -> Compositron -> Compositron
+clear : Item -> Map
 clear choice =
     mapLabel ( \node -> { node | item = Ambiguous } ) 
 
@@ -146,7 +153,7 @@ preview sig intent_to_message compositron =
         ok =
             Html.label
                 [ class "ok" ]
-                [ button [ navigate_back ] [ text "OK" ] ]
+                [ button [ navigate_back, accesskey 'x' ] [ text "OK" ] ]
 
         composition =
             compositron
@@ -174,63 +181,83 @@ toHtml sig intent_to_message structure =
             Tree.children compositree
             |> List.map (\child -> toHtml sig intent_to_message ( child, compositron ) )
 
-        click =
+        to_message =
             create_intent sig compositron
             >> intent_to_message
-            >> onClickNoBubble
 
         navigate_here =
             Target node.signature
-            |> click
+            |> to_message >> onClickNoBubble
                
-        intend_choice option =
+        choose_this option =
             Choose option
-            |> click
+            |> to_message >> onClickNoBubble
+
+        set_this old =
+            ( \new -> to_message ( Set ( ( destring new ), old ) ) )
+            |> onInput
+
+        destring string =
+            case string of
+                 ""  -> Nothing
+                 str -> Just str
               
     in  case node.item
         of
         Style ->
-            div [ class "style", navigate_here ]
+            div [ class "item style", navigate_here ]
                 <|  [ label [] [ text node.signature
                                , text ": style" ]
                     ] ++ ( inner () )
 
         Value string ->
-            div [ class "value", navigate_here ]
-                <| [ label [] [ text node.signature
-                              , text ": value: " ]
-                   , input [ class "input", value ( string |> Maybe.withDefault "" ) ][]
+            let input_id = node.signature ++ "input"
+            in label 
+                   [ class "item value", navigate_here, for input_id ]
+                <| [ label [ for input_id ] [ text node.signature , text ": value: " ]
+                   , input [ id input_id
+                           , class "input"
+                           , value ( string |> Maybe.withDefault "" )
+                           , set_this string
+                           ][]
                    ] ++ ( inner () )
                 
         Parag ->
-            p   [ class "paragraph", navigate_here ]
+            div [ class "item paragraph", navigate_here ]
                 <| [ label [] [ text node.signature
                               , text ": paragraph" ]
                    ] ++ ( inner () )
 
         Ambiguous ->
-            div [ class "ambiguous", navigate_here ]
-                [ span [ class "ellipsis" ] [ text "..." ], label [] [ text node.signature ]
+            div [ class "item ambiguous", navigate_here ]
+                [ button [ class "ellipsis" ] [ text "..." ], label [] [ text node.signature ]
                 ]
                 
         Highlight i ->
            case i
             of
             Style ->
-                div [ class "style targeted", navigate_here ]
+                div [ class "item style targeted", navigate_here ]
                     <| [ label [] [ text node.signature
                                   , text ": style" ]
                        ] ++ ( inner () )
                     
             Value string ->
-                div [ class "value targeted", navigate_here ]
-                    <| [ label [] [ text node.signature
+                let input_id = node.signature ++ "input"
+                in label 
+                       [ class "item value targeted", navigate_here, for input_id ]
+                    <| [ label [ for input_id ] [ text node.signature
                                   , text ": value: " ]
-                       , input [ class "input", value ( string |> Maybe.withDefault "" ) ][]
+                       , input [ id input_id
+                               , name input_id
+                               , class "input" 
+                               , value ( string |> Maybe.withDefault "" ) 
+                               , set_this string
+                               ][]
                        ] ++ ( inner () )
                     
             Parag ->
-                  p   [ class "paragraph targeted", navigate_here ]
+                  p   [ class "item paragraph targeted", navigate_here ]
                       <| [ label [] [ text node.signature
                                     , text ": paragraph" ]
                          ] ++ ( inner () )
@@ -238,13 +265,16 @@ toHtml sig intent_to_message structure =
             Ambiguous ->
                 let
                     style =
-                        button [ intend_choice Style ] [ text "Style" ]
+                        button [ class "choice", choose_this Style ]
+                               [ text "Style" ]
 
                     value =
-                        button [ intend_choice ( Value Nothing ) ] [ text "Value" ]
+                        button [ class "choice", choose_this ( Value Nothing ) ]
+                               [ text "Value" ]
 
                     parag =
-                        button [ intend_choice Parag ] [ text "Paragraph" ]
+                        button [ class "choice", choose_this Parag ]
+                               [ text "Paragraph" ]
                  in
                   div [ class "ambiguous targeted", navigate_here ]
                       <| [ Html.label [] [ text node.signature ]
@@ -270,6 +300,7 @@ type Edit
     | Untarget String
     | Choose Item
     | Clear Item
+    | Set ( Maybe String, Maybe String )
 
 
 possible_intents :
@@ -295,6 +326,9 @@ create_intent sig compositron edit =
                 Parag -> "P"
                 Style -> "S"
                 _ -> "weird"
+        normalize_str =
+            Maybe.withDefault ""
+                
     in case edit of
         Target t ->
             { serial = "🞋 " ++t++" ("++( signature compositron )++")"
@@ -315,5 +349,10 @@ create_intent sig compositron edit =
             { serial = "- "++ ( verbalize choice )
             , function = choose sig Ambiguous
             , inverse = choose sig choice
+            }
+        Set ( string, old ) ->
+            { serial = "="++ ( normalize_str string ) ++ ", " ++ ( normalize_str old )
+            , function = set ( string, old )
+            , inverse = set ( old, string )
             }
 
