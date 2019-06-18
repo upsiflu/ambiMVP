@@ -33,8 +33,8 @@ view : { messages
        } ->
        History s ->
        ( ( Intent s -> msg ) ->
-         s -> 
-         Html msg
+         s ->
+         List ( Html msg )
        ) ->
        List  ( Intent s ) ->
        { body : List (Html msg), title : String }
@@ -50,63 +50,70 @@ view messages options history preview possible_intents =
                 [ span [ class "edit" ] 
                        [ text edit, span [ class "sig"  ] [ text sig  ] ] 
                 ]
+        
+        view_avatar =
+            header
+                [ class "avatar" ]
+                [ div 
+                    [ class "avatar_picture" ] [ text "Avatar 0" ]
+                , input 
+                    [ value "upsiflu@gmail.com" ] []
+                , section 
+                    [ class "options" ]
+                    [ button 
+                        [ options_as_classes
+                        , class "editor_mode", onClick messages.toggle_layout ] 
+                        [ text "edit" ]
+                    , button 
+                        [ options_as_classes
+                        , class "review_mode", onClick messages.toggle_review ] 
+                        [ text "review" ]
+                    ]
+                ]
+        
+        view_editor =
+            let intent_to_message = History.do history >> messages.transform
+            in 
+            section 
+                [ class "editor" ]
+                ( preview intent_to_message summary.present )
+                       
+        view_review =
+            section
+                [ class "review" ]
+                [ ( case options.browse_past of
+                    Nothing ->
+                        button 
+                        [ class "publish"]
+                        [ icons.upload
+                        , text "publish" ]
+                    Just i ->
+                        button 
+                        [ class "browse to publish"]
+                        [ icons.upload
+                        , text ( "apply all "++( String.fromInt i )++" edits" )
+                        ]
+                  )
+                , button 
+                    [ class "scrollable"
+                    , messages.browse_history (Just -1) |> onClick ]
+                    ( List.map view_transformation summary.past )
+                , button 
+                    [ class "scrollable"
+                    , messages.browse_history (Just 1)  |> onClick ]
+                    ( List.map view_transformation summary.future )
+                , br [] []
+                ]
+                     
     in
         { title = "Kai!"
-         , body =
-               [ header
-                   [ class "avatar" ]
-                   [ div [ class "avatar_picture" ] [ text "Avatar 0" ]
-                   , input [ value "upsiflu@gmail.com" ] []
-                   , section [ class "options" ]
-                        [ button 
-                            [ options_as_classes
-                            , class "edit mode", onClick messages.toggle_layout ] 
-                            [ text "edit" ]
-                        , button 
-                            [ options_as_classes
-                            , class "review mode", onClick messages.toggle_review ] 
-                            [ text "review" ]
-                        ]
-                   ]
-           
-               , main_ [ options_as_classes ] 
-                 [ section []
-                   [ section 
-                   [ class "editor tree" ] <| 
-                       let
-                          intent_to_message = History.do history >> messages.transform
-                       in 
-                          [ preview intent_to_message summary.present ]
-                       
-               , section 
-                   [ class "review" ]
-                   [ ( case options.browse_past of
-                              Nothing ->
-                                button 
-                                [ class "publish"]
-                                [ icons.upload
-                                , text "publish" ]
-                              Just i ->
-                                button 
-                                [ class "browse to publish"]
-                                [ icons.upload
-                                , text ( "apply all "++( String.fromInt i )++" edits" )
-                                ]
-                    )
-                   , button [ class "scrollable"
-                            , messages.browse_history (Just -1) |> onClick ]
-                            ( List.map view_transformation summary.past )
-                   , button [ class "scrollable"
-                            , messages.browse_history (Just 1)  |> onClick ]
-                            ( List.map view_transformation summary.future )
-                   , br [] []
-                   , button [ class "hovering", messages.browse_history (Nothing) |> onClick ]
-                            [ text "go to end of history" ]
-                   ]
-                   ]
-                   ]
-                ]
-         } 
+        , body = 
+              [ view_avatar
+              , main_ 
+                    [ options_as_classes ] 
+                    [ view_editor, view_review ] 
+              ]
+         }
 
          
 -- assets

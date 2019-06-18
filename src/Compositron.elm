@@ -52,6 +52,7 @@ trivial : Compositron
 trivial =
     Tree.singleton { signature = "start", item = Ambiguous }
         |> fromTree
+        |> (\_-> alternative )
 
 
 
@@ -111,11 +112,15 @@ set ( string, old ) =
 choose : Signature -> Item -> Map
 choose new choice =
     logTree
-    >> Tree.Zipper.replaceTree ( Tree.tree { signature = new, item = choice }
-                 [
-                  Tree.singleton { signature = new++"inside", item = Ambiguous }
-                 ] ) >> logTree
-        >> addNode { signature = new++"before", item = Ambiguous } >> logTree
+    >> Tree.Zipper.replaceTree 
+        ( Tree.tree 
+            { signature = new, item = choice }
+            [ Tree.singleton { signature = new++"inside", item = Ambiguous } ] 
+        ) 
+    >> logTree
+    >> addNode 
+        { signature = new++"before", item = Ambiguous } 
+    >> logTree
 
 logTree = Debug.log "tree"
     
@@ -139,7 +144,7 @@ preview :
     Signature
         -> ( Intent Compositron -> msg )
         -> Compositron
-        -> Html msg
+        -> List ( Html msg )
            
 preview sig intent_to_message compositron =
     let
@@ -152,22 +157,16 @@ preview sig intent_to_message compositron =
             Untarget ( signature compositron )
             |> click
 
-        header =
-            h2 [] [ text sig ]
-            
-        ok =
-            Html.label
-                [ class "ok" ]
-                [ button [ navigate_back, accesskey 'x' ] [ text "OK" ] ]
-
+        incipit =
+            h2 [ class "compositron" ] [ text sig ]
+          
         composition =
             compositron
                 |> mapLabel ( \node -> { node | item = Highlight node.item } )
                 |> both ( root >> tree, identity )
                 |> toHtml sig intent_to_message
-                |> section [ class "tree" ]
 
-    in section [ class "compositron" ] [ header, composition, ok ]
+    in incipit :: composition
 
        
 toHtml :

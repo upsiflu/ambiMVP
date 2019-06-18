@@ -1,8 +1,14 @@
+@import url('https://fonts.googleapis.com/css?family=Alegreya');
+@import url('css/reset.css');
+@import url('css/layout.css');
+@import url('css/state.css');
+@import url('css/theme.css');
+
+
 [data-elm-hot="true"] {
   height: inherit;
 }
 
-@import url('https://fonts.googleapis.com/css?family=Alegreya');
 
 .history,.opt, h1,h2 { display:none; }
 * { box-sizing: border-box; }
@@ -15,18 +21,11 @@ body, p, input, h1, h2, h3 {
   font-size:1em;
 }
 
-body {padding:0; margin:0; text-align: center;}
-
 h1 {
     font-size: 2rem; margin-top:2rem; padding:0;
     font-weight:400;
     color: #a34;
     line-height: 5rem;
-}
-
-img {
-    margin: 0;
-    max-width: 32em;
 }
 
 button, .caption {
@@ -140,33 +139,10 @@ button.hovering {position:absolute; border-radius:2rem; background:red; color:bl
 
 /* Review */
 
-main { overflow-x:auto; height:calc(100vh - 15.2rem); padding-top:1.8rem;
-    transition:all .4s;
-}
 
-body { overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column;}
 
 .options {transition:height 1s;}
 
-@media only screen and (max-width: 56rem) {
-  .options {height:auto;}
-    main > * > * { width:100%; transition:all .3s; }
-  main.reviewing { margin-left:-100vw; }
-  
-main > * { display:flex; width:200vw; }
-  @media only screen and (max-width: 28rem) {
-    body { width: 28em; font-size: calc(100vw / 28) }
-  }
-      
-}
-@media only screen and (min-width: 56rem) {
-    .options {height:0; overflow:hidden; }
-  main > * > * { min-width:28rem; }
-  .review { max-width:28rem; }
-  .editor { width:calc(100vw - 28rem) }
-  body { width: 100vw; font-size: 1rem}
-   
-}
 
 button.publish {display:block; margin:1rem auto; padding:.8rem 3rem; border:none;
     background:rgb(0,72,180); color:white; border-radius:.4em;
