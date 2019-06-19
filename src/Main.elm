@@ -33,6 +33,7 @@ type alias Model =
 
 type alias ViewOptions =
     { layout : Bool
+    , editor : Bool
     , review : Bool
     , browse_past : Maybe Int } 
 
@@ -47,6 +48,7 @@ init = \flags url key ->
       , route = ""
       , view_options =
         { layout = False
+        , editor = False
         , review = False 
         , browse_past = Nothing
         }

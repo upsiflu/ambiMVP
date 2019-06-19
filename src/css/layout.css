@@ -5,44 +5,19 @@
      Within the main, we have either one or two columns, each 28rem wide.
  */
 
-body { overflow-y:auto; overflow-x:hidden; height:100vh; width:100vw;}
-.editor, .review { width:28rem; transition:margin .3s; display:inline-block; vertical-align:top; }
+body { height:100vh; width:100%;}
+main { overflow-x:hidden; }
 
-
-/* on tiny screens, we just scale the layout down.
-    on medium screens, we add margins left and right.
-    In both cases, when .reviewing, we collapse the .editor to let the .review slide in.
-    on large screens, we have two columns where the left column has margins.
-    Then we can collapse the option to switch between editor and review.
- */
-
-@media only screen and (max-width: 28em) {
-    
-    body { font-size: calc(100vw / 28) }
-    main.reviewing .editor { margin-left:-28em; }
-    
-}
-@media only screen and (min-width: 28em) and (max-width:56em) {
-    
-    body { font-size: 1em; }
-    .editor, .review { margin-left:auto; margin-right:auto; }
-    main.reviewing .editor { margin-left:-100vw; }
-    
-}
-@media only screen and (min-width: 56em) {
-    
-    body { font-size: calc(.44em+1vw); }
-    .editor { margin-left:calc(50vw - 28rem); margin-right:calc(50vw - 28rem); }
-    .review_mode { height:0; overflow:hidden; }
-    
-    h1 { font-size: calc(2.44rem + 1vw) }
-    h2 { font-size: calc(1.72rem + .5vw) }
-    
+.editor, .review { 
+    width:28rem; transition:margin .3s; 
+    display:inline-block; vertical-align:top;
 }
 
-/* components (base styles) */
+header { height:40vh; position:relative; width:100%;}
 
-body, p, input, h1, h2, h3 {
+/* standard controls (base styles) */
+
+p, span, input, h1, h2, h3 {
   font-family: 'Alegreya', 'Cormorant Garamond', 'EB Garamond', serif;
   color: #333;
   line-height:1.25em;
@@ -64,9 +39,9 @@ h3 {
     font-size: 1.5rem; margin-top:2rem; padding:0;
 }
 
-button, .caption {
+button, .caption, label {
     font-family: sans-serif; font-weight: bold;
-    padding:.8rem .5rem 1.2rem .5rem;
+    padding:.45rem .5rem .55rem .5rem;
     line-height:1.25rem;
     letter-spacing:-.05em;
     font-size:.8rem;
@@ -82,5 +57,49 @@ textarea:focus {
     outline: none;
     border-bottom: .15rem solid rgb(255,90,100); padding:0 .1rem 0 .1rem;
     width:calc(100% - .2rem); 
-    text-indent: 1.8rem;
+}
+
+
+
+/* on tiny screens, we just scale the layout down.
+    on medium screens, we add margins left and right.
+    In both cases, when .reviewing, we collapse the .editor to let the .review slide in.
+    on large screens, we have two columns where the left column has margins.
+    Then we can collapse the option to switch between editor and review.
+ */
+
+@media only screen and (max-width: 28em) {
+    
+    html { font-size: calc(100vw / 28); }
+    body > * { max-width:100%; }
+    /*100% may be smaller than 28rem because the scrollbar is subtracted.*/
+
+    main {overflow:hidden;}
+    main > * { max-width:100%; }
+    main.reviewing .editor { margin-left:-100%; width:100%;}
+    main:not(.reviewing) .review { margin-right:-100%; width:100%;}
+    header { height:60vh; overflow:hidden;}
+    
+}
+@media only screen and (min-width: 28em) and (max-width:56em) {
+    
+    html { font-size: 1em; }
+    body > * { max-width:100%; }
+    .editor, .review {
+        margin-left:calc(50vw - 14rem); margin-right:calc(50vw - 14rem - 8px); 
+    }
+    
+    main.reviewing .editor { margin-left:-28rem; margin-right:0px; }
+    main:not(.reviewing) .review { margin-right:calc(-150vw + 14rem); }
+    
+}
+@media only screen and (min-width: 56em) {
+    
+    html { font-size: calc(0.44em + 1vw); }
+    .editor { margin-left:calc(50vw - 28rem); margin-right:calc(50vw - 28rem); }
+    .review { position:fixed; right:0; top:2rem;}
+ 
+    h1 { font-size: calc(2.44rem + 1vw) }
+    h2 { font-size: calc(1.72rem + .5vw) }
+    
 }

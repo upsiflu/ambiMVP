@@ -29,7 +29,7 @@ view : { messages
        , toggle_layout : msg, toggle_review : msg
        } ->
        { options
-       | layout : Bool, review : Bool, browse_past : Maybe Int
+       | layout : Bool, editor : Bool, review : Bool, browse_past : Maybe Int
        } ->
        History s ->
        ( ( Intent s -> msg ) ->
@@ -42,7 +42,10 @@ view : { messages
 view messages options history preview possible_intents =
     let
         options_as_classes =
-            classList [ ( "layouting", options.layout ), ( "reviewing", options.review ) ]
+            classList [ ( "reviewing", options.review ) 
+                      , ( "layouting", options.layout )
+                      , ( "editing",   options.editor )
+                      ]
         summary  =
             History.summary history
         view_transformation ( sig, edit ) =
@@ -63,7 +66,8 @@ view messages options history preview possible_intents =
                     [ button 
                         [ options_as_classes
                         , class "editor_mode", onClick messages.toggle_layout ] 
-                        [ text "edit" ]
+                        [ text "edit" 
+                        , label [ class "layout_indicator"] [ text "+ layout" ] ]
                     , button 
                         [ options_as_classes
                         , class "review_mode", onClick messages.toggle_review ] 

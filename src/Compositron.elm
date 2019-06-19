@@ -158,7 +158,7 @@ preview sig intent_to_message compositron =
             |> click
 
         incipit =
-            h2 [ class "compositron" ] [ text sig ]
+            h2 [ class "compositron", class "caption" ] [ text sig ]
           
         composition =
             compositron
@@ -260,13 +260,18 @@ toHtml sig intent_to_message structure =
         
         view_span string =
             default_view "Span"
-                |> with_on_item
+                |> with_on_anchor
                     ( input
                         [ id ( node.signature ++ "-input" )
                         , class "input"
                         , value ( string |> Maybe.withDefault "" )
                         , set_this string
                         ] []
+                    )
+                |> with_on_item
+                    ( span
+                        [ id ( node.signature ++ "-value" )
+                        ] [ text ( string |> Maybe.withDefault "" ) ]
                     )
 
         view_parag =
