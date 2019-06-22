@@ -3,7 +3,7 @@
 @import url('css/layout.css');
 @import url('css/state.css');
 
-@import url('css/Compositron.css');
+@import url('css/compositron.css');
 @import url('css/theme.css');
 
 
@@ -20,81 +20,4 @@
 
 
 
-
-.editing button.ellipsis { 
-    width:100%; background:white; border:none; height:2rem; 
-    
-}
-.editing button.ellipsis:focus { 
-    color:red; text-shadow:1px 0 .2rem red; box-shadow:none; 
-    
-}
-
-
-.editing .editor
-    { padding:3rem 0; background:transparent; }
-
-.editing .editor .anchor
-    { background:white; border-left:1rem solid silver;
-        position:relative;
-        transition:all .1s;
-        display:block;
-    }
-.editing .editor .anchor.Ambiguous {
-    border-color: transparent;
-    
-}
-.editing .editor .anchor label {
-    position:relative; display:block; width:100%; color:silver; 
-    
-}
-
-.editing .paragraph { }
-.editing .style { }
-.editing .value { }
-
-.editing .Ambiguous { 
-    color:rgb(255,90,100); opacity:0; visibility: hidden;
-    transition: all .3s; z-index:1;
-    
-}
-
-/* showing targeted controls */
-.editing .editor .anchor.targeted,
-.editing .editor p.targeted { border-left: 1rem solid rgb(255,90,100) }
-
-/* add child */
-.editing .targeted > .Ambiguous { opacity:1; visibility:visible; }
-.editing .ellipsis {  }
-
-/* add sibling */
-
-/* choose kind */
-.editing .editor .Ambiguous {
-    white-space: nowrap; position:relative; background:white; height:3rem;}
-
-.editing .editor .Ambiguous.targeted {
-    opacity:1; visibility:visible;
-    
-}
-.editing .editor .Ambiguous button.choice {
-    display: inline; width: 4rem; vertical-align:center; 
-    padding:0; height:4rem;
-    box-shadow:.1rem .1rem .8rem rgba(200,0,0,.3);
-    margin: -.5rem .1rem; background: rgb(255,90,100); z-index:4; color:white; 
-    
-}
-.editing .editor .Ambiguous button.choice:hover {
-    background: rgb(200,10,60); color:rgb(255,200,200) 
-    
-}
-.editing .editor .Ambiguous label {
-    left: 0; position:fixed; bottom:0rem;
-    background:silver; padding:.4 1.5rem; font-size:.75rem; color:black;
-    
-}
-
-
-.editing .Ambiguous.targeted label {opacity:.5; z-index:3;}
-.editing .Ambiguous:hover label {opacity:1}
 

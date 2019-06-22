@@ -42,9 +42,12 @@ view : { messages
 view messages options history preview possible_intents =
     let
         options_as_classes =
-            classList [ ( "reviewing", options.review ) 
-                      , ( "layouting", options.layout )
-                      , ( "editing",   options.editor )
+            classList [ -- on small screens, you toggle the review-view:
+                        ( "reviewing", options.review )
+                        -- for each item, you can be either visiting or .editing:
+                      , ( "editing",   options.editor ) 
+                        -- when the layout is complex, switch to list view:
+                      , ( "listing",   options.editor && ( not options.layout ) )
                       ]
         summary  =
             History.summary history
@@ -67,7 +70,7 @@ view messages options history preview possible_intents =
                         [ options_as_classes
                         , class "editor_mode", onClick messages.toggle_layout ] 
                         [ text "edit" 
-                        , label [ class "layout_indicator"] [ text "+ layout" ] ]
+                        , label [ class "layout_indicator"] [ text "list view " ] ]
                     , button 
                         [ options_as_classes
                         , class "review_mode", onClick messages.toggle_review ] 

@@ -59,18 +59,18 @@ trivial =
 alternative =
     Tree.tree { signature = "0", item = Parag }
         [ Tree.singleton { signature = "0.0", item = Ambiguous }
-        , Tree.tree      { signature = "0.1", item = Span ( Just "paragraph text" ) }
+        , Tree.tree      { signature = "0.1", item = Span ( Just "A b c " ) }
             [ Tree.singleton { signature = "0.1.0", item = Ambiguous } ]
-        , Tree.tree      { signature = "0.2", item = Style ( Just "align_left" ) }
+        , Tree.tree      { signature = "0.2", item = Style ( Just "align-right" ) }
             [ Tree.singleton { signature = "0.2.0", item = Ambiguous }
-            , Tree.tree      { signature = "0.2.1", item = Span ( Just "align left" ) }
+            , Tree.tree      { signature = "0.2.1", item = Span ( Just "(align-right) D e f" ) }
                 [ Tree.singleton { signature = "0.2.1.0", item = Ambiguous } ]  
-            , Tree.tree      { signature = "0.2.2", item = Span ( Just "red shade" ) } 
+            , Tree.tree      { signature = "0.2.2", item = Span ( Just "G h i" ) } 
                 [ Tree.singleton { signature = "0.2.2.0", item = Ambiguous } ] 
             ]
         , Tree.tree { signature = "0.3", item = Style Nothing }
             [ Tree.singleton { signature = "0.3.0", item = Ambiguous }  
-            , Tree.tree      { signature = "0.3.1", item = Span ( Just "blue shade" ) }
+            , Tree.tree      { signature = "0.3.1", item = Span ( Just "(empty style) J k l" ) }
                 [ Tree.singleton { signature = "0.3.1.0", item = Ambiguous } ] 
             ]
         ]
@@ -221,6 +221,7 @@ toHtml sig intent_to_message structure =
         no_html = text ""
         default_view item_type =
             { item_type = item_type
+            , item_icon = "?"
             , attributes = 
                 [ class item_type 
                 , class "anchor"
@@ -236,12 +237,14 @@ toHtml sig intent_to_message structure =
 
         with_on_anchor a params = { params | on_anchor = a }
         with_on_item i params = { params | on_item = i }
+        with_icon i params = { params | item_icon = i }
         with_subsequent s params = { params | subsequent = s }
         
         present view_parameters =
             button
                 view_parameters.attributes
                 [ label [ class "signature" ] [ text node.signature ]
+                , label [ class "item_icon" ] [ text view_parameters.item_icon ]
                 , label [ class "item_type" ] [ text view_parameters.item_type ]
                 , view_parameters.on_anchor
                 ]
@@ -249,6 +252,7 @@ toHtml sig intent_to_message structure =
 
         view_style string =
             default_view "Style"
+                |> with_icon "S"
                 |> with_on_anchor
                     ( input
                         [ id ( node.signature ++ "-input" )
@@ -260,6 +264,7 @@ toHtml sig intent_to_message structure =
         
         view_span string =
             default_view "Span"
+                |> with_icon "T"
                 |> with_on_anchor
                     ( input
                         [ id ( node.signature ++ "-input" )
@@ -276,11 +281,14 @@ toHtml sig intent_to_message structure =
 
         view_parag =
             default_view "Parag"
+                |> with_icon "P"
+                |> with_on_anchor ( label [ class "symbol" ] [ text "P" ] )
                 |> with_subsequent ( always [ p [] ( inner () ) ] )
                 
         view_ambiguous =
             default_view "Ambiguous"
-                |> with_on_item
+                |> with_icon "+"
+                |> with_on_anchor
                     ( button 
                         [ class "ellipsis" ] 
                         [ text "+" ]
@@ -311,16 +319,7 @@ toHtml sig intent_to_message structure =
                 view_style string |> interactive |> present
                 
             Span string ->
-                view_span string 
-                |> interactive >> with_on_item
-                    ( input
-                        [ id ( node.signature ++ "-input" )
-                        , class "input"
-                        , value ( string |> Maybe.withDefault "" )
-                        , set_this string
-                        ] []
-                    )
-                |> present
+                view_span string |> interactive |> present
                 
             Parag ->
                 view_parag |> interactive |> present

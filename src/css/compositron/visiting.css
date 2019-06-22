@@ -1,0 +1,50 @@
+/* Base Style, including VISITING */
+
+
+
+/* elements */
+p { 
+    box-shadow:0 1px .5rem black; 
+}
+
+
+
+/* all anchors are round buttons and use no space */
+.anchor { 
+    height:2rem; width:2rem; 
+    margin:0 -2rem -2rem 0; 
+    padding:0;
+    opacity:.7; background:blue; border-radius:.2rem; 
+    white-space:nowrap;
+}
+
+/* all anchors together with inner nodes are hidden by default */
+.anchor, .anchor * { 
+    visibility:hidden; 
+    display:inline-block;
+}
+.anchor {
+    position:relative;
+    z-index:3;
+}
+.anchor .item_icon {
+    color:white; width:100%;
+}
+.anchor label {
+    width:0; overflow:hidden; padding:0; margin:0;
+}
+
+.anchor + * {
+    transition:all 1s;
+}
+
+/* highlight targeted item */
+main:not(.editing) .targeted+* {background:yellow;}
+
+button.ellipsis { 
+    background:white;
+}
+
+button.ellipsis:focus { 
+    color:red; text-shadow:1px 0 .2rem red; box-shadow:none;
+}

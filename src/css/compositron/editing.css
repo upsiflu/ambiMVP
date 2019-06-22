@@ -1,0 +1,96 @@
+/* EDITING, think "layout view" */
+
+
+
+/*
+ states:
+ 
+ (0) The basic style is visiting.
+    (a) .anchors are hidden (but they are there, hovering
+         on the top left corner of each item, via z-index)
+    (i) items are unchanged
+    (t) trails are unchanged
+ (1) .editing
+    (a) .anchors are shown
+    (i) items are unchanged
+    (t) trails are unchanged
+ (2) .listing
+    (a) .anchors are 100% wide; to form a list.
+    (i) items are truncated to fully slide under the .anchor
+    (t) trails:
+        containers behave as before, except they are margined downwards so
+        that their children are never obscured by an anchor.    */
+
+
+.editing .anchor, .editing .anchor .item_icon { 
+    visibility:visible; 
+}
+.editing .anchor .item_icon  { 
+    width:auto; margin:auto;
+}
+.editing .anchor.targeted {
+    opacity:1;
+}
+.editing .anchor.targeted input {
+    position:fixed; left:1rem; width:calc(100vw - 2rem);
+    height:2rem;
+    margin-top:-2.5rem;
+    border-radius:1.2rem ;
+    background:yellow;
+    visibility:visible;
+}
+
+
+
+/*.editing .editor
+    { padding:3rem 0; background:transparent; }
+
+.editing .paragraph { }
+.editing .style { }
+.editing .value { }
+
+.editing .Ambiguous { 
+    color:rgb(255,90,100); opacity:0; visibility: hidden;
+    transition: all .3s; z-index:1;
+    
+}*/
+
+/* showing targeted controls */
+/*.editing .editor .anchor.targeted,
+.editing .editor p.targeted { border-left: 1rem solid rgb(255,90,100) }*/
+
+/* add child */
+/*.editing .targeted > .Ambiguous { opacity:1; visibility:visible; }*/
+
+
+/* add sibling */
+
+/* choose kind */
+/*.editing .editor .Ambiguous {
+    white-space: nowrap; position:relative; background:white; height:3rem;}
+
+.editing .editor .Ambiguous.targeted {
+    opacity:1; visibility:visible;
+    
+}
+.editing .editor .Ambiguous button.choice {
+    display: inline; width: 4rem; vertical-align:center; 
+    padding:0; height:4rem;
+    box-shadow:.1rem .1rem .8rem rgba(200,0,0,.3);
+    margin: -.5rem .1rem; background: rgb(255,90,100); z-index:4; color:white; 
+    
+}
+.editing .Ambiguous button.choice:hover {
+    background: rgb(200,10,60); color:rgb(255,200,200) 
+}
+
+
+.editing .Ambiguous.targeted label {opacity:.5; z-index:3;}
+.editing .Ambiguous:hover label {opacity:1}
+*/
+
+
+
+/* highlight targeted item */
+.editing .targeted {background:yellow;}
+.editing .targeted label { color:black; }

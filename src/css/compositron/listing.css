@@ -1,0 +1,41 @@
+
+
+
+
+
+/* LISTING (useful esp. for small screens and convoluted layouts) */
+/*
+ states:
+ 
+ (0) The basic style is visiting.
+    (a) .anchors are hidden (but they are there, hovering
+         on the top left corner of each item, via z-index)
+    (i) items are unchanged
+    (t) trails are unchanged
+ (1) .editing
+    (a) .anchors are shown
+    (i) items are unchanged
+    (t) trails are unchanged
+ (2) .listing
+    (a) .anchors are 100% wide; to form a list.
+    (i) items are truncated to fully slide under the .anchor
+    (t) trails:
+        containers behave as before, except they are margined downwards so
+        that their children are never obscured by an anchor.    */
+
+
+
+.listing button.ellipsis {
+    width:100%; border-radius:0; 
+}
+.listing .anchor label {
+    color:silver; 
+}
+.listing .anchor
+    { width:100%; background:white;
+    }
+
+
+
+
+/* targeted */

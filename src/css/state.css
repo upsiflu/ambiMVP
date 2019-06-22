@@ -21,7 +21,7 @@
     transition:all .3s; 
     
 } 
-.layouting .layout_indicator { 
+.listing .layout_indicator { 
     background:rgb(255,90,100); color:white; 
     transition:all .3s .3s;
 }
@@ -44,7 +44,7 @@ button.review_mode { background:rgb(0,72,180);}
     button.review_mode { width:calc(100% - 7rem); opacity:0; }
     button.editor_mode { width:7rem; text-align:left; }
      
-    button.editor_mode.layouting .layout_indicator { min-width:7rem; }
+    button.editor_mode.listing .layout_indicator { min-width:7rem; }
 }
 
 /* Review */

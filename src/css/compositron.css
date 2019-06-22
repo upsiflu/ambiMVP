@@ -1,0 +1,56 @@
+@import url('compositron/visiting.css');
+@import url('compositron/editing.css');
+@import url('compositron/listing.css');
+
+
+/*Compositron*/
+
+
+
+
+/*
+ general approach:
+ 
+ Per item, the renderer renders, as a list,
+ (a) an .anchor (a button) to target the item.
+   (+) perhaps .targeted
+ (i) perhaps an item   (e.g. p, span, img, figure...) to present the item
+     (select with .anchor+*)
+ (t) perhaps a trail;
+     this trail may be a container of children, or just the children,
+     or an incipit for the list of children.
+ 
+ In order to maintain a high level of isomorphy between
+  -  editing in a list shape
+  -  editing in the final layout
+  -  viewing the final layout,
+ we offload the layout completely to css and just render everything
+ and hope that browsers don't waste time with those hidden nodes.
+ 
+ 
+ states:
+ 
+ (0) The basic style is visiting.
+    (a) .anchors are hidden (but they are there, hovering
+         on the top left corner of each item, via z-index)
+    (i) items are unchanged
+    (t) trails are unchanged
+ (1) .editing
+    (a) .anchors are shown
+    (i) items are unchanged
+    (t) trails are unchanged
+ (2) .listing
+    (a) .anchors are 100% wide; to form a list.
+    (i) items are truncated to fully slide under the .anchor
+    (t) trails:
+        containers behave as before, except they are margined downwards so
+        that their children are never obscured by an anchor.    
+ */
+
+
+
+
+
+
+
+

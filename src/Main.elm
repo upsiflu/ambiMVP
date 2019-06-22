@@ -47,8 +47,8 @@ init = \flags url key ->
     ( { session = History.singleton State.trivial
       , route = ""
       , view_options =
-        { layout = False
-        , editor = False
+        { layout = True
+        , editor = True
         , review = False 
         , browse_past = Nothing
         }
