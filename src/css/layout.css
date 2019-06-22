@@ -11,6 +11,7 @@ main { overflow-x:hidden; }
 .editor, .review { 
     width:28rem; transition:margin .3s; 
     display:inline-block; vertical-align:top;
+    padding-bottom:4rem;
 }
 
 header { height:40vh; position:relative; width:100%;}
@@ -74,7 +75,6 @@ textarea:focus {
     body > * { max-width:100%; }
     /*100% may be smaller than 28rem because the scrollbar is subtracted.*/
 
-    main {overflow:hidden;}
     main > * { max-width:100%; }
     main.reviewing .editor { margin-left:-100%; width:100%;}
     main:not(.reviewing) .review { margin-right:-100%; width:100%;}

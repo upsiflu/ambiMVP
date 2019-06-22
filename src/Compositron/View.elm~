@@ -1,0 +1,42 @@
+
+type alias View msg a =
+    { descriptor : String
+    , icon : Html msg
+    , anchor : { element : List ( Attribute msg ) -> List ( Html msg ) -> Html msg
+               , attributes : List ( Attribute msg )
+               , children : List ( Html msg )
+               }
+    , item   : { element : List ( Attribute msg ) -> List ( Html msg ) -> Html msg
+               , attributes : List ( Attribute msg )
+               , children : a -> List ( Html msg )
+               }
+    }
+
+default_view :
+    String ->
+    ( a -> List ( Html msg ) ) ->
+    View msg a
+
+default_view descriptor =
+    { descriptor = descriptor
+    , icon = text "?"
+    , anchor =
+          { element = button
+          , attributes =
+                [ class descriptor
+                , class "anchor"
+                , navigate_here
+                ]
+          , children =
+                [ label [ class "signature" ] [ text node.signature ] ]
+          }
+    , item =
+          { element = span
+          , attributes =
+                [ class descriptor
+                , class "item"
+                ]
+          , children = inner
+          }
+    }
+        

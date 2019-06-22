@@ -9,9 +9,11 @@ import Html exposing ( .. )
 import Html.Attributes exposing  ( .. )
 import Html.Events exposing ( .. )
 
+import Compositron.View as View exposing ( View )
 import History.Intent exposing ( Intent )
 
 import Helpers exposing ( .. )
+
 
 
 -- Compositron
@@ -168,6 +170,7 @@ preview sig intent_to_message compositron =
 
     in incipit :: composition
 
+        
        
 toHtml :
     Signature
@@ -208,135 +211,100 @@ toHtml sig intent_to_message structure =
             case string of
                  ""  -> Nothing
                  str -> Just str
-            
-            
-    -- layout
-    
-    {- every node consists of
-        - an anchor (probably a button)
-        - perhaps a presentation
-        - and a container of its children.
-     -}
-     
-        no_html = text ""
-        default_view item_type =
-            { item_type = item_type
-            , item_icon = "?"
-            , attributes = 
-                [ class item_type 
-                , class "anchor"
-                , navigate_here
-                ]
-            , on_anchor = no_html
-            , on_item = no_html
-            , subsequent = inner
-            }
 
-        interactive params =
-            { params | attributes = ( class "targeted" )::params.attributes }
-
-        with_on_anchor a params = { params | on_anchor = a }
-        with_on_item i params = { params | on_item = i }
-        with_icon i params = { params | item_icon = i }
-        with_subsequent s params = { params | subsequent = s }
-        
-        present view_parameters =
-            button
-                view_parameters.attributes
-                [ label [ class "signature" ] [ text node.signature ]
-                , label [ class "item_icon" ] [ text view_parameters.item_icon ]
-                , label [ class "item_type" ] [ text view_parameters.item_type ]
-                , view_parameters.on_anchor
-                ]
-            |> before ( view_parameters.on_item :: ( view_parameters.subsequent () ) )
-
+        default_view = View.default node.signature navigate_here ( inner () )
+                       
         view_style string =
             default_view "Style"
-                |> with_icon "S"
-                |> with_on_anchor
+                |> View.set_icon ( text "S" )
+                |> View.map_anchor
+                    identity
                     ( input
                         [ id ( node.signature ++ "-input" )
                         , class "input"
                         , value ( string |> Maybe.withDefault "" )
                         , set_this string
-                        ] []
+                        ] [] |> (::)
                     )
         
         view_span string =
             default_view "Span"
-                |> with_icon "T"
-                |> with_on_anchor
+                |> View.set_icon ( text "T" )
+                |> View.map_anchor
+                    identity
                     ( input
-                        [ id ( node.signature ++ "-input" )
+                        [ name ( node.signature ++ "-input" )
                         , class "input"
                         , value ( string |> Maybe.withDefault "" )
                         , set_this string
-                        ] []
+                        ] [] |> (::)
                     )
-                |> with_on_item
-                    ( span
-                        [ id ( node.signature ++ "-value" )
-                        ] [ text ( string |> Maybe.withDefault "" ) ]
-                    )
+                |> View.map_item span
+                    ( for ( node.signature ++ "-input" ) |> (::) )
+                    ( text ( string |> Maybe.withDefault "" ) |> (::) )
 
         view_parag =
             default_view "Parag"
-                |> with_icon "P"
-                |> with_on_anchor ( label [ class "symbol" ] [ text "P" ] )
-                |> with_subsequent ( always [ p [] ( inner () ) ] )
-                
+                |> View.set_icon ( text "P" )
+                |> View.map_anchor
+                     identity
+                     ( label [ class "symbol" ] [ text "P" ] |> (::) )
+                |> View.map_item p
+                     identity
+                     identity
+                         
         view_ambiguous =
             default_view "Ambiguous"
-                |> with_icon "+"
-                |> with_on_anchor
-                    ( button 
-                        [ class "ellipsis" ] 
-                        [ text "+" ]
-                    )
-            
+                |> View.set_icon ( text "+" )
+                |> View.map_anchor
+                      ( class "ellipsis" |> (::) ) 
+                      ( [ text "+" ] |> always )         
 
         
         
     in  case node.item
         of
         Style string ->
-            view_style string |> present
+            view_style string |> View.present
             
         Span string ->
-            view_span string |> present
+            view_span string |> View.present
                 
         Parag ->
-            view_parag |> present
+            view_parag |> View.present
 
         Ambiguous ->
-            view_ambiguous |> present
+            view_ambiguous |> View.present
             
         Highlight i ->
            case i
             of
             
             Style string ->
-                view_style string |> interactive |> present
+                view_style string |> View.interactive |> View.present
                 
             Span string ->
-                view_span string |> interactive |> present
+                view_span string |> View.interactive |> View.present
                 
             Parag ->
-                view_parag |> interactive |> present
+                view_parag |> View.interactive |> View.present
                       
             Ambiguous ->
                 view_ambiguous
-                |> interactive >> with_on_anchor
-                    ( label []
+                |> View.interactive
+                |> View.map_anchor
+                      identity
+                      ( label
+                        []
                         [ button [ class "choice", choose_this ( Style Nothing ) ]
                                  [ text "Style" ]
                         , button [ class "choice", choose_this ( Span Nothing ) ]
                                  [ text "Span" ]
                         , button [ class "choice", choose_this Parag ]
                                  [ text "Paragraph" ]
-                        ]
-                    )
-                |> present
+                        ] |> ( before [] ) |> always
+                      )
+                |> View.present
                 
             _ -> [text ";"]
                                                         
