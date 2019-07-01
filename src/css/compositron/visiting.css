@@ -7,25 +7,50 @@ p {
     box-shadow:0 1px .5rem black; 
 }
 
+.Span {min-width:2rem;}
+
+.item>input, .item>input+span {
+    display: inline;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    letter-spacing:inherit;
+}
+.item>input {
+    position:fixed;
+    display:none;
+    margin-right:-100vw;
+    width:100vw;
+    left:0;
+    color:transparent;
+    background:rgba(255,0,255,.5);
+}
+.targeted>input {
+    display:inline;
+    background:#333;
+    box-shadow:0 .1rem 1rem rgba(0,0,0,.4);
+    color:white;
+    margin-top:-1.8rem;
+}
+.item>input:focus {
+    text-decoration:underline;
+    color:red;
+}
 
 
-/* all anchors are round buttons and use no space */
+
+/* anchors attach to the right */
 .anchor { 
-    height:2rem; width:2rem; 
-    margin:0 -2rem -2rem 0; 
+    height:4rem; width:4rem; 
     padding:0;
     opacity:.7; background:blue; border-radius:.2rem; 
     white-space:nowrap;
+    position:absolute; right:-5rem;
 }
 
-/* all anchors together with inner nodes are hidden by default */
+/* anchors, together with inner nodes, are hidden by default */
 .anchor, .anchor * { 
-    visibility:hidden; 
-    display:inline-block;
-}
-.anchor {
-    position:relative;
-    z-index:3;
+    visibility:hidden;
 }
 .anchor .item_icon {
     color:white; width:100%;

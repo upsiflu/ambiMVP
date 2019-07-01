@@ -1,0 +1,108 @@
+module Compositron.Item exposing  (..)
+
+-- item elements
+-- (ambiguous) appendable items, assuming their elements.
+
+type alias Name = String
+
+type Item
+            
+    -- elements
+    = Assume_self -- when nonempty
+    | Field ( Name ) ( List Item ) -- a named property to the item that has zero width
+    | Ambiguous ( Name ) ( List Item ) -- same as field, but may become instanciated
+    | Info ( String ) -- an immutable label
+      
+    -- editor for data (from a string) with variable width
+    | T Text
+    | I Image
+    | U Url
+    | Y Youtube
+    | V Vimeo
+      
+      
+type Text
+    = Text ( Maybe String )
+type Image
+    = Image ( Maybe String )
+type Url
+    = Url ( Maybe String )
+type Youtube
+    = Youtube ( Maybe String )
+type Vimeo
+    = Youtube ( Maybe String )
+
+layout =
+    let style s = Field s [ Info s ]
+    in
+        Field "layout"
+            [ Assume_self
+            , Ambiguous "+"
+                [ style "align right"
+                , style "align centered"
+                , style "shaded green"
+                ]
+            ]
+            
+sectioning =
+    Ambiguous "block..."
+        [ paragraph
+        , heading
+        , figure
+        ]
+        
+phrasing =
+    Ambiguous "in line..."
+        [ Span
+        , Field link
+        ]
+
+paragraph =
+    Field "paragraph"
+        [ Assume_self
+        , Ambiguous "+"
+            [ sectioning
+            , phrasing
+            ]
+        , Field layout
+        ]
+
+heading =
+    Field "heading"
+        [ Assume_self
+        , phrasing
+        , layout
+        ]
+
+figure =
+    Field "figure"
+        [ Assume_self
+        , Ambiguous "media"
+            [ I <| Image ( Nothing )
+            , Y <| Youtube ( Nothing )
+            , V <| Vimeo ( Nothing )
+            , sectioning
+            ]
+        , Ambiguous "caption"
+            [ sectioning
+            , phrasing
+            ]
+        , layout
+        ]
+
+span =
+    Field "span"
+        [ Assume_self
+        , phrasing
+        , T <| Text ( Nothing )
+        , layout
+        ]
+        
+link =
+    [ Assume_self
+    , phrasing
+    , Field "destination"
+        [ U <| Url ( Nothing ) ]
+    , Text ( Nothing )
+    , layout
+    ]

@@ -16,45 +16,36 @@ import Svg.Attributes exposing ( viewBox, d, fill )
 
 {-  VIEW
 
-    messages:
+    message:
        browse_history: how to browse inside the History.
-       intend: how to add a Transformation to the History.
-    history: just a history.
-    preview: how to turn a state within the history into Html.
-    modifications: how to continue the history (create a subsequent transformation).
+       toggle_layout: how to switch between the list view and the layouted view in the editor.
+       toggle_editor: how to exit or enter the editor. 
+       from_intent: how to add a Transformation Intention to the History.
+       from_command: how to execute any command (such as focus).
+    option:
+       the current Ui config.
+    history: just a History.
+    preview: how to turn a State within the History into Html.
+
 -}
 
-view : { messages
-       | transform : Transformation s -> msg, browse_history : Maybe Int -> msg
-       , toggle_layout : msg, toggle_review : msg
-       } ->
-       { options
-       | layout : Bool, editor : Bool, review : Bool, browse_past : Maybe Int
-       } ->
-       History s ->
-       ( ( Intent s -> msg ) ->
-         s ->
-         List ( Html msg )
-       ) ->
-       List  ( Intent s ) ->
-       { body : List (Html msg), title : String }
-
-view messages options history preview possible_intents =
+view message option history preview =
     let
         options_as_classes =
             classList [ -- on small screens, you toggle the review-view:
-                        ( "reviewing", options.review )
+                        ( "reviewing", option.review )
                         -- for each item, you can be either visiting or .editing:
-                      , ( "editing",   options.editor ) 
+                      , ( "editing",   option.editor ) 
                         -- when the layout is complex, switch to list view:
-                      , ( "listing",   options.editor && ( not options.layout ) )
+                      , ( "listing",   option.editor && ( not option.layout ) )
                       ]
         summary  =
             History.summary history
         view_transformation ( sig, edit ) =
-            span []
-                [ span [ class "edit" ] 
-                       [ text edit, span [ class "sig"  ] [ text sig  ] ] 
+            button
+                [ class "transformation" ]
+                [ label [ class "edit" ] [ text edit ]
+                , label [ class "signature"  ] [ text sig  ] 
                 ]
         
         view_avatar =
@@ -68,27 +59,25 @@ view messages options history preview possible_intents =
                     [ class "options" ]
                     [ button 
                         [ options_as_classes
-                        , class "editor_mode", onClick messages.toggle_layout ] 
+                        , class "editor_mode", onClick message.toggle_layout ] 
                         [ text "edit" 
                         , label [ class "layout_indicator"] [ text "list view " ] ]
                     , button 
                         [ options_as_classes
-                        , class "review_mode", onClick messages.toggle_review ] 
+                        , class "review_mode", onClick message.toggle_review ] 
                         [ text "review" ]
                     ]
                 ]
         
         view_editor =
-            let intent_to_message = History.do history >> messages.transform
-            in 
             section 
                 [ class "editor" ]
-                ( preview intent_to_message summary.present )
+                ( preview message summary.present )
                        
         view_review =
             section
                 [ class "review" ]
-                [ ( case options.browse_past of
+                [ ( case option.browse_past of
                     Nothing ->
                         button 
                         [ class "publish"]
@@ -102,12 +91,12 @@ view messages options history preview possible_intents =
                         ]
                   )
                 , button 
-                    [ class "scrollable"
-                    , messages.browse_history (Just -1) |> onClick ]
-                    ( List.map view_transformation summary.past )
+                    [ class "past"
+                    , message.browse_history (Just -1) |> onClick ]
+                    ( List.map view_transformation ( List.reverse summary.past ) )
                 , button 
-                    [ class "scrollable"
-                    , messages.browse_history (Just 1)  |> onClick ]
+                    [ class "future"
+                    , message.browse_history (Just 1)  |> onClick ]
                     ( List.map view_transformation summary.future )
                 , br [] []
                 ]

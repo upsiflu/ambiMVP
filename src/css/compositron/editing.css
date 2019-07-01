@@ -6,8 +6,7 @@
  states:
  
  (0) The basic style is visiting.
-    (a) .anchors are hidden (but they are there, hovering
-         on the top left corner of each item, via z-index)
+    (a) .anchors are hidden (but they are there, absolutely positioned)
     (i) items are unchanged
     (t) trails are unchanged
  (1) .editing
@@ -19,7 +18,8 @@
     (i) items are truncated to fully slide under the .anchor
     (t) trails:
         containers behave as before, except they are margined downwards so
-        that their children are never obscured by an anchor.    */
+        that their children are never obscured by an anchor.    
+*/
 
 
 .editing .anchor, .editing .anchor .item_icon { 
@@ -31,15 +31,6 @@
 .editing .anchor.targeted {
     opacity:1;
 }
-.editing .anchor.targeted input {
-    position:fixed; left:1rem; width:calc(100vw - 2rem);
-    height:2rem;
-    margin-top:-2.5rem;
-    border-radius:1.2rem ;
-    background:yellow;
-    visibility:visible;
-}
-
 
 
 /*.editing .editor
@@ -61,6 +52,45 @@
 
 /* add child */
 /*.editing .targeted > .Ambiguous { opacity:1; visibility:visible; }*/
+
+.editing .ellipsis {
+    color:rgb(255,90,100);
+    border:.0rem solid rgb(255,90,100);
+    position: relative;
+    top: -2.8rem;
+    margin: 0;
+    display: inline;
+    overflow: visible;
+    height:0;
+    width:0;
+    padding:0;
+    transition:all .1s;
+}
+
+.editing .targeted>.ellipsis {
+    border:.1rem solid rgb(255,90,100);
+    padding: 1rem;
+    margin: -1rem -3rem -2rem 0rem;
+    width:3rem;
+    height:3rem;
+}
+.editing .targeted>.ellipsis::before {
+    content:"";
+    height:3.9rem;
+    border-left: .1rem solid rgb(255,90,100);
+    position:absolute;
+    left:-.1rem;
+    
+}
+
+.editing .targeted>.ellipsis label {
+    height: 1rem;
+    width: 1rem;
+    margin:auto;
+    padding:0;
+}
+
+.item:not(.targeted)>.ellipsis {display:none;}
 
 
 /* add sibling */
@@ -92,5 +122,12 @@
 
 
 /* highlight targeted item */
-.editing .targeted {background:yellow;}
-.editing .targeted label { color:black; }
+.editing .item.targeted {background:rgba(0,0,0,.05);}
+
+.editing .item.targeted>span:focus  {
+    background:white;
+    outline:none;
+    border-bottom:.1rem solid rgb(200,10,60);
+}
+
+.Span .empty { min-width:3rem; background:red; }

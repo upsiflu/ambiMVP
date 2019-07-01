@@ -66,6 +66,8 @@ type Msg
     | BrowseHistory ( Maybe Int )
     | ToggleLayout
     | ToggleReview
+    | NoOp
+    | DoCommand     ( Cmd Msg )
                  
 update msg model =
     let
@@ -104,6 +106,9 @@ update msg model =
         ToggleReview ->
             map_view (\v -> {v| review = not v.review } )
             |> commit
+        DoCommand c ->
+            ( model, c )
+        NoOp -> ( model, Cmd.none )
         _ ->
             commit identity
 
@@ -118,15 +123,16 @@ main = Browser.application
                  recent_signature_string = History.recent_signature_string model.session  
              in
                  Ui.view
-                 { transform = Transform
-                 , browse_history = BrowseHistory
+                 { browse_history = BrowseHistory
                  , toggle_layout = ToggleLayout
                  , toggle_review = ToggleReview
+                 , from_intent = History.do model.session >> Transform
+                 , from_command = DoCommand
+                 , noop = NoOp
                  }
                  model.view_options
                  model.session
                  ( State.preview recent_signature_string )
-                 ( State.possible_intents recent_signature_string present )
     , update = update
     , subscriptions = always Sub.none
     , onUrlChange = UrlChanged, onUrlRequest = LinkClicked

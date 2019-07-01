@@ -292,8 +292,16 @@ toHtml sig message structure =
             Freeze
             >> to_message >> onBlur
                
-        view_item i =
-            case i of
+        view_item =
+            Item.view
+                node
+                { choose_this = choose_this
+                , input_url = input_url
+                , input_span = input_span
+                , focus_here = focus_here
+                , blur_span = blur_span
+                , navigate_here = navigate_here
+                }
                 
                 Layout set ->
                     "Layout"

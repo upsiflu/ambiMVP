@@ -8,10 +8,13 @@
 body { height:100vh; width:100%;}
 main { overflow-x:hidden; }
 
+/* editor and review act as reference for absolute positions */
+
 .editor, .review { 
     width:28rem; transition:margin .3s; 
     display:inline-block; vertical-align:top;
     padding-bottom:4rem;
+    position:relative;
 }
 
 header { height:40vh; position:relative; width:100%;}
@@ -48,16 +51,10 @@ button, .caption, label {
     font-size:.8rem;
 }
 
-input {
-    border:0; border-bottom: .05rem solid silver; padding:0 1rem .1rem 1rem; 
-    width:calc(100% - 2rem); transition:all .1s;
-}
 input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-bottom: .15rem solid rgb(255,90,100); padding:0 .1rem 0 .1rem;
-    width:calc(100% - .2rem); 
 }
 
 
@@ -103,3 +100,18 @@ textarea:focus {
     h2 { font-size: calc(1.72rem + .5vw) }
     
 }
+
+
+
+/**
+  styles for the review
+
+
+**/
+
+.review>button { width:100%; }
+.review>button:hover button.transformation:not(:hover):not(:hover~*) { background:silver; }
+.review button.transformation { display:block; width:100%; text-align:left; }
+.review button.transformation:hover { background:yellow; }
+.review button.transformation:hover~* { background:transparent; }
+.review button.transformation label.signature { position:absolute; right:0; width:auto; }
