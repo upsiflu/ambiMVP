@@ -3,6 +3,7 @@ module Compositron.Item exposing  (..)
 import Compositron.View as View exposing ( View )
 
 import Html exposing ( Html )
+import Html.Attributes
 
 -- item
 
@@ -29,12 +30,13 @@ type alias Signature = String
 type Item
             
     -- elements
-    = Assume_self -- when nonempty
-    | Field ( Flow ) ( Name ) ( List Item ) -- a named element
-    | Ambiguous ( Name ) ( Bool -> List Item ) -- same as field, but may be undecided
-    | Info ( String ) -- an immutable label
+    = Empty Item -- the only way to construct an Item. Its Group (all tree-children) is empty
+    | Assume ( Bool -> Item ) -- when nonempty -- <
+    | Field ( Name ) ( Flow ) ( List Item ) -- a named element -- body
+    | Ambiguous ( Name ) ( Bool -> List Item ) -- same as field, but may be undecided -- amb. body
+    | Info ( String ) -- an immutable label -- new
       
-    -- editor for data (from a string) with variable width
+    -- editor for data (from a string) with variable width (span[contenteditable])
     | T Text
     | I Image
     | U Url
@@ -42,20 +44,30 @@ type Item
     | V Vimeo
 
     -- before mapping to a tree, the focus of the Zipper gets tagged:
-    | Highlight Item -- this item will show all controls and selectors.
-      
+    | Highlight Item -- only this item will show all controls and selectors.
+    | Err String
 
+form : Item -> List Item
+form itm =
+    case itm of
+        Field _ _ list -> list
+        _-> []
+    
 verbalize : Item -> String
 verbalize i =
     case i of
-        Field _ n _ -> n
+        Field n _ _ -> n
         Ambiguous n _ -> "Ambiguous "++n
         _ -> "?"
-      
+
 type Flow
-    = Above
+    = Meta -- can be above, below, introducing, or trailing.
     | Inside
-    | Underneath
+    | Stacked
+    | Sectioning
+    | Heading
+    | Paragraph
+    | Inaccessible -- for bodies that are not (yet) realized.
       
 type Text
     -- while you edit text via a contenteditable span, the virtual DOM retains the frozen string\
@@ -75,193 +87,217 @@ type Vimeo
     = Vimeo ( Maybe String )
 
 
+-- read
+
+children i =
+    case i of
+        Empty ii -> children ii
+        Field name flow kids -> kids
+        Highlight ii -> children ii
+        _ -> []
+
       
 -- macros
 
 layout =
-    let style s = Field Above s [ Info s ]
+    let style s = Field s Stacked [ Info s ]
     in
-        Field Underneath "layout"
-            [ Assume_self
-            , Ambiguous "+" <| \_->
+        Field "layout" Meta
+            [ Assume <|\_-> layout
+            , Ambiguous "+" <|\_->
                 [ style "align right"
                 , style "align centered"
                 , style "shaded green"
                 ]
             ]
             
-sectioning =
-    Ambiguous "block..." <| \_->
+blocks =
+    Ambiguous "block..." <|\_->
         [ paragraph
         , heading
         , figure
         ]
         
-phrasing =
-    Ambiguous "in line..." <| \_->
-        [ span Nothing
-        , link Nothing
+spans =
+    Ambiguous "in line..." <|\_->
+        [ text Nothing
+        , link Nothing Nothing
         ]
 
 paragraph =
-    Field Inside "paragraph"
-        [ Assume_self
-        , Ambiguous "+" <| \_->
-            [ sectioning
-            , phrasing
+    Field "paragraph" Paragraph
+        [ Assume <|\_-> paragraph
+        , Ambiguous "+" <|\_->
+            [ blocks
+            , spans
             ]
         , layout
         ]
 
 heading =
-    Field Inside "heading"
-        [ Assume_self
-        , phrasing
+    Field "heading" Heading
+        [ Assume <|\_-> heading
+        , spans
         , layout
         ]
 
 figure =
-    Field Inside "figure"
-        [ Assume_self
-        , Ambiguous "media" <| \_->
+    Field "figure" Inside
+        [ Ambiguous "media" <| \_->
             [ I <| Image ( Nothing )
             , Y <| Youtube ( Nothing )
             , V <| Vimeo ( Nothing )
-            , sectioning
+            , blocks
             ]
         , Ambiguous "caption" <| \_->
-            [ sectioning
-            , phrasing
+            [ blocks
+            , spans
             ]
         , layout
         ]
 
-span t =
-    Field Inside "span"
-        [ Assume_self
-        , phrasing
+text t =
+    Field "text" Inside
+        [ Assume <|\_-> ( text Nothing )
+        , spans
         , T <| Text t t
         , layout
         ]
         
-link u =
-    Field Inside "link"
-        [ Field Above "destination"
+link t u =
+    Field "link" Inside
+        [ Field "destination" Meta
             [ U <| Url u ]
-        , span ( Nothing )
+        , text t
         , layout
         ]
+        
 
 
 -- present
 
 
-view : Item -> Html msg
-
-view node attributes =
+view node attributes elements =
    let
-        default_view =
-            { focus_here = attributes.focus_here
-            , navigate_here = attributes.navigate_here
-            } |> View.default node.signature ( inner () )
-
-        model =
-            case node.item of
+        extend this =
+            view this attributes elements
                 
-                Layout set ->
-                    "Layout"
-                        |> default_view
-                        |> View.icon ( text "S" )
-                        |> View.item
-                           ( View.element <| always span )
-                               |> View.item
-                                  ( View.children <| (::) <|
-                                        Html.input
-                                        [ name ( node.signature ++ "-input" )
-                                        , value ( verbalize_layout set )
-                                        --, modify_this set
-                                        ] []
-                                  )
-                               |> 
-                                 Span string frozen_string ->
-                                     "Span"
-                                         |> default_view
-                                         |> View.icon ( text "T" )
-                                         |> View.item
-                                            ( View.children <| (\t c -> c ++ t )
-                                                  [ span
-                                                        [ contenteditable False
-                                                        , classList [( "empty", frozen_string == Text Nothing )] ]
-                                                        [ frozen_string |> verbalize_text |> Html.text ]
-                                                  ]
-                                            )
-                                         |>
-                                           
-                Highlight ( Span string frozen_string ) ->
-                    "Span"
-                        |> default_view
-                        |> View.icon ( text "T" )
-                        |> View.item
-                           ( View.children <| (\t c -> c ++ t )
-                                 [ Html.span
-                                       [ contenteditable True
-                                       , attributes.input_span string
-                                       , attributes.blur_span ( string, frozen_string )
-                                       ]
-                                       -- until newly-frozen, lazy Html won't rerender this node :-)
-                                       [ frozen_string |> verbalize_text |> Html.text ]
-                                 ]
-                           )
-                        |> View.interactive
-                        |> View.present
-                                                                                                                                                                          
-                Parag ->
-                    "Parag"
-                        |> default_view
-                        |> View.icon ( text "P" )
-                        |> View.item
-                           ( View.element <| always Html.p )
-                               
-                Ambiguous ->
-                    "Ambiguous"
-                        |> default_view
-                        |> View.icon ( text "+" )
-                        |> View.item
-                           ( View.element ( always button )
-                                 >> View.attributes ( class "ellipsis" |> (::) )
-                                 >> View.children   ( [ Html.label [] [ Html.text "+" ] ] |> always )
-                           )
-                        
-                Highlight ( Ambiguous ) ->
-                    let
-                        choice_button cho =
-                            Html.button
-                                [ class "choice"
-                                , choose_this ( cho, Highlight Ambiguous )
-                                ]
-                            [ verbalize_choice cho |> Html.text ]
-                    in "Ambiguous"
-                        |> default_view
-                        |> View.icon ( text "+" )
-                        |> View.item
-                           ( View.element ( always Html.span )
-                                 >> View.attributes ( class "ellipsis" |> (::) )
-                                 >> View.children
-                                 ( always <| List.map choice_button <|
-                                       [ Layout Set.empty
-                                       , Span ( Text Nothing ) ( Text Nothing )
-                                       , Parag
-                                       ]
-                                 )
-                           )
-                        |> View.present_interactive
-   
-    in case node.item of
-                       
-    Highlight i -> view_item |> View.present_interactive
+        default_view =
+            View.basic node.signature
+            >> View.children elements.inner
 
-    i -> view_item |> View.present_passive
-         
-    _ ->
-        "Error"
-            |> default_view |> View.present_passive
+        view_flow f =
+            let
+                insert_class =
+                    View.add_class <|
+                    case f of
+                        Meta -> "meta"
+                        Inaccessible -> "inaccessible"
+                        Stacked -> "stacked"
+                        _ -> ""
+               
+                set_element =
+                    View.element <| always <|
+                    case f of
+                        Inside -> Html.span -- default
+                        Paragraph -> Html.p
+                        Sectioning -> Html.section
+                        Heading -> Html.h1
+                        _ -> Html.button
+                    
+            in insert_class >> set_element
+
+        item_to_info i =
+            case i of
+                Empty ii -> item_to_info ii
+                Assume _ -> Info "<"
+                Field name _ _ -> Info name
+                Ambiguous name _ -> Info ( name ++ "..." )
+                Info name -> Info name
+                Highlight ii -> item_to_info ii
+                Err string -> Info string
+                other -> other
+                
+        view_as_option n i =
+            extend
+                { signature = node.signature ++ "(" ++ ( String.fromInt n ) ++")" |> Debug.log "signature" 
+                , item = item_to_info i |> Debug.log "item" }
+                |> View.attributes ( (::) ( attributes.choose_this i ) )
+                |> View.element ( always Html.button )   
+                |> View.preview
+                
+   in
+       case node.item of
+
+            Assume _ ->
+                "<"
+                    |> default_view
+                    |> View.add_class "Assume"
+                      
+            Field name flow items ->
+                name
+                    |> default_view
+                    |> View.add_class "Field"
+                    |> view_flow flow
+
+            Ambiguous name _ ->
+                name
+                    |> default_view
+                    |> View.add_class "Ambiguous"
+                    |> view_flow Meta
+                    |> View.children ( (::) ( Html.text name ) )
+
+            Highlight ( Ambiguous name create_items ) ->
+                extend { node | item = Ambiguous name create_items }
+                    |> View.children
+                       ( List.indexedMap view_as_option ( create_items True ) |> (++) ) 
+
+            Info string ->
+                "info"
+                    |> default_view
+                    |> View.children ( (::) ( Html.text string ) )
+
+            T ( Text fluid frozen ) -> -- this is only the inner part, not the span around it!
+                "input"
+                    |> default_view
+                    |> View.add_class "T"
+                    |> case frozen of
+                        Nothing -> identity
+                        Just frozen_string ->
+                            [ frozen_string |> Html.text ] |> always |> View.children
+                                
+            Highlight ( T ( Text fluid frozen ) ) ->
+                extend { node | item = T ( Text fluid frozen ) } 
+                    |> View.attributes ( (::) ( Html.Attributes.contenteditable True ) )
+                    |> View.attributes ( (::) ( attributes.input_span frozen ) )
+                    |> View.attributes ( (::) ( attributes.blur_span ( fluid, frozen ) ) )
+                                            
+            I image ->
+                let
+                    source = case image of
+                        Image Nothing -> ""
+                        Image ( Just i ) -> i
+                in
+                    "image"
+                        |> default_view
+                        |> View.add_class "I"
+                        |> View.element ( always Html.img )
+                        |> View.attributes ( (::) ( Html.Attributes.src source ) )
+
+            U url ->
+                "url"
+                    |> default_view
+                    |> View.add_class "U"
+                    |> View.element ( always Html.input )
+                        
+                       
+            Highlight i -> extend { node | item = i }
+
+            Empty i -> extend { node | item = i }
+                    |> View.add_class "Empty"
+
+            Err string -> string |> default_view
+                    |> View.add_class "Err"
+                
+            _ -> "TODO" |> default_view
+                    |> View.add_class "Todo"

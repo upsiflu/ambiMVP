@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "elm-debug-transformer": "^0.0.7"
+  }
+}

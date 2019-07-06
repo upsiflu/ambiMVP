@@ -20,6 +20,24 @@ until predicate succ variable =
     then variable
     else until predicate succ <| succ variable
 
+        {-
+unless : ( Maybe a -> Bool ) -> ( a -> Maybe a ) -> a -> a
+unless predicate succ variable =
+    let
+        step p s recent v =
+            if p v
+            then recent
+            else v |> Maybe.map s |> step p s v
+    in step predicate succ ( Just variable ) ( Just variable )
+        |> Maybe.withDefault ( variable )
+         -}
+
+while_just : ( a  -> Maybe a ) -> a -> a
+while_just may_succ variable =
+   if may_succ variable == Nothing
+   then variable
+   else may_succ variable |> Maybe.withDefault variable |> while_just may_succ
+    
 -- List
 
 prepend : a -> List a -> List a

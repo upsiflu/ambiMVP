@@ -13,94 +13,54 @@ import Helpers exposing ( .. )
 type alias Map msg = View msg -> View msg
 type alias Element msg = List ( Attribute msg ) -> List ( Html msg ) -> Html msg
 
-    
 type alias View msg =
     { descriptor : String
-    , icon : Html msg
-    , focus_here : Attribute msg
-    , navigate_here : Attribute msg
-    , anchor : { element : Element msg
-               , attributes : List ( Attribute msg )
-               , children : List ( Html msg )
-               }
-    , item   : { element : Element msg
-               , attributes : List ( Attribute msg )
-               , children : List ( Html msg )
-               }
+    , element : Element msg
+    , attributes : List ( Attribute msg )
+    , children : Bool -> List ( Html msg )
     }
 
 attributes fu =
-    \x-> { x | attributes = fu x.attributes }
+    \v-> { v | attributes = fu v.attributes }
 element fu =
-    \x-> { x | element = fu x.element }
+    \v-> { v | element = fu v.element }
 children fu =
-    \x-> { x | children = fu x.children }
+    \v-> { v | children = \_-> fu ( v.children True ) }
          
-anchor fu =
-    \v-> { v | anchor = fu v.anchor }
-item fu =
-    \v-> { v | item = fu v.item }
-icon ico =
-    \v-> { v | icon = ico }
-
-present_interactive = interactive >> present
-present_passive = passive >> present
-         
-interactive : Map msg
-interactive v =
+interactive : Attribute msg -> Map msg
+interactive focus_here =
     let focusable =
-            v.focus_here |> (::) |> attributes
+            focus_here |> (::) |> attributes
         targeted =
             class "targeted" |> (::) |> attributes
-    in  v |> ( anchor targeted ) >> ( item targeted ) >> ( item focusable )                  
-
-passive : Map msg
-passive v =
-    let navigable =
-            v.navigate_here |> (::) |> attributes
-    in v |> item navigable
-
-type alias Slot msg =
-    { focus_here : Attribute msg
-    , navigate_here : Attribute msg
-    }
-    
-default :
-    String ->
-    List ( Html msg ) ->
-    Slot msg ->
-    String ->
-    View msg
- 
-default signature inner slot descriptor =
-    { descriptor = descriptor
-    , icon = text "?"
-    , focus_here = slot.focus_here
-    , navigate_here = slot.navigate_here
-    , anchor =
-          { element = div
-          , attributes =
-                [ class descriptor
-                , class "anchor"
-                ]
-          , children =
-                [ label [ class "signature" ] [ text signature ] ]
-          }
-    , item =
-          { element = span
-          , attributes =
-                [ class descriptor
-                , class "item"
-                , id signature
-                , for ( signature ++ "-input" )
-                ]
-          , children = inner
-          }
-    }
+    in  targeted >> focusable                  
         
-present : View msg -> List ( Html msg )
+passive : Attribute msg -> Map msg
+passive navigate_here =
+    navigate_here |> (::) |> attributes
+
+add_class : String -> Map msg
+add_class c =
+    c |> class |> (::) |> attributes
+        
+basic :
+    String -> String -> View msg
+ 
+basic signature descriptor =
+    { descriptor = descriptor 
+    , element = span
+    , attributes =
+          [ class descriptor
+          , class "item"
+          , id signature
+          ]
+    , children = always []
+    }
+
+preview : View msg -> Html msg
+preview v =
+    lazy2 v.element v.attributes ( v.children True )
+    
+present : View msg -> Html msg
 present v =
-    label [ class "item_icon" ] [ text v.descriptor ]
-        |> before v.anchor.children
-        |> lazy2 v.anchor.element v.anchor.attributes
-        |> before [ lazy2 v.item.element v.item.attributes v.item.children ]
+    lazy2 v.element v.attributes ( v.children True )
