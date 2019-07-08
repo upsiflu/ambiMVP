@@ -67,6 +67,8 @@ type Flow
     | Sectioning
     | Heading
     | Paragraph
+    | Figure
+    | Figcaption
     | Inaccessible -- for bodies that are not (yet) realized.
       
 type Text
@@ -92,10 +94,20 @@ type Vimeo
 children i =
     case i of
         Empty ii -> children ii
-        Field name flow kids -> kids
+        Field name flow kids -> List.map empty kids
         Highlight ii -> children ii
         _ -> []
 
+-- map
+
+empty : Item -> Item
+empty itm = case itm of
+    Field _ _ _ -> Empty itm
+    _ -> itm
+full : Item -> Item
+full itm = case itm of
+    Empty x -> x
+    x -> x
       
 -- macros
 
@@ -142,16 +154,18 @@ heading =
         ]
 
 figure =
-    Field "figure" Inside
-        [ Ambiguous "media" <| \_->
+    Field "figure" Figure
+        [ Ambiguous "figure media" <| \_->
             [ I <| Image ( Nothing )
             , Y <| Youtube ( Nothing )
             , V <| Vimeo ( Nothing )
             , blocks
             ]
-        , Ambiguous "caption" <| \_->
-            [ blocks
-            , spans
+        , Field "caption" Figcaption
+            [ Ambiguous "caption" <| \_->
+                  [ blocks
+                  , spans
+                  ]
             ]
         , layout
         ]
@@ -203,6 +217,8 @@ view node attributes elements =
                         Paragraph -> Html.p
                         Sectioning -> Html.section
                         Heading -> Html.h1
+                        Figure -> Html.figure
+                        Figcaption -> Html.figcaption
                         _ -> Html.button
                     
             in insert_class >> set_element
@@ -220,8 +236,9 @@ view node attributes elements =
                 
         view_as_option n i =
             extend
-                { signature = node.signature ++ "(" ++ ( String.fromInt n ) ++")" |> Debug.log "signature" 
-                , item = item_to_info i |> Debug.log "item" }
+                { signature = node.signature ++ "(" ++ ( String.fromInt n ) ++")" 
+                , item = item_to_info i
+                }
                 |> View.attributes ( (::) ( attributes.choose_this i ) )
                 |> View.element ( always Html.button )   
                 |> View.preview

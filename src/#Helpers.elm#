@@ -4,11 +4,6 @@ module Helpers exposing
 import Html.Events exposing ( .. )
 import Json.Decode as Decode
 
--- functions in a map
-
-apply : a -> ( a -> b ) -> b
-apply parameter fu = fu parameter
-
 -- Tuple mapping
         
 both ( f, g ) a = ( f a, g a )
@@ -24,7 +19,7 @@ until predicate succ variable =
     if predicate variable
     then variable
     else until predicate succ <| succ variable
-
+        
 while_just : ( a -> a ) -> ( a  -> Maybe a ) -> a -> a
 while_just fu may_succ variable =
    if may_succ variable == Nothing

@@ -2,7 +2,7 @@ module Compositron exposing
     ( State, trivial, preview )
 
 import Tree exposing ( Tree )
-import Tree.Zipper exposing  ( Zipper, mapLabel, root, tree, forward, append, findFromRoot, fromTree )
+import Tree.Zipper as Zipper exposing  ( Zipper, mapLabel, root, tree, forward, append, findFromRoot, fromTree )
 import Tuple exposing ( first, second )
 
 import Browser.Dom as Dom
@@ -42,70 +42,108 @@ trivial : Compositron
 trivial =
     Tree.singleton { signature = "start", item = Item.Err "" }
         |> fromTree
-        |> create_item ( always ( Item.Empty Item.paragraph ) )
-        
+        |> map_item ( always ( Item.Empty Item.paragraph ) ) >> unfold
+           
+singleton : Node -> Compositron
+singleton nod =
+    Tree.singleton nod |> Zipper.fromTree
 
+
+        
 -- read
 
 
 signature = node >> .signature
 item = node >> .item
-node = Tree.Zipper.label
-parent = \z -> z |> Tree.Zipper.parent |> Maybe.withDefault ( Tree.Zipper.root z )
+node = Zipper.label
+parent = \z -> z |> Zipper.parent |> Maybe.withDefault ( Zipper.root z )
+
 
          
--- map
+-- edit node
 
 
 type alias Map a = a -> a
-    
+
+-- append an index to this signature
+add_index : Int -> Map Compositron
+add_index n =
+    map_signature ( (++) ( "/" ++ ( String.fromInt n ) ) )
+
+-- modify this signature
+map_signature : Map Item.Signature -> Map Compositron
+map_signature fu =
+    mapLabel <| \this -> { this | signature = fu this.signature }
+
+-- modify this item  
 map_item : Map Item -> Map Compositron
-map_item fu =
+map_item fu = 
     mapLabel <| \this-> { this | item = fu this.item }
 
-create_item : Map Item -> Map Compositron
-create_item fu z =
-    let new_item = z |> item |> fu
-        new_node = { signature = signature z, item = new_item }
-        new_children = new_item |> Item.children |> List.indexedMap
-                       ( \n child -> { signature = ( signature z ) ++ "/" ++ ( String.fromInt n )
-                                     , item = child
-                                     } |> Tree.singleton )
-    in
-        Tree.Zipper.replaceTree ( Tree.tree new_node new_children ) z
 
-map_parent : Map Compositron -> Map Compositron
-map_parent fu z =
-    z   |> Tree.Zipper.parent
-        |> Maybe.map fu
-        |> Maybe.map ( Tree.Zipper.findNext ( (==) ( node z ) ) )
-        |> Maybe.map ( Maybe.withDefault z )
-        |> Maybe.withDefault z
 
-map_children : Map Compositron -> Map Compositron
-map_children fu z =
-    z   |> Tree.Zipper.firstChild
-        |> Maybe.map ( while_just ( fu >> Tree.Zipper.nextSibling ) )
-        |> Maybe.map ( Tree.Zipper.parent )
-        |> Maybe.map ( Maybe.withDefault z )
-        |> Maybe.withDefault z
+-- map
+                        
+-- turn the item's child items into fresh child compositrons
+unfold : Map Compositron
+unfold z =
+    let new_children =
+            Item.children ( item z ) -- [ Item ]
+                |> List.map ( \itm -> singleton { signature = signature z, item = itm } )
+                |> List.indexedMap add_index
+                |> List.map unfold
+                |> List.map ( Zipper.tree )
+    in  Zipper.replaceTree ( Tree.tree ( node z ) new_children ) z
 
+-- in case this item is Empty, make it nonempty,
+-- and unfold all Assumption (<) children
 nonempty : Map Compositron
 nonempty =
     let
         unfold_assumption z =
             case item z of
-                Item.Assume fu -> List.foldl ( always >> create_item ) z ( fu True |> Item.form ) 
-                other          -> z
+                Item.Assume fu -> Debug.log "found an assumption"
+                    Item.children ( fu True )
+                        |> List.map ( \itm -> singleton { signature = signature z, item = itm } )
+                        |> List.indexedMap add_index
+                        |> List.map unfold
+                        |> List.foldl ( add_sibling ) z
+                other ->
+                    z
         
     in \z->
         z |> case item z of
                  Item.Empty fill ->
-                     map_item ( always fill )
-                         >> map_children ( unfold_assumption )
+                     map_item ( Item.full )
+                         >> map_children unfold_assumption
                  full -> identity
 
-            
+
+                         
+-- yield map
+
+
+-- merge another Compositron as sibling to this one
+add_sibling : Compositron -> Map Compositron
+add_sibling = Zipper.tree >> Zipper.append
+
+-- modify the parent Compositron if it exists
+map_parent : Map Compositron -> Map Compositron
+map_parent fu z =
+    z   |> Zipper.parent
+        |> Maybe.map ( fu >> Zipper.findNext ( (==) ( node z ) ) >> Maybe.withDefault z )
+        |> Maybe.withDefault z
+
+-- modify each child Compositron that exists
+map_children : Map Compositron -> Map Compositron
+map_children fu z =
+    z   |> Zipper.firstChild
+        |> Maybe.map ( while_just fu Zipper.nextSibling >> Zipper.parent >> Maybe.withDefault z )
+        |> Maybe.withDefault z
+
+
+-- apply an edit
+
 target : ( Item.Signature, Item.Signature ) -> Map Compositron
 target ( sig, old ) =
     findFromRoot ( \this -> this.signature == sig )
@@ -129,12 +167,9 @@ freeze ( new, old ) =
     
 choose : Item.Signature -> ( Item, Item ) -> Map Compositron
 choose new_signature ( itm, old ) =
-        case Debug.log "chose item" itm of -- then we see what item was added
-            Item.Ambiguous _ _ ->
-                create_item ( always itm )
-            any ->
-                map_parent nonempty
-                    >> create_item ( always ( Item.Empty any ) )
+    map_parent nonempty
+        >> map_item ( always itm )
+        >> unfold
 
 
 
@@ -256,7 +291,7 @@ to_html sig message ( compositree, compositron ) =
                
         choose_this : Item -> Html.Attribute msg
         choose_this option =
-            Choose ( option, this.item )
+            Choose ( Debug.log "option" option, this.item )
             |> to_message >> onClickNoBubble
 
         input_url : Maybe String -> Html.Attribute msg
