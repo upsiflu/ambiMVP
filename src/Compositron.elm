@@ -57,7 +57,7 @@ signature = node >> .signature
 item = node >> .item
 node = Zipper.label
 parent = \z -> z |> Zipper.parent |> Maybe.withDefault ( Zipper.root z )
-
+data = item >> Item.data
 
          
 -- edit node
@@ -95,6 +95,16 @@ unfold z =
                 |> List.map ( Zipper.tree )
     in  Zipper.replaceTree ( Tree.tree ( node z ) new_children ) z
 
+update_parent_emptiness : Map Compositron
+update_parent_emptiness z =
+    case z
+        |> Zipper.parent
+        |> Maybe.map ( Zipper.tree >> Tree.children >> List.all Item.is_empty )
+        |> Maybe.withDefault False
+    of
+        True -> map_parent ( map_item Item.empty ) z
+        False -> map_parent ( map_item Item.full ) z
+        
 -- in case this item is Empty, make it nonempty,
 -- and unfold all Assumption (<) children
 nonempty : Map Compositron
@@ -107,7 +117,7 @@ nonempty =
                         |> List.map ( \itm -> singleton { signature = signature z, item = itm } )
                         |> List.indexedMap add_index
                         |> List.map unfold
-                        |> List.foldl ( add_sibling ) z
+                        |> List.foldl ( insert_sibling ) z
                 other ->
                     z
         
@@ -123,10 +133,40 @@ nonempty =
 -- yield map
 
 
--- merge another Compositron as sibling to this one
-add_sibling : Compositron -> Map Compositron
-add_sibling = Zipper.tree >> Zipper.append
+-- copy an item that wants to become full next to each "<".
+prepare_full : Item.Signature -> Item -> Map Compositron
+prepare_full sig empty =
+    singleton { signature = sig, item = empty }
+        |> insert_sibling_where ( item >> Item.is_assume_self )
 
+-- undo the previous copying of empty items in preparation for fullness.
+prepare_empty : Item.Signature -> Item -> Map Compositron
+prepare_empty sig empty =
+    singleton { signature = sig, item = empty }
+        |> (/=) >> filter_siblings
+
+-- filter only siblings that fit a predicate
+filter_siblings : ( Compositron -> Bool ) -> Map Compositron
+filter_siblings predicate =
+    Zipper.tree
+        >> Tree.mapChildren ( List.filter ( predicate ) )
+        >> Zipper.fromTree
+        |> map_parent
+
+-- insert a sibling next to the targeted compositron
+insert_sibling : Compositron -> Map Compositron
+insert_sibling =
+    Zipper.tree >> Zipper.append >> perhaps Zipper.nextSibling
+
+-- insert a sibling for each match
+insert_sibling_where : ( Compositron -> Bool ) -> Compositron -> Map Compositron
+insert_sibling_where predicate new =
+    map_siblings ( insert_sibling new >> when predicate )
+
+-- modify each sibling, including the targeted compositron
+map_siblings : Map Compositron -> Map Compositron
+map_siblings = map_children >> map_parent
+               
 -- modify the parent Compositron if it exists
 map_parent : Map Compositron -> Map Compositron
 map_parent fu z =
@@ -134,56 +174,64 @@ map_parent fu z =
         |> Maybe.map ( fu >> Zipper.findNext ( (==) ( node z ) ) >> Maybe.withDefault z )
         |> Maybe.withDefault z
 
--- modify each child Compositron that exists
+-- modify each child Compositron
 map_children : Map Compositron -> Map Compositron
 map_children fu z =
     z   |> Zipper.firstChild
         |> Maybe.map ( while_just fu Zipper.nextSibling >> Zipper.parent >> Maybe.withDefault z )
         |> Maybe.withDefault z
 
+           
+           
+-- apply edit
 
--- apply an edit
 
-target : ( Item.Signature, Item.Signature ) -> Map Compositron
-target ( sig, old ) =
+target : Item.Signature -> Map Compositron
+target sig =
     findFromRoot ( \this -> this.signature == sig )
     >> Maybe.withDefault trivial
 
+choose : Item.Signature -> Item -> Map Compositron
+choose sig itm =
+    let
+        prepare_siblings z =
+         if      Item.is_empty ( item z )
+         then    prepare_full sig ( item z )
+         else if Item.is_empty itm
+         then    prepare_empty sig itm
+         else    z
+    in prepare_siblings
+        >> map_item ( always itm )
+        >> update_parent_emptiness
+        >> unfold
         
-modify : ( Maybe String, Maybe String ) -> Map Compositron
-modify ( new, old ) =
+modify : Item.Signature -> Item.Data ->  Map Compositron
+modify sig dat =
     map_item <| \s -> case s of
-        Item.T ( Item.Text liquid frozen ) -> Item.T ( Item.Text new frozen )
-        Item.Y _ -> Item.Y ( Item.Youtube new )
-        Item.V _ -> Item.V ( Item.Vimeo new )
-        Item.U _ -> Item.U ( Item.Url new )
+        Item.T ( Item.Text liquid frozen ) -> Item.T ( Item.Text dat frozen )
+        Item.Y _ -> Item.Y ( Item.Youtube dat )
+        Item.V _ -> Item.V ( Item.Vimeo dat )
+        Item.U _ -> Item.U ( Item.Url dat )
         x -> x
 
-freeze : ( Maybe String, Maybe String ) -> Map Compositron
-freeze ( new, old ) =
+freeze : Item.Signature -> Item.Data -> Map Compositron
+freeze sig dat =
     map_item <| \s -> case s of
-        Item.T ( Item.Text liquid frozen ) -> Item.T ( Item.Text liquid new )
+        Item.T ( Item.Text liquid frozen ) -> Item.T ( Item.Text liquid dat )
         x -> x
     
-choose : Item.Signature -> ( Item, Item ) -> Map Compositron
-choose new_signature ( itm, old ) =
-    map_parent nonempty
-        >> map_item ( always itm )
-        >> unfold
-
-
 
 
 -- edits
 
     
 type Edit
-    -- each Edit has ( New, Old )
-    = Target ( Item.Signature, Item.Signature )
-    | Choose ( Item, Item )
-    | Modify ( Maybe String, Maybe String )
-    | Freeze ( Maybe String, Maybe String )
-    -- clear is simply the inverse of choose!
+    = Target Item.Signature
+    -- signature: for siblings that are to be created/removed.
+    -- item: intended new.
+    | Choose Item.Signature Item
+    | Modify Item.Signature Item.Data
+    | Freeze Item.Signature Item.Data
 
         
 create_intent :
@@ -193,25 +241,29 @@ create_intent :
         -> Intent Compositron
 create_intent new_signature compositron edit =
     case edit of
-        Target ( sig, old ) ->
-            { serial = [ "🞋", sig, old] |> String.join (" ")
-            , function = target ( sig, old )
-            , inverse = target ( old, sig )
+        -- browse the actual tree.
+        Target sig ->
+            { serial = [ "🞋", sig ] |> String.join (" ")
+            , function = target sig
+            , inverse = target ( signature compositron )
             }
-        Choose ( itm, old ) ->
+        -- switch the item to a more concrete type or a more ambiguous one.
+        Choose sig itm ->
             { serial = [ "!", Item.verbalize itm ] |> String.join (" ")
-            , function = choose new_signature ( itm, old )
-            , inverse = choose new_signature ( old, itm )
+            , function = choose new_signature itm -- new sig, new itm
+            , inverse = choose sig ( item compositron ) -- old sig, old itm
             }
-        Modify ( str, old ) ->
-            { serial = [ "~", enstring str, enstring old ] |> String.join (" ")
-            , function = modify ( str, old )
-            , inverse = modify ( old, str )
+        -- switch the data in the item to be more concrete or a more empty.
+        Modify sig dat ->
+            { serial = [ "~", enstring dat ] |> String.join (" ")
+            , function = modify new_signature dat -- new sig, new itm
+            , inverse = modify sig ( data compositron ) -- old sig, old itm
             }
-        Freeze ( str, old ) ->
-            { serial = [ "=", enstring str, enstring old ] |> String.join (" ")
-            , function = freeze ( str, old )
-            , inverse = freeze ( old, str )
+        -- make the UI render new data (workaround for contenteditable spans).
+        Freeze sig dat ->
+            { serial = [ "=", enstring dat ] |> String.join (" ")
+            , function = freeze new_signature dat -- new sig, new itm
+            , inverse = freeze sig ( data compositron ) -- old sig, old itm
             }
 
 
@@ -306,7 +358,7 @@ to_html sig message ( compositree, compositron ) =
                 ( Json.at ["target", "textContent"] Json.string )
             |> on "input"
 
-        blur_span : ( Maybe String, Maybe String ) -> Html.Attribute msg
+        blur_span : Item.Signature -> Html.Attribute msg
         blur_span =
             Freeze
             >> to_message >> onBlur

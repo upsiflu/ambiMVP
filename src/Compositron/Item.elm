@@ -21,9 +21,12 @@ import Html.Attributes
 --}
 
 type alias Name = String
-type alias Frozen_String = String
-type alias Fluid_String = String
+type alias Data = Maybe String
+type alias Frozen = Data
+type alias Fluid = Data
 
+type Assumption = Self
+    
 type alias Signature = String
 -- Item signatures are derived from the Transformation signature of their instanciation.
     
@@ -31,7 +34,7 @@ type Item
             
     -- elements
     = Empty Item -- the only way to construct an Item. Its Group (all tree-children) is empty
-    | Assume ( Bool -> Item ) -- when nonempty -- <
+    | Assume Assumption -- when nonempty -- <
     | Field ( Name ) ( Flow ) ( List Item ) -- a named element -- body
     | Ambiguous ( Name ) ( Bool -> List Item ) -- same as field, but may be undecided -- amb. body
     | Info ( String ) -- an immutable label -- new
@@ -74,22 +77,40 @@ type Flow
 type Text
     -- while you edit text via a contenteditable span, the virtual DOM retains the frozen string\
     -- to keep the state within the Browser.
-    = Text ( Maybe Fluid_String ) ( Maybe Frozen_String )
+    = Text Fluid Frozen
       
 type Image
-    = Image ( Maybe String )
+    = Image Data
 
 type Url
-    = Url ( Maybe String )
+    = Url Data
       
 type Youtube
-    = Youtube ( Maybe String )
+    = Youtube Data
       
 type Vimeo
-    = Vimeo ( Maybe String )
+    = Vimeo Data
 
 
 -- read
+
+is_empty i =
+    case i of
+        Empty _ -> True
+        _ -> False
+is_assume_self i =
+    case i of
+        Assume Self -> True
+        _ -> False
+             
+data i =
+    case i of
+        T ( Text fluid frozen ) -> fluid
+        I ( Image dat ) -> dat
+        U ( Url dat ) -> dat
+        Y ( Youtube dat ) -> dat
+        V ( Vimeo dat ) -> dat
+        _ -> Nothing
 
 children i =
     case i of
@@ -115,7 +136,7 @@ layout =
     let style s = Field s Stacked [ Info s ]
     in
         Field "layout" Meta
-            [ Assume <|\_-> layout
+            [ Assume Self
             , Ambiguous "+" <|\_->
                 [ style "align right"
                 , style "align centered"
@@ -138,7 +159,7 @@ spans =
 
 paragraph =
     Field "paragraph" Paragraph
-        [ Assume <|\_-> paragraph
+        [ Assume Self
         , Ambiguous "+" <|\_->
             [ blocks
             , spans
@@ -148,7 +169,7 @@ paragraph =
 
 heading =
     Field "heading" Heading
-        [ Assume <|\_-> heading
+        [ Assume Self
         , spans
         , layout
         ]
@@ -172,7 +193,7 @@ figure =
 
 text t =
     Field "text" Inside
-        [ Assume <|\_-> ( text Nothing )
+        [ Assume Self
         , spans
         , T <| Text t t
         , layout

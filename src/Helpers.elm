@@ -4,6 +4,23 @@ module Helpers exposing
 import Html.Events exposing ( .. )
 import Json.Decode as Decode
 
+-- maybe
+
+perhaps : ( a -> Maybe a ) -> ( a -> a )
+perhaps fu parameter =
+    fu parameter
+        |> Maybe.withDefault parameter
+
+attempt : ( b -> Maybe a ) -> ( a -> ( b -> a ) )
+attempt fu =
+    \fallback -> fu >> Maybe.withDefault fallback
+                 
+-- conditional
+
+when : ( b -> Bool ) -> ( a -> a ) -> ( b -> ( a -> a ) )
+when predicate fu =
+    \probe -> if predicate probe then fu else identity
+
 -- functions in a map
 
 apply : a -> ( a -> b ) -> b
