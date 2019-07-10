@@ -299,17 +299,25 @@ view node attributes elements =
                 "input"
                     |> default_view
                     |> View.add_class "T"
-                    |> case frozen of
+                    -- view fluid string text:
+                    |> case fluid of
                         Nothing -> identity
-                        Just frozen_string ->
-                            [ frozen_string |> Html.text ] |> always |> View.children
+                        Just fluid_string ->
+                            [ fluid_string |> Html.text ] |> always |> View.children
                                 
             Highlight ( T ( Text fluid frozen ) ) ->
                 extend { node | item = T ( Text fluid frozen ) } 
                     |> View.attributes ( (::) ( Html.Attributes.contenteditable True ) )
                     |> View.attributes ( (::) ( attributes.input_span frozen ) )
-                    |> View.attributes ( (::) ( attributes.blur_span ( fluid, frozen ) ) )
-                                            
+                    |> View.attributes ( (::) ( attributes.blur_span ) )
+                    -- view frozen span text to cope with contenteditable:
+                    |> case frozen of
+                        Nothing -> identity
+                        Just frozen_string ->
+                            [ frozen_string |> Html.text ] |> always |> View.children
+                                
+
+                       
             I image ->
                 let
                     source = case image of

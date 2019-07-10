@@ -58,7 +58,9 @@ item = node >> .item
 node = Zipper.label
 parent = \z -> z |> Zipper.parent |> Maybe.withDefault ( Zipper.root z )
 data = item >> Item.data
-
+all_children_empty = Zipper.tree >> Tree.children >> List.all
+                      ( Tree.label >> .item >> Item.is_empty )
+       
          
 -- edit node
 
@@ -83,7 +85,8 @@ map_item fu =
 
 
 -- map
-                        
+
+
 -- turn the item's child items into fresh child compositrons
 unfold : Map Compositron
 unfold z =
@@ -99,35 +102,11 @@ update_parent_emptiness : Map Compositron
 update_parent_emptiness z =
     case z
         |> Zipper.parent
-        |> Maybe.map ( Zipper.tree >> Tree.children >> List.all Item.is_empty )
+        |> Maybe.map all_children_empty
         |> Maybe.withDefault False
     of
         True -> map_parent ( map_item Item.empty ) z
         False -> map_parent ( map_item Item.full ) z
-        
--- in case this item is Empty, make it nonempty,
--- and unfold all Assumption (<) children
-nonempty : Map Compositron
-nonempty =
-    let
-        unfold_assumption z =
-            case item z of
-                Item.Assume fu -> Debug.log "found an assumption"
-                    Item.children ( fu True )
-                        |> List.map ( \itm -> singleton { signature = signature z, item = itm } )
-                        |> List.indexedMap add_index
-                        |> List.map unfold
-                        |> List.foldl ( insert_sibling ) z
-                other ->
-                    z
-        
-    in \z->
-        z |> case item z of
-                 Item.Empty fill ->
-                     map_item ( Item.full )
-                         >> map_children unfold_assumption
-                 full -> identity
-
 
                          
 -- yield map
@@ -149,19 +128,21 @@ prepare_empty sig empty =
 filter_siblings : ( Compositron -> Bool ) -> Map Compositron
 filter_siblings predicate =
     Zipper.tree
-        >> Tree.mapChildren ( List.filter ( predicate ) )
+        >> Tree.mapChildren ( List.filter ( Zipper.fromTree >> predicate ) )
         >> Zipper.fromTree
         |> map_parent
 
 -- insert a sibling next to the targeted compositron
 insert_sibling : Compositron -> Map Compositron
-insert_sibling =
-    Zipper.tree >> Zipper.append >> perhaps Zipper.nextSibling
-
+insert_sibling sib =
+    let append_sibling = Zipper.tree >> Zipper.append
+    in append_sibling sib >> perhaps Zipper.nextSibling
+        
 -- insert a sibling for each match
 insert_sibling_where : ( Compositron -> Bool ) -> Compositron -> Map Compositron
 insert_sibling_where predicate new =
-    map_siblings ( insert_sibling new >> when predicate )
+    map_siblings
+        ( insert_sibling new |> when predicate )
 
 -- modify each sibling, including the targeted compositron
 map_siblings : Map Compositron -> Map Compositron
@@ -192,33 +173,41 @@ target sig =
     >> Maybe.withDefault trivial
 
 choose : Item.Signature -> Item -> Map Compositron
-choose sig itm =
+choose sig itm z =
     let
-        prepare_siblings z =
+        prepare_siblings =
          if      Item.is_empty ( item z )
          then    prepare_full sig ( item z )
          else if Item.is_empty itm
          then    prepare_empty sig itm
-         else    z
-    in prepare_siblings
-        >> map_item ( always itm )
-        >> update_parent_emptiness
-        >> unfold
+         else    identity
+    in  z
+        |> prepare_siblings
+        |> map_item ( always itm )
+        |> update_parent_emptiness
+        |> unfold
         
 modify : Item.Signature -> Item.Data ->  Map Compositron
 modify sig dat =
     map_item <| \s -> case s of
-        Item.T ( Item.Text liquid frozen ) -> Item.T ( Item.Text dat frozen )
+        Item.T ( Item.Text fluid frozen ) -> Item.T ( Item.Text dat frozen )
         Item.Y _ -> Item.Y ( Item.Youtube dat )
         Item.V _ -> Item.V ( Item.Vimeo dat )
         Item.U _ -> Item.U ( Item.Url dat )
         x -> x
 
-freeze : Item.Signature -> Item.Data -> Map Compositron
-freeze sig dat =
+freeze : Map Compositron
+freeze =
     map_item <| \s -> case s of
-        Item.T ( Item.Text liquid frozen ) -> Item.T ( Item.Text liquid dat )
+        Item.T ( Item.Text fluid frozen ) -> Item.T ( Item.Text fluid fluid )
         x -> x
+
+unfreeze : Map Compositron
+unfreeze =
+    map_item <| \s -> case s of
+        Item.T ( Item.Text fluid frozen ) -> Item.T ( Item.Text frozen frozen )
+        x -> x
+    
     
 
 
@@ -231,7 +220,7 @@ type Edit
     -- item: intended new.
     | Choose Item.Signature Item
     | Modify Item.Signature Item.Data
-    | Freeze Item.Signature Item.Data
+    | Freeze
 
         
 create_intent :
@@ -260,10 +249,10 @@ create_intent new_signature compositron edit =
             , inverse = modify sig ( data compositron ) -- old sig, old itm
             }
         -- make the UI render new data (workaround for contenteditable spans).
-        Freeze sig dat ->
-            { serial = [ "=", enstring dat ] |> String.join (" ")
-            , function = freeze new_signature dat -- new sig, new itm
-            , inverse = freeze sig ( data compositron ) -- old sig, old itm
+        Freeze ->
+            { serial = [ "=", enstring ( data compositron ) ] |> String.join (" ")
+            , function = freeze
+            , inverse = unfreeze
             }
 
 
@@ -331,7 +320,7 @@ to_html sig message ( compositree, compositron ) =
                 
         navigate_here : Html.Attribute msg
         navigate_here =
-            Target ( this.signature, sig )
+            Target this.signature
             |> to_message >> onClickNoBubble
 
         focus_here : Html.Attribute msg
@@ -342,26 +331,26 @@ to_html sig message ( compositree, compositron ) =
             |> onClickNoBubble
                
         choose_this : Item -> Html.Attribute msg
-        choose_this option =
-            Choose ( Debug.log "option" option, this.item )
+        choose_this itm =
+            Choose sig itm
             |> to_message >> onClickNoBubble
 
-        input_url : Maybe String -> Html.Attribute msg
+        input_url : Item.Data -> Html.Attribute msg
         input_url old =
-            ( \new -> to_message ( Modify ( destring new, old ) ) )
+            ( destring >> Modify sig >> to_message )
             |> onInput
 
-        input_span : Maybe String -> Html.Attribute msg
+        input_span : Item.Data -> Html.Attribute msg
         input_span old =
             Json.map
-                ( \new -> to_message ( Modify ( destring new, old ) ) )
+                ( destring >> Modify sig >> to_message )
                 ( Json.at ["target", "textContent"] Json.string )
             |> on "input"
 
-        blur_span : Item.Signature -> Html.Attribute msg
+        blur_span : Html.Attribute msg
         blur_span =
             Freeze
-            >> to_message >> onBlur
+            |> to_message >> onBlur
 
         passive_or_interactive =
             case this.item of

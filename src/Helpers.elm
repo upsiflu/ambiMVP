@@ -15,11 +15,11 @@ attempt : ( b -> Maybe a ) -> ( a -> ( b -> a ) )
 attempt fu =
     \fallback -> fu >> Maybe.withDefault fallback
                  
--- conditional
+-- conditional map
 
-when : ( b -> Bool ) -> ( a -> a ) -> ( b -> ( a -> a ) )
-when predicate fu =
-    \probe -> if predicate probe then fu else identity
+when : ( a -> Bool ) -> ( a -> a ) -> ( a -> a )
+when predicate fu probe =
+    if predicate probe then fu probe else probe
 
 -- functions in a map
 
