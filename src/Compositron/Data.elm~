@@ -1,0 +1,23 @@
+module Compositron.Data
+
+
+
+-- Data
+
+
+type alias Data = Maybe String
+
+
+
+-- read
+    
+    
+is_empty = (==) Nothing
+
+
+
+-- serialize
+
+
+serialize : Data -> String
+serialize = Maybe.withDefault ""

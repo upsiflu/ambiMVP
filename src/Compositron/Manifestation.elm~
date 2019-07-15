@@ -1,0 +1,7 @@
+module Compositron.Manifestation exposing (..)
+
+type alias Manifestation =
+    { target : Bool }
+
+target = { target = True }
+untarget = { target = False }

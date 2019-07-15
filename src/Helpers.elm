@@ -4,9 +4,14 @@ module Helpers exposing
 import Html.Events exposing ( .. )
 import Json.Decode as Decode
 
+-- types
+
+type alias Map a = a -> a
+
+
 -- maybe
 
-perhaps : ( a -> Maybe a ) -> ( a -> a )
+perhaps : ( a -> Maybe a ) -> Map a
 perhaps fu parameter =
     fu parameter
         |> Maybe.withDefault parameter
@@ -14,18 +19,21 @@ perhaps fu parameter =
 attempt : ( b -> Maybe a ) -> ( a -> ( b -> a ) )
 attempt fu =
     \fallback -> fu >> Maybe.withDefault fallback
+ 
                  
 -- conditional map
 
-when : ( a -> Bool ) -> ( a -> a ) -> ( a -> a )
+when : ( a -> Bool ) -> Map a -> Map a
 when predicate fu probe =
     if predicate probe then fu probe else probe
 
+        
 -- functions in a map
 
 apply : a -> ( a -> b ) -> b
 apply parameter fu = fu parameter
 
+                     
 -- Tuple mapping
         
 both ( f, g ) a = ( f a, g a )
@@ -34,23 +42,27 @@ all3 (f, g, h ) a = ( f a, g a, h a )
 each f ( a, b ) = ( f a, f b )
 each3 f ( a, b, c ) = ( f a, f b, f c ) 
 
+                      
 -- Recursion
 
-until : ( a -> Bool ) -> ( a -> a ) -> a -> a
+until : ( a -> Bool ) -> Map a -> Map a
 until predicate succ variable =
     if predicate variable
     then variable
     else until predicate succ <| succ variable
 
-while_just : ( a -> a ) -> ( a  -> Maybe a ) -> a -> a
+while_just : Map a -> ( a  -> Maybe a ) -> Map a
 while_just fu may_succ variable =
    if may_succ variable == Nothing
    then fu variable
-   else may_succ variable |> Maybe.withDefault variable |> fu |> while_just fu may_succ
+   else may_succ ( fu variable )
+       |> Maybe.withDefault ( fu variable )
+       |> while_just fu may_succ
 
+       
 -- List
 
-prepend : a -> List a -> List a
+prepend : a -> Map ( List a )
 prepend x xs = x::xs
 
 before : List a -> a -> List a

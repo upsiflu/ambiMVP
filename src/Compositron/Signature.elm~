@@ -1,0 +1,17 @@
+module Compositron.Signature exposing (..)
+
+type alias Signature =
+    { creator : String, scalar : Int }
+
+map_scalar fu =
+    \sig -> { sig | scalar = fu sig.scalar }
+
+map_creator fu =
+    \sig -> { sig | creator = fu sig.creator }
+
+scale = always >> map_scalar
+
+create cre = { creator = cre, scalar = 0 }
+
+dec = map_scalar ( (-) 1 )
+inc = map_scalar ( (+) 1 )

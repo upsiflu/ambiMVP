@@ -1,0 +1,7 @@
+module Compositron.Presentation exposing (..)
+
+type alias Presentation =
+    { target : Bool }
+
+target = { target = True }
+untarget = { target = False }
