@@ -1,8 +1,46 @@
 module Compositron exposing
-    ( State, trivial, preview )
+    ( State
+    , trivial
+    , preview
+    )
+
+{-| Exposes a trivial function to construct a State,
+    and a preview function to construct an interactive
+    representation.
+
+
+# Usage
+
+create a State:
+
+    state = State.trivial
+
+define how to handle transformation _intents_ and _commands_:
+
+    message =
+        { from_intent = Transform
+        , from_command = DoCommand
+        }
+
+view the current state:
+
+    state |> preview message
+
+
+## Types
+
+@docs Compositron, State
+
+
+## Functions
+
+@docs trivial
+
+
+-}
 
 import Tree exposing ( Tree )
-import Tree.Zipper as Zipper exposing  ( Zipper, mapLabel, root, tree, forward, append, findFromRoot, fromTree )
+import Tree.Zipper as Zipper exposing  ( Zipper )
 import Tuple exposing ( first, second )
 
 import Browser.Dom as Dom
@@ -28,17 +66,27 @@ import Helpers exposing ( .. )
 
 
 
--- Compositron
+-- Compositron (=State)
 
+
+{-| State. -}
 
 type alias State = Compositron
-type alias Compositron = Zipper Node -- has focus (hole)
-type alias Compositree = Tree Node   -- same, but has no focus
+
+
+{-| Compositron. -}
+
+type alias Compositron = Zipper Node
+
+
+type alias Compositree = Tree Node
  
 
                    
 -- create
 
+
+{-| a (not really) trivial state. -}
 
 trivial : Compositron
 trivial =
@@ -56,9 +104,6 @@ singleton nod =
     Tree.singleton nod |> Zipper.fromTree
 
         
-branch : Map Signature -> Map Compositron
-branch sigmap =
-    Zipper.tree >> Zipper.fromTree >> map_signature sigmap
 
         
         
@@ -141,12 +186,17 @@ map_each_child fu z =
 -- change structure   
 
 
--- keep only siblings that fit a predicate
+-- keep the branch, change the signature.
+branch : Map Signature -> Map Compositron
+branch sigmap =
+    Zipper.tree >> Zipper.fromTree >> map_signature sigmap
+
+-- keep only siblings that fit a predicate.
 filter_siblings : ( Compositron -> Bool ) -> Map Compositron
 filter_siblings =
     List.filter >> map_children
         
--- insert a sibling for each match
+-- insert a sibling for each match.
 copy_as_sibling_where : ( Compositron -> Bool ) -> Map Compositron
 copy_as_sibling_where predicate =
     let
