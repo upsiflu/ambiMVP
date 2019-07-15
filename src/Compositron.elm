@@ -258,7 +258,7 @@ prepare_empty sig =
 
 target : Signature -> Map Compositron
 target sig =
-    findFromRoot ( \this -> this.signature == sig )
+    Zipper.findFromRoot ( \this -> this.signature == sig )
     >> Maybe.withDefault trivial
 
 choose : Signature -> Item -> Map Compositron
@@ -342,7 +342,9 @@ preview :
            
 preview new_transformation message compositron =
     let
-        targeted_compositron = map_manifestation Manifestation.target compositron |> root
+        targeted_compositron =
+            map_manifestation Manifestation.target compositron
+                |> Zipper.root
         
         new_sig = Signature.create new_transformation
         
