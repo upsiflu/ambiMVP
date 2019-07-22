@@ -1,0 +1,160 @@
+module Compositron.Structure.EagerZipperTree exposing
+    ( Structure
+    , Branch
+    -- create
+    , singleton
+    -- read
+    , node
+    , branch
+    -- map
+    , find
+    , grow_branches
+    , impose_template
+    -- string
+    , serialize
+    , deserialize
+    )
+
+import String.Extra
+
+import Tree.Zipper as Zipper exposing ( Zipper )
+import Tree exposing ( Tree )
+
+import Helpers exposing (..)
+
+type alias Structure a =
+    Zipper a
+
+type alias Branch a =
+    Tree a
+
+        
+-- create
+
+singleton : a -> Structure a
+singleton = Tree.singleton >> Zipper.fromTree
+    
+-- read
+
+node : Structure a -> a
+node = branch >> bode
+
+bode : Branch a -> a
+bode = Tree.label
+
+find : ( a -> Bool ) -> Structure a -> Maybe ( Structure a )
+find = Zipper.findFromRoot
+       
+       
+-- map
+
+grow_branches : ( a -> Nonempty ( Branch a ) ) ->
+                Map ( Structure a )
+grow_branches transform structure =
+    let
+        ( head, tail ) =
+            node structure |> transform
+        append siblings =
+            \s-> List.foldr ( Zipper.append ) s siblings
+    in
+        structure
+            |> append tail
+            |> Zipper.replaceTree head
+
+
+impose_template : ( List ( Branch a ), List ( Branch a ) ) ->
+                  ( a -> a -> Skippable Bool ) ->
+                  Map ( Structure a )
+impose_template ( temp_before, temp_after ) match structure =
+    let
+        ( live_before, live_after ) =
+            structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+
+        match_forward : List ( Branch a ) ->
+                      ( List ( Branch a ), List ( Branch a ) ) ->
+                      List ( Branch a )
+        match_forward acc remainder =
+            case remainder of
+                ( [], temp ) -> acc ++ temp
+                ( live, [] ) -> acc ++ live
+                ( l::ive, t::emp ) ->
+                    case ( match ( bode l ) ( bode t ), remainder ) of
+                        ( Skip, ( _, temp ) ) ->
+                            l :: ( match_forward acc ( ive, temp ) )
+                        ( Match True, _ ) ->
+                            l :: ( match_forward acc ( ive, emp ) )
+                        ( Match False, _ ) ->
+                            t :: ( match_forward acc ( ive, emp ) )
+
+        match_backward acc remainder =
+            match_forward acc ( each List.reverse remainder ) |> List.reverse
+
+        map_group fu stru =
+            Zipper.parent stru
+                |> Maybe.map
+                   ( Zipper.tree
+                     >> Tree.mapChildren fu
+                     >> Zipper.fromTree
+                     >> perhaps ( Zipper.findNext ( (==) ( node stru ) ) )
+                   )
+                |> Maybe.withDefault stru
+                   
+    in
+        map_group
+            <| always
+                ( (++)
+                  <| match_backward [] ( live_before, temp_before )
+                  <| match_forward [ branch structure ] ( live_after, temp_after )
+                )
+            <| structure
+ 
+
+-- edit branches before inserting them
+
+branch : Structure a -> Branch a
+branch = Zipper.tree
+
+         
+-- serialize and deserialize
+
+serialize : ( a -> String ) -> Structure a -> String
+serialize serializer =
+    Zipper.root
+        >> serialize_at 0 serializer
+
+serialize_at : Int -> ( a -> String ) -> Structure a -> String
+serialize_at depth serializer structure =
+    let
+        children =
+            structure |> branch |> Tree.children |> List.map Zipper.fromTree
+        indent =
+            "\n" ++ ( String.repeat (1+depth) "  " )
+        serialized_node =
+            serializer ( node structure )
+        serialized_children =
+            List.map ( serialize_at ( depth+1 ) serializer ) children
+    in
+        String.join indent ( serialized_node :: serialized_children )
+
+deserialize : ( String -> Maybe a ) -> a -> String -> Structure a
+deserialize to_node default =
+    let
+        children lines =
+            List.tail lines
+                |> Maybe.withDefault []
+                |> List.map ( String.dropLeft 2 )
+                |> segment_at ( String.startsWith "  " >> not )
+        unfold lines =
+            Tree.tree
+                ( List.head lines |> Maybe.withDefault "" |> to_node )
+                ( case lines of
+                      [] -> []
+                      li -> li |> children |> List.map unfold )
+    in
+        String.lines
+            >> unfold
+            >> Tree.map ( Maybe.withDefault default )
+            >> Zipper.fromTree
+
+
+                

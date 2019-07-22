@@ -1,0 +1,10 @@
+module Reference exposing ( Reference )
+
+
+
+-- Reference
+
+
+type Reference node
+    = Appscope node
+    | Self

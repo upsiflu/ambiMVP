@@ -1,0 +1,43 @@
+module EagerZipperTree exposing
+    ( Structure
+    , Branch
+    -- create
+    , singleton
+    -- read
+    , current
+    -- map
+    , replace_tree, find
+    )
+
+import Tree.Zipper as Zipper exposing ( Zipper )
+import Tree exposing ( Tree )
+
+import Helpers exposing (..)
+
+type alias Structure node =
+    Zipper node
+
+type alias Branch node =
+    Tree node
+        
+-- create
+
+singleton : node -> Structure node
+singleton = Tree.singleton >> Zipper.fromTree
+
+
+
+
+        
+-- read
+
+
+
+
+
+-- map
+
+find : ( node -> Bool ) -> Map Structure
+find = Zipper.findFromRoot
+
+replace_tree : ( List  ) 

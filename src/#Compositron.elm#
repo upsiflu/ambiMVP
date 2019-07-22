@@ -59,12 +59,91 @@ trivial =
 -- grow
 
 
-manifest : Item -> Map Compositron
+{--
+
+manifest: the first item to be instanciated.
+
+ (1) signatures are unique, and creator matches the responsible transformation.
+ (2) signatures are immutable: the target's signature remains untouched.
+ (3) fields have their groups manifested as child nodes.
+ (4) assumes have their template manifested in place.
+
+-- instanciate the item:
+Info String, Err String   ->   set_item, keep sig, discard children
+Field name flow group     ->   set_item, keep sig, produce new children via scaling
+Ambiguous name \_->group  ->   set_item, keep sig, discard children
+Assume reference          ->   set_item, keep sig, discard children
+editors                   ->   set_item, keep sig, discard children
+
+producing new children:
+- an Assumption must be preprocessed to insert the intended prototype/
+- Node.create if it's the first; Node.inc through the remainders
+
+-- and after any case, scan the siblings for assumptions:
+Assume template           ->   impose_template (todo: nonself assumes discard <)
+
+how to match:
+  Match ( live == temp )
+--}
+
+
+
+manifest : Item -> Signature.Creator -> Structure.Branch
+manifest itm new_sig =
+    let
+        child_transformations =
+            case itm of
+                Field name flow group ->
+                    List.map append_child group
+                _ -> []
+                     
+        transformations =
+            ( always ( set_item itm ) ) :: child_transformations
+
+        assumptions_upheld =
+            
+                    
+        indexed_transformations =
+            List.indexedMap
+                ( \n trans -> trans n )
+                transformations
+        result =
+            List.foldl
+                ( \trans a -> trans a )
+                structure
+                indexed_transformations
+    
+
+    
+
+
+manifest : Item -> Signature.Creator -> Structure.Branch
+manifest itm new_sig =
+    -- manifesting an item means, to produce a fresh branch.
+
+    let
+        produce g =
+            
+    in
+        set_item itm
+            >> case itm of
+                   Field name flow group ->
+                       branch
+                           |> produce group
+                           |> replace_branch
+                   _ -> discard_children
+
+
+manifest : Item -> Signature.Creator -> Map Compositron
 manifest itm =
     let
+        deep_match x y =
+            case ( Structure.bode >> .item ) |> each ( x, y ) of
+                ( Field _ _ g, Field _ _ g ) -> list_match
+            
         matcher live temp =
             case ( live, temp ) of
-                _ -> live == temp |> Match
+                _ -> deep_match live temp |> Match
         new_item recent_node =
             Node.map_signature ( Signature.inc ) recent_node
                 |> Node.set_item new_item

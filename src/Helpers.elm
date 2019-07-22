@@ -4,9 +4,20 @@ module Helpers exposing
 import Html.Events exposing ( .. )
 import Json.Decode as Decode
 
--- types
+
+-- aliases
 
 type alias Map a = a -> a
+
+
+-- Wrappers
+
+skip = Skip
+--match a = Match a
+
+type Skippable a
+    = Skip
+    | Match a
 
 
 -- maybe
@@ -62,12 +73,29 @@ while_just fu may_succ variable =
        
 -- List
 
+type alias Nonempty a = ( a, List a )
+
 prepend : a -> Map ( List a )
 prepend x xs = x::xs
 
 before : List a -> a -> List a
 before xs x = x::xs
 
+
+
+segment_at : ( a -> Bool ) -> List a -> List ( List a )
+segment_at predicate =
+     List.foldl
+        ( \itm segments ->
+              case ( segments, predicate itm ) of
+                   ( _,         True ) -> [itm]::segments
+                   ( seg::nts, False ) -> (itm::seg)::nts
+                   ( [],       False ) -> []
+        ) []
+     >> List.map ( List.reverse ) >> List.reverse
+    
+
+              
 -- Html helpers
 
 onClickNoBubble message =

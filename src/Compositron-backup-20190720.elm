@@ -4,6 +4,11 @@ module Compositron exposing
     , preview
     )
 
+
+import Tree exposing ( Tree )
+import Tree.Zipper as Zipper exposing  ( Zipper )
+import Tuple exposing ( first, second )
+
 import Browser.Dom as Dom
 import Debug
 import Html exposing ( Html )
@@ -11,27 +16,19 @@ import Html.Attributes exposing  ( .. )
 import Html.Events exposing ( .. )
 import Html.Lazy exposing ( .. )
 import Json.Decode as Json
+import Set exposing ( Set )
 import Task
 
-
+import Compositron.Item as Item exposing ( Item )
+import Compositron.Node as Node exposing ( Node )
+import Compositron.Manifestation as Manifestation exposing ( Manifestation )
+import Compositron.Data as Data exposing ( Data )
+import Compositron.Signature as Signature exposing ( Signature )
+import Compositron.View as View exposing ( View, Action (..) )
 
 import History.Intent exposing ( Intent )
 
 import Helpers exposing ( .. )
-
-
-
-import Compositron.Structure.EagerZipperTree as Structure exposing ( Structure )
-
-import Compositron.Node as Node exposing ( Node )
-import Compositron.Signature as Signature exposing ( Signature )
-import Compositron.Item as Item exposing ( Item )
-import Compositron.Manifestation as Manifestation exposing ( Manifestation )
-import Compositron.Data as Data exposing ( Data )
-
-import Compositron.View as View exposing ( View, Action (..) )
-
-
 
 
 
@@ -40,10 +37,10 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 type alias State = Compositron
 
-type alias Compositron = Structure ( Node State )
+type alias Compositron = Zipper ( Node State )
 
-type alias Composibranch = Structure.Branch ( Node State )
-
+type alias Compositree = Tree ( Node State )
+ 
 
                    
 -- create
@@ -51,31 +48,19 @@ type alias Composibranch = Structure.Branch ( Node State )
 
 trivial : Compositron
 trivial =
-    Structure.singleton ( Node.trivial )
-        |> grow_branches ( 
+    singleton ( Node.trivial )
+        |> map_children ( always ( List.repeat 5 <| singleton Node.trivial ) )
+        |> map_children ( List.indexedMap ( \n c -> set_index n c ) )
+        |> map_each_child ( set_item Item.paragraph )
+        |> map_each_child ( map_creator (always "child" ) )
+        |> map_each_child unfold
+           
+singleton : Node Compositron -> Compositron
+singleton nod =
+    Tree.singleton nod |> Zipper.fromTree
 
         
 
--- grow
-
-
-manifest : Item -> Map Compositron
-manifest itm =
-    let
-        matcher live temp =
-            case ( live, temp ) of
-                _ -> live == temp |> Match
-        new_item recent_node =
-            Node.map_signature ( Signature.inc ) recent_node
-                |> Node.set_item new_item
-                   ----- or these constraints into the node module????
-    in case itm of
-        Item.Assume tem ->
-            Structure.impose_template tem matcher
-        Item.Field name flow group ->
-            Structure.grow_branch ( itm, List.map manifest group ) 
-        _ ->
-            Structure.grow_branch ( itm, [] )                  
         
         
 -- read

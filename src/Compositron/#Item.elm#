@@ -14,26 +14,28 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 -- Item
 
-{-| Item defines the form if a Node, whose
-    instanciation is probably within a Compositron. |-}
+{-| Item is a single word in a program, as well as
+    that word's runtime representation.
+
+    It is parametrized over the program.
+    This way, a Reference item can know the prototype
+    (initial program) of the item it refers to.
+|-}
 
 type alias Name = String
 type alias Frozen = Data
 type alias Fluid = Data
 type alias Group instance = List ( Item instance )
 
-type Reference instance
-    = Appscope instance
-    | Self
-        
-type Item instance
+
+type Item program
             
     -- elements
     = Info String
     | Err String
-    | Field Name Flow ( Group instance )
-    | Ambiguous Name ( () -> ( Group instance ) )
-    | Assume ( Reference instance )
+    | Field Name Flow ( Group program )
+    | Ambiguous Name ( () -> ( Group program ) )
+    | Assume program
 
     -- editor for data (from a string) with variable width (span[contenteditable])
     | T Text
@@ -42,13 +44,13 @@ type Item instance
     | Y Youtube
     | V Vimeo
 
-form : Item instance -> List ( Item instance )
+form : Item program -> List ( Item program )
 form itm =
     case itm of
         Field _ _ list -> list
         _-> []
     
-verbalize : ( Item instance ) -> String
+verbalize : ( Item program ) -> String
 verbalize i =
     case i of
         Field n _ _ -> n
@@ -146,11 +148,8 @@ unfreeze i =
                                    
 
              
--- create (templates, or what would be an ambilang program.
+-- create
 
-
-type alias Template instance =
-    { pre : Group instance, suc : Group instance }
 
 layout =
     let style s = Field s Stacked [ Info s ]

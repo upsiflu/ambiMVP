@@ -1,19 +1,51 @@
-module Compositron.Signature exposing (..)
+module Compositron.Signature exposing
+    ( Signature
+    , Creator
+    , root
+    , create
+    , inc
+    )
 
 import Compositron.View as View exposing ( View, Action (..) )
 
 import Helpers exposing (..)
 
 
--- Signature
 
+
+{-| Signature
+
+If you call root only once, 
+and call create only with unique strings,
+then each signature will be unique.
+
+|-} 
+
+
+type alias Creator = String
 
 type alias Signature =
-    { creator : String, scalar : Int }
+    { creator : Creator, scalar : Int }
 
 
-root = { creator = "upsiflu", scalar = 0 }
         
+-- create
+
+        
+root : Signature
+root = { creator = "upsiflu", scalar = 0 }
+
+
+inc : Map Signature
+inc = map_scalar ( (+) 1 )
+
+
+create : String -> Signature
+create cre = { creator = cre, scalar = 0 }
+
+
+
+             
 map_scalar fu =
     \sig -> { sig | scalar = fu sig.scalar }
 
@@ -23,13 +55,8 @@ map_creator fu =
 scale = always >> map_scalar
 
 create cre = { creator = cre, scalar = 0 }
-
-irrelevant n = { creator = "", scalar = n }
-
-
              
 dec = map_scalar ( (-) 1 )
-inc = map_scalar ( (+) 1 )
 
 
 
