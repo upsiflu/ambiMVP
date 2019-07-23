@@ -20,8 +20,10 @@ module Compositron.Structure.EagerZipperTree exposing
     , deserialize
         
     -- testing
-    , example
+    , example0
     , test0
+    , example1
+    , test1
     )
 
 import String.Extra
@@ -151,18 +153,17 @@ root                 root                    clear_children
                
 impose_template : ( List i, List i ) ->
                   ( Maybe a -> i -> Skippable ( Maybe ( a -> a ) ) ) ->
-                  a ->
-                  Map ( Structure a )
-impose_template ( temp_before, temp_after ) match primer structure =
+                  Map ( a, Structure a )
+impose_template ( temp_before, temp_after ) match ( primer, structure ) =
     let
         ( live_before, live_after ) =
             structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
                 
         forward :
-            ( List ( Branch a ), a ) ->
+            ( a, List ( Branch a ) ) ->
             ( List ( Branch a ), List i ) ->
-            List ( Branch a )
-        forward ( acc, pre ) remainder =
+            ( a, List ( Branch a ) )
+        forward ( pre, acc ) remainder =
             case remainder of
                 -- List ( Branch a ), List i
                 ( live, t::emp ) ->
@@ -174,21 +175,22 @@ impose_template ( temp_before, temp_after ) match primer structure =
                     in case match ( live |> List.head |> Maybe.map bode ) t of
                         Skip ->
                             -- accept the live branch.
-                            l ++ ( forward ( acc, pre ) ( ive, t::emp ) )
+                            forward ( pre, acc++l ) ( ive, t::emp )
                                 
                         Match Nothing ->
                             -- successful match, discard the template branch.
-                            l ++ ( forward ( acc, pre ) ( ive, emp ) )
+                            forward ( pre, acc++l ) ( ive, emp )
                                 
                         Match ( Just make_template_node ) ->
                             -- accept the template branch.
                             let new = pre |> make_template_node
-                            in ( bringleton new ) :: ( forward ( acc, new ) ( live, emp ) )
+                            in forward ( new, acc++[( bringleton new )] ) ( live, emp )
                             
-                ( live, [] ) -> acc ++ live
+                ( live, [] ) -> ( pre, acc++live )
 
-        backward ( acc, pre ) ( l, t ) =
-            forward ( acc, pre ) ( List.reverse l, List.reverse t ) |> List.reverse
+        backward ( pre, acc ) ( l, t ) =
+            forward ( pre, acc ) ( List.reverse l, List.reverse t )
+                |> Tuple.mapSecond List.reverse
 
         map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
         map_group fu stru =
@@ -201,29 +203,29 @@ impose_template ( temp_before, temp_after ) match primer structure =
                    )
                 |> Maybe.withDefault stru
                    
+        ( seconder, back_branches ) =
+            backward ( primer, [] ) ( live_before, temp_before )
+        ( tertier, forth_branches ) =
+            forward ( seconder, [] ) ( live_after, temp_after )
     in
-        map_group
-            ( \_->
-                  ( backward ( [], primer ) ( live_before, temp_before ) )
-                  ++
-                  [ branch structure ]
-                  ++
-                  ( forward ( [], primer ) ( live_after, temp_after ) )
-            )
+        ( tertier
+        , map_group
+            ( \_-> back_branches ++ [ branch structure ] ++ forth_branches )
             structure
+        )
  
 
          
 -- serialize and deserialize
 
 serialize : ( a -> String ) -> Structure a -> String
-serialize serializer =
+serialize from_node =
     let
         serialize_at depth structure =
             structure
                 |> branch >> Tree.children >> List.map Zipper.fromTree
                 |> List.map ( serialize_at ( depth+1 ) )
-                |> (::) ( serializer ( node structure ) )
+                |> (::) ( from_node ( node structure ) )
                 |> String.join ( "\n" ++ ( String.repeat (1+depth) "  " ) )
                 
     in
@@ -253,39 +255,105 @@ deserialize default to_node =
             >> Zipper.fromTree
 
 
-                
+
+log from_node =
+    let
+        trace_lines ll =
+            case ll of
+                l::ines -> Debug.log ":" l |> always ( trace_lines ines )
+                _ -> ()
+
+    in \str ->
+        str
+            |> serialize from_node
+            |> String.lines >> List.reverse >> trace_lines
+            |> always str
+
+            
 -- tests
 
-example =
- """root
-  B
-  here
-  ?
-  B
-    keep (B)
-  A
-    move (A)
-  -
-  B""" |> ( Just >> identity |> deserialize "" ) |> perhaps ( find ( (==) "here" ) )
-
-               
-test0 =
-    let
-        st = Just >> identity |> deserialize ""
-
-    in impose_template
-        ( [ 1 ], [ 2, 3 ] )
-        ( \live temp ->
-              let
-                  make_template_node = \pre -> pre ++ ", " ++ ( String.fromInt temp )
-              in case live of
-                  Nothing -> Match ( Just make_template_node )
-                  Just "?" -> Skip
-                  Just "-" -> Match ( Just make_template_node )
-                  _ -> Match Nothing
-        )
-        "primer"
-            
+           
+trace text = \x -> Debug.log "🛈" text |> always x
+             
+----0
+                         
+test0 = example0 |> impose_template0 |> Tuple.second |> serialize identity
+         
+example0 =
     --i ( item type ) is Int
     --a ( node type ) is String
+ """root
+  push
+  skip
+  <|>
+  overwrite template
+  also overwrite template"""
+      |> ( Just >> identity |> deserialize "" ) |> perhaps ( find ( (==) "<|>" ) )
 
+               
+impose_template0 stru =
+    impose_template
+        ( [ 0, 1 ], [ 2, 3, 4 ] )
+        ( \live temp ->
+              let
+                  make_template_node = \pre -> pre ++ "," ++ ( String.fromInt temp )
+              in case live of
+                  Nothing -> Match ( Just make_template_node )
+                  Just "skip" -> Skip
+                  Just "push" -> Match ( Just make_template_node )
+                  _ -> Match Nothing
+        )
+        ( "->", stru )
+
+
+node_to_string1 ( int, str ) = ( String.fromInt int )++"."++str            
+string_to_node1 str =
+    case String.split "." str of
+        [ n, s ] -> Just ( ( String.toInt >> Maybe.withDefault 0 ) n, s )
+        _ -> Nothing
+             
+----1
+
+test1 = example1
+      |> log node_to_string1
+      |> trace "imposing template [ <<, < ],[ >, >>, >>> ]"
+      |> trace "    skip -> accept the live branch, defer the template branch"
+      |> trace "    push -> accept the template branch, defer the live branch."
+      |> trace "     ... -> accept the live branch instead of the template branch."
+      |> impose_template1
+      |> Tuple.second
+      |> log node_to_string1
+      |> serialize ( node_to_string1 )
+
+example1 =
+ """0.root
+  1.push
+  2.skip
+  3.<|>
+  4.A
+  5.B
+  6.push
+  7.C"""
+      |> deserialize ( 0, "" ) string_to_node1
+      |> perhaps ( find ( Tuple.second >> ( (==) "<|>" ) ) )
+
+               
+--deserialize : a -> ( String -> Maybe a ) -> String -> Structure a
+--deserialize default to_node =
+impose_template1 stru =
+    impose_template
+        ( [ "<<", "<" ], [ ">", ">>", ">>>" ] )
+        ( \live temp ->
+              let
+                  make_template_node pre =
+                      case pre of
+                          ( n, s ) -> ( n+1, temp )   
+              in case live of
+                  Nothing -> Match ( Just make_template_node )
+                  Just ( _, "skip" ) -> Skip
+                  Just ( _, "push" ) -> Match ( Just make_template_node )
+                  _ -> Match Nothing
+        )
+        ( ( 0, "->" ), stru )
+
+           
