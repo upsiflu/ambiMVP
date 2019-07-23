@@ -42,7 +42,9 @@ type alias Branch a =
 
 singleton : a -> Structure a
 singleton = Tree.singleton >> Zipper.fromTree
-    
+
+
+            
 -- read
 
 node : Structure a -> a
@@ -60,13 +62,14 @@ find = Zipper.findFromRoot
 branch : Structure a -> Branch a
 branch = Zipper.tree
 
+bringleton = Tree.singleton
+         
        
        
 -- map
 
 
-replace_branch : Branch a ->
-              Map ( Structure a )
+replace_branch : Branch a -> Map ( Structure a )
 replace_branch =
      Zipper.replaceTree
 
@@ -85,9 +88,13 @@ grow_branches transform structure =
             |> append tail
 
 
-
+-- A simple replacement of data might yield ( map_item.., [] )
+-- whereas a more complex modification such as field insertion
+-- will yield a head (constant sig) and scaling children.
+-- If there is a mix of insertions and reinsertions, we will
+-- bundle the reinsertions with the insertion to get a ???
                
-{-| impose template
+{-| template imposition
 
 This imposes the branches of the template around the target
 according to a comparison function between each live and tamplate branches.
@@ -104,59 +111,84 @@ match: compares the live item with the template item at the corresponding positi
 
 Example
 
+    i ( item type ) is Int
+    a ( node type ) is String
+
     impose_template
-        ( [ br "A" ], [ br "B", br "C" ] )
-        ( \live temp -> 
-              if live == "?" 
-              then Debug.log "skipping" Skip
-              else Match <| Debug.log "is matching?" ( live == temp )
+        ( [ 1 ], [ 2, 3 ] )
+        ( \live temp ->
+              let make_template_node = \pre -> pre ++ ", " ++ ( String.fromInt temp )
+              in case live of
+                  Nothing -> Match ( Just make_template_node )
+                  Just "?" -> Skip
+                  Just "-" -> Match ( Just make_template_node )
+                  _ -> Match Nothing
         )
+        "primer"
 
 Result
 
-input -> template -> output
+input -> template -> output       mutation
 
-root                 root
-  B          A         B
-  here       *         A
-  ?          B         here
-  B          C         ?
-    keep (B)           B
+root                 root                    clear_children
+  B          1         B            =        keep_child B
+  here       *         A            +A       
+  ?          2         here         x
+  B          3         ?            =
+    keep (B)           B            =
   A                       keep (B)
-    move (A)           C
-  -                    A
+    move (A)           C            +C
+  -                    A            =
   B                       move (A)
-                       -
-                       B
+                       -            =
+                       B            =
 
 |-}
+
+
+
+
                
-impose_template : ( List ( Branch a ), List ( Branch a ) ) ->
-                  ( a -> a -> Skippable Bool ) ->
+impose_template : ( List i, List i ) ->
+                  ( Maybe a -> i -> Skippable ( Maybe ( a -> a ) ) ) ->
+                  a ->
                   Map ( Structure a )
-impose_template ( temp_before, temp_after ) match structure =
+impose_template ( temp_before, temp_after ) match primer structure =
     let
         ( live_before, live_after ) =
             structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-
-        match_forward : List ( Branch a ) ->
-                      ( List ( Branch a ), List ( Branch a ) ) ->
-                      List ( Branch a )
-        match_forward acc remainder =
+                
+        forward :
+            ( List ( Branch a ), a ) ->
+            ( List ( Branch a ), List i ) ->
+            List ( Branch a )
+        forward ( acc, pre ) remainder =
             case remainder of
-                ( [], temp ) -> acc ++ temp
-                ( live, [] ) -> acc ++ live
-                ( l::ive, t::emp ) ->
-                    case match ( bode l ) ( bode t ) of
+                -- List ( Branch a ), List i
+                ( live, t::emp ) ->
+                    let ( maybe_l, maybe_ive ) =
+                            both ( List.head >> Maybe.map ( \x -> [x] ), List.tail ) live
+                        ( l, ive ) =
+                            each ( Maybe.withDefault [] ) ( maybe_l, maybe_ive )
+                                
+                    in case match ( live |> List.head |> Maybe.map bode ) t of
                         Skip ->
-                            l :: ( match_forward acc ( ive, t::emp ) )
-                        Match True ->
-                            l :: ( match_forward acc ( ive, emp ) )
-                        Match False ->
-                            t :: ( match_forward acc ( l::ive, emp ) )
+                            -- accept the live branch.
+                            l ++ ( forward ( acc, pre ) ( ive, t::emp ) )
+                                
+                        Match Nothing ->
+                            -- successful match, discard the template branch.
+                            l ++ ( forward ( acc, pre ) ( ive, emp ) )
+                                
+                        Match ( Just make_template_node ) ->
+                            -- accept the template branch.
+                            let new = pre |> make_template_node
+                            in ( bringleton new ) :: ( forward ( acc, new ) ( live, emp ) )
+                            
+                ( live, [] ) -> acc ++ live
 
-        match_backward acc remainder =
-            match_forward acc ( each List.reverse remainder ) |> List.reverse
+        backward ( acc, pre ) ( l, t ) =
+            forward ( acc, pre ) ( List.reverse l, List.reverse t ) |> List.reverse
 
         map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
         map_group fu stru =
@@ -172,11 +204,11 @@ impose_template ( temp_before, temp_after ) match structure =
     in
         map_group
             ( \_->
-                  ( match_backward [] ( live_before, temp_before ) )
+                  ( backward ( [], primer ) ( live_before, temp_before ) )
                   ++
                   [ branch structure ]
                   ++
-                  ( match_forward [] ( live_after, temp_after ) )
+                  ( forward ( [], primer ) ( live_after, temp_after ) )
             )
             structure
  
@@ -240,14 +272,20 @@ example =
 test0 =
     let
         st = Just >> identity |> deserialize ""
-        br = st >> branch
 
-    in
-        impose_template
-           ( [ br "A" ], [ br "B", br "C" ] )
-           ( \live temp -> 
-                 if live == "?" 
-                 then Debug.log "skipping" Skip
-                 else Match <| Debug.log "is matching?" ( live == temp )
-           )
-           
+    in impose_template
+        ( [ 1 ], [ 2, 3 ] )
+        ( \live temp ->
+              let
+                  make_template_node = \pre -> pre ++ ", " ++ ( String.fromInt temp )
+              in case live of
+                  Nothing -> Match ( Just make_template_node )
+                  Just "?" -> Skip
+                  Just "-" -> Match ( Just make_template_node )
+                  _ -> Match Nothing
+        )
+        "primer"
+            
+    --i ( item type ) is Int
+    --a ( node type ) is String
+
