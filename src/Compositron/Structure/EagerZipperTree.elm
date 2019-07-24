@@ -11,8 +11,9 @@ module Compositron.Structure.EagerZipperTree exposing
         
     -- map
     , find
+    , map_group
+    , fold_group
     , replace_branch
-    , grow_branches
     , impose_template
         
     -- string
@@ -24,6 +25,10 @@ module Compositron.Structure.EagerZipperTree exposing
     , test0
     , example1
     , test1
+    , test2
+    , test3
+    , test4
+    , test5
     )
 
 import String.Extra
@@ -71,89 +76,67 @@ bringleton = Tree.singleton
 -- map
 
 
-replace_branch : Branch a -> Map ( Structure a )
-replace_branch =
-     Zipper.replaceTree
+map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
+map_group fu struct =
+    Zipper.parent struct
+        |> Maybe.map
+           ( Zipper.tree
+                 >> Tree.mapChildren fu
+                 >> Zipper.fromTree
+                 >> perhaps ( Zipper.findNext ( (==) ( node struct ) ) )
+           )
+        |> Maybe.withDefault
+           ( fu [ branch struct ]
+           |> List.head
+           |> Maybe.map Zipper.fromTree
+           |> Maybe.withDefault struct
+           )
 
 
-grow_branches : ( a -> Nonempty ( Branch a ) ) ->
-                Map ( Structure a )
-grow_branches transform structure =
+fold_group : ( Map ( a, Structure a ) ) -> Map ( a, Structure a )
+fold_group fu ( primer, struct ) =
     let
-        ( head, tail ) =
-            node structure |> transform
-        append siblings =
-            \s-> List.foldr ( Zipper.append ) s siblings
+        pivot =
+            node struct
+                
+        first_sibling : Map ( Structure a )
+        first_sibling =
+            perhaps ( Zipper.parent >> Maybe.map ( perhaps Zipper.firstChild ) )
+
+        maybe_next ( x, s ) =
+            case Zipper.nextSibling s of
+                Nothing -> Nothing
+                Just ns -> Just ( x, ns )
     in
-        structure
-            |> Zipper.replaceTree head
-            |> append tail
+        ( primer, first_sibling struct )
+            |> while_just ( fu ) maybe_next
+            |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
 
-
--- A simple replacement of data might yield ( map_item.., [] )
--- whereas a more complex modification such as field insertion
--- will yield a head (constant sig) and scaling children.
--- If there is a mix of insertions and reinsertions, we will
--- bundle the reinsertions with the insertion to get a ???
-               
-{-| template imposition
-
-This imposes the branches of the template around the target
-according to a comparison function between each live and tamplate branches.
-
-    (1) impose_template t m >> impose_template t m === impose_template t
-
-template: a tuple of branch lists that go before, resp. after the target.
-
-match: compares the live item with the template item at the corresponding position.
-    A result of Skip means, stretch the template and keep the live item.
-    A Match means, keep the live item and discard the template item.
-    No Match, replace the live item by the template item.
-
-
-Example
-
-    i ( item type ) is Int
-    a ( node type ) is String
-
-    impose_template
-        ( [ 1 ], [ 2, 3 ] )
-        ( \live temp ->
-              let make_template_node = \pre -> pre ++ ", " ++ ( String.fromInt temp )
-              in case live of
-                  Nothing -> Match ( Just make_template_node )
-                  Just "?" -> Skip
-                  Just "-" -> Match ( Just make_template_node )
-                  _ -> Match Nothing
+                
+replace_branch :
+    ( a, List i ) ->
+    ( a -> i -> a ) ->
+    Map ( a, Structure a )
+replace_branch ( head, forest ) match ( primer, struct ) =
+    let
+        ( ender, children ) =
+            forest
+                |> List.foldl
+                   ( \itm ( pre, acc ) ->
+                         match pre itm |> both ( identity, bringleton >> after acc )
+                   ) ( primer, [] )
+    in
+        ( ender
+        , struct
+            |> Zipper.replaceTree
+               ( Tree.tree head children )
         )
-        "primer"
-
-Result
-
-input -> template -> output       mutation
-
-root                 root                    clear_children
-  B          1         B            =        keep_child B
-  here       *         A            +A       
-  ?          2         here         x
-  B          3         ?            =
-    keep (B)           B            =
-  A                       keep (B)
-    move (A)           C            +C
-  -                    A            =
-  B                       move (A)
-                       -            =
-                       B            =
-
-|-}
-
-
-
 
                
-impose_template : ( List i, List i ) ->
-                  ( Maybe a -> i -> Skippable ( Maybe ( a -> a ) ) ) ->
-                  Map ( a, Structure a )
+impose_template :
+    ( List i, List i ) ->
+    ( Maybe a -> i -> Skippable ( Maybe ( a -> a ) ) ) ->
+    Map ( a, Structure a )
 impose_template ( temp_before, temp_after ) match ( primer, structure ) =
     let
         ( live_before, live_after ) =
@@ -191,24 +174,13 @@ impose_template ( temp_before, temp_after ) match ( primer, structure ) =
         backward ( pre, acc ) ( l, t ) =
             forward ( pre, acc ) ( List.reverse l, List.reverse t )
                 |> Tuple.mapSecond List.reverse
-
-        map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
-        map_group fu stru =
-            Zipper.parent stru
-                |> Maybe.map
-                   ( Zipper.tree
-                     >> Tree.mapChildren fu
-                     >> Zipper.fromTree
-                     >> perhaps ( Zipper.findNext ( (==) ( node stru ) ) )
-                   )
-                |> Maybe.withDefault stru
                    
-        ( seconder, back_branches ) =
+        ( follower, back_branches ) =
             backward ( primer, [] ) ( live_before, temp_before )
-        ( tertier, forth_branches ) =
-            forward ( seconder, [] ) ( live_after, temp_after )
+        ( ender, forth_branches ) =
+            forward ( follower, [] ) ( live_after, temp_after )
     in
-        ( tertier
+        ( ender
         , map_group
             ( \_-> back_branches ++ [ branch structure ] ++ forth_branches )
             structure
@@ -260,7 +232,7 @@ log from_node =
     let
         trace_lines ll =
             case ll of
-                l::ines -> Debug.log ":" l |> always ( trace_lines ines )
+                l::ines -> Debug.log "::" l |> always ( trace_lines ines )
                 _ -> ()
 
     in \str ->
@@ -277,7 +249,14 @@ trace text = \x -> Debug.log "🛈" text |> always x
              
 ----0
                          
-test0 = example0 |> impose_template0 |> Tuple.second |> serialize identity
+test0 =
+    example0
+        |> trace "Testing template imposition with simple nodes."
+        |> log identity
+        |> impose_template0
+        |> Tuple.second
+        |> log identity
+        |> serialize identity
          
 example0 =
     --i ( item type ) is Int
@@ -314,32 +293,36 @@ string_to_node1 str =
              
 ----1
 
-test1 = example1
-      |> log node_to_string1
-      |> trace "imposing template [ <<, < ],[ >, >>, >>> ]"
-      |> trace "    skip -> accept the live branch, defer the template branch"
-      |> trace "    push -> accept the template branch, defer the live branch."
-      |> trace "     ... -> accept the live branch instead of the template branch."
-      |> impose_template1
-      |> Tuple.second
-      |> log node_to_string1
-      |> serialize ( node_to_string1 )
+test1 =
+    example1
+        |> trace "Testing template imposition with tuply nodes."
+        |> log node_to_string1
+        |> trace "imposing template [ <<, < ],[ >, >>, >>> ]"
+        |> trace "    skip -> accept the live branch, defer the template branch"
+        |> trace "    push -> accept the template branch, defer the live branch."
+        |> trace "     ... -> accept the live branch instead of the template branch."
+        |> impose_template1
+        |> Tuple.second
+        |> log node_to_string1
+        |> trace "We see that the index first grows above the pivot, then below,"
+        |> trace "and that it only increases for each new (template) insertion."
 
+           
 example1 =
+    --i ( item type ) is String
+    --a ( node type ) is ( item, String )
  """0.root
   1.push
   2.skip
   3.<|>
   4.A
-  5.B
+  5.skip
   6.push
   7.C"""
       |> deserialize ( 0, "" ) string_to_node1
       |> perhaps ( find ( Tuple.second >> ( (==) "<|>" ) ) )
 
-               
---deserialize : a -> ( String -> Maybe a ) -> String -> Structure a
---deserialize default to_node =
+         
 impose_template1 stru =
     impose_template
         ( [ "<<", "<" ], [ ">", ">>", ">>>" ] )
@@ -354,6 +337,133 @@ impose_template1 stru =
                   Just ( _, "push" ) -> Match ( Just make_template_node )
                   _ -> Match Nothing
         )
-        ( ( 0, "->" ), stru )
+        ( ( 99, "->" ), stru )
 
            
+----2
+
+
+test2 =
+    example1
+        |> trace "Testing branch replacement."
+        |> log node_to_string1
+        |> replace_branch2
+        |> trace "Mapping head, and replacing children with a..e."
+        |> trace "In this example, new nodes get an increasing index."
+        |> Tuple.second
+        |> log node_to_string1
+
+
+
+           {-
+replace_branch :
+    ( Map i, List i ) ->
+    ( a -> i -> a ) ->
+    Map ( a, Structure a )
+replace_branch ( head, forest ) match ( primer, struct ) =
+-}
+
+replace_branch2 stru =
+    let
+        next_node ( n, itm ) new =
+            ( (n+1), new )        
+    in replace_branch
+        ( stru |> node |> Tuple.mapSecond ( (++) "mapped head -> " )
+        , [ "a", "b", "c", "d", "e" ] )
+        next_node
+        ( ( 7, "C" ), stru )
+
+
+test3 =
+    test1
+        |> replace_branch2
+        |> Tuple.second
+        |> trace "Now appending a tree replacement.."
+        |> log node_to_string1
+
+replace_branch4 ( primer, stru ) =
+    let
+        next_node ( n, itm ) new =
+            ( (n+1), new )        
+    in replace_branch
+        ( stru |> node |> Tuple.mapSecond ( (++) "mapped node -> " )
+        , [ "a", "b", "c", "d", "e" ] )
+        next_node
+        ( primer, stru )
+
+
+test4 =
+    example1
+        |> trace "Testing a continuous primer."
+        |> log node_to_string1
+        |> replace_branch2
+        |> trace "Mapping head, and replacing children with a..e."
+        |> trace "In this example, the primer is retained between"
+        |> trace "subsequent operations for a continuously increasing index."
+        |> Tuple.mapSecond ( find ( Tuple.second >> ((==) "c") ) |> perhaps )
+        |> replace_branch4
+        |> Tuple.mapSecond ( find ( Tuple.first >> ((<=) 16 ) ) |> perhaps )
+        |> replace_branch4
+        |> Tuple.second
+        |> log node_to_string1
+
+
+
+           
+----4
+
+
+example5 =
+    --i ( item type ) is String
+    --a ( node type ) is ( item, String )
+ """0.root
+  1.<->
+  2.skip
+  3.<|>
+  4.A
+  5.skip
+  6.<->
+  7.<->
+  8.push
+  9.<->"""
+      |> deserialize ( 0, "" ) string_to_node1
+      |> perhaps ( find ( Tuple.second >> ( (==) "<|>" ) ) )
+
+
+impose_template5 =
+    impose_template
+        ( [ "<<", "<" ], [ ">", ">>", ">>>" ] )
+        ( \live temp ->
+              let
+                  make_template_node pre =
+                      case pre of
+                          ( n, s ) -> ( n+1, temp )   
+              in case live of
+                  Nothing -> Match ( Just make_template_node )
+                  Just ( _, "skip" ) -> Skip
+                  Just ( _, "push" ) -> Match ( Just make_template_node )
+                  _ -> Match Nothing
+        )
+
+--fold_group : ( Map ( a, Structure a ) ) -> Map ( a, Structure a )
+--fold_group fu ( primer, struct ) =
+
+impose_all_templates5 structure =
+    let
+        modify ( pre, struct ) =
+            case node struct of
+                ( _, "<->" ) -> impose_template5 ( pre, struct )
+                _            -> ( pre, struct )
+    in
+        fold_group modify ( ( 99, "->" ), structure )
+
+
+test5 =
+    example5
+        |> trace "Testing multiple template impositions via fold_group."
+        |> log node_to_string1
+        |> impose_all_templates5
+        |> trace "Template impositions at each '<->'."
+        |> Tuple.second
+        |> log node_to_string1
+        |> trace "Note that in this ruleset, '<->' replaces the template."

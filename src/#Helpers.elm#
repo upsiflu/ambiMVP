@@ -81,6 +81,11 @@ prepend x xs = x::xs
 before : List a -> a -> List a
 before xs x = x::xs
 
+after : List a -> a -> List a
+after xs x = xs++[x]
+
+              
+              
 
 
 segment_at : ( a -> Bool ) -> List a -> List ( List a )
