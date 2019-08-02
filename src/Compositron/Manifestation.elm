@@ -15,7 +15,7 @@ untarget = always { target = False }
 targeted = (==) { target = True }
 
 passive = untarget ()
-
+active = target ()
 
 
 view : Manifestation -> Map ( View msg item signature data )
@@ -32,4 +32,11 @@ serialize : Manifestation -> String
 serialize manifestation =
     case targeted manifestation of
         True -> "▶"
-        False -> "▷"
+        False -> " "
+
+deserialize : String -> Maybe Manifestation
+deserialize str =
+    case str of
+        "▶" -> Just active
+        " " -> Just passive
+        _ -> Nothing

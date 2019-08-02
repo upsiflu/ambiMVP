@@ -1,5 +1,28 @@
 module Compositron.View exposing
-    ( .. )
+    ( View
+    , Element
+    , Action (..)
+
+    -- create
+    , basic
+
+    -- map
+    , element
+    , children
+    , activate
+        
+    -- add
+    , add_id
+    , add_action
+    , add_class
+    , add_attribute
+
+    -- set
+    , set_text
+
+    -- view
+    , present
+    )
 
 
 import Html exposing ( Html, Attribute )

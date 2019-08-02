@@ -2,10 +2,13 @@ module Compositron exposing
     ( State
     , trivial
     , preview
+    , log
+    , serialize, deserialize
+    , choose
+    , target
     )
 
 import Browser.Dom as Dom
-import Debug
 import Html exposing ( Html )
 import Html.Attributes exposing  ( .. )
 import Html.Events exposing ( .. )
@@ -21,11 +24,11 @@ import Helpers exposing ( .. )
 
 
 
-import Compositron.Structure.EagerZipperTree as Structure exposing ( Structure )
+import Compositron.Structure.EagerZipperTree as Structure
 
-import Compositron.Node as Node exposing ( Node )
-import Compositron.Signature as Signature exposing ( Signature )
-import Compositron.Item as Item exposing ( Item )
+import Compositron.Node as Node
+import Compositron.Signature as Signature exposing ( Signature, Creator )
+import Compositron.Item as Item
 import Compositron.Manifestation as Manifestation exposing ( Manifestation )
 import Compositron.Data as Data exposing ( Data )
 
@@ -38,133 +41,230 @@ import Compositron.View as View exposing ( View, Action (..) )
 -- Compositron (=State)
 
 
+type Compositron =
+    Compositron { live : Structure, template : Structure }
+
+type alias Reference = Signature
+        
+type alias Node = Node.Node Reference
+
+type alias Item = Item.Item Reference
+
 type alias State = Compositron
 
-type alias Compositron = Structure ( Node State )
+type alias Branch = Structure.Branch Node
 
-type alias Composibranch = Structure.Branch ( Node State )
+type alias Structure = Structure.Structure Node
+    
 
-
-                   
+    
 -- create
 
 
 trivial : Compositron
 trivial =
-    Structure.singleton ( Node.trivial )
-        |> grow_branches ( 
+    Compositron { live = Structure.singleton ( Node.trivial )
+                , template = Structure.singleton ( Node.trivial )
+                }
+ 
 
         
 
+-- switch
+
+
+mark : Map Node -> Map Compositron
+mark =
+    Structure.mark >> map_live 
+
+
+        
 -- grow
 
 
-manifest : Item -> Map Compositron
-manifest itm =
+{-- manifest: the first item to be instanciated.
+
+ RULES.
+
+ (1) signatures are unique, and creator matches the responsible transformation.
+ (2) signatures are immutable: the target's signature remains untouched.
+ (3) fields have their groups manifested as child nodes.
+ (4) assumes have their template manifested in place.
+
+--}
+
+
+
+manifest : Map Item -> Creator -> Map Compositron
+manifest itm_fu new_cre compositron =
+
     let
-        matcher live temp =
-            case ( live, temp ) of
-                _ -> live == temp |> Match
-        new_item recent_node =
-            Node.map_signature ( Signature.inc ) recent_node
-                |> Node.set_item new_item
-                   ----- or these constraints into the node module????
-    in case itm of
-        Item.Assume tem ->
-            Structure.impose_template tem matcher
-        Item.Field name flow group ->
-            Structure.grow_branch ( itm, List.map manifest group ) 
-        _ ->
-            Structure.grow_branch ( itm, [] )                  
+        new_node = node compositron |> Node.map_item itm_fu
+
+        -- Given a primer and a Compositron, impose a templ
+        perhaps_impose_template : Map ( Node, Structure )
+        perhaps_impose_template ( pre, structure ) =
+
+            let 
+                match_template_replacement : Maybe Node -> Item -> Skippable ( Maybe ( Map Node ) )
+                match_template_replacement may_live temp_item =
+
+                  case ( Maybe.map .item may_live, temp_item ) of
+                    
+                    -- more template items than live nodes, accept them:
+                    ( Nothing, _ ) ->
+                        Node.inc temp_item |> Just |> Match
+                            
+                    -- compare a live item with a template item:
+                    ( Just live_item, _ ) ->
+                        if live_item == temp_item
+
+                    -- live match, discard the template item here:
+                        then Match Nothing
+
+                    -- template match, accept the template item here:
+                        else Node.inc temp_item |> Just |> Match
+                        
+ 
+            in
+                ( pre, structure )
+                    |> case Structure.node structure |> .item of
+                
+                           Item.Assume ( Item.Reference template_signature ) ->
+                               Structure.impose_template
+                                   ( template compositron
+                                         |> Structure.find ( .signature >> (==) template_signature )
+                                         |> Maybe.withDefault ( template compositron )
+                                         |> Structure.sibling_nodes
+                                         |> each ( List.map .item )
+                                   )
+                                   match_template_replacement
+                               
+                           Item.Assume Item.Self ->
+                               {- todo: needs to generate prototype information,
+                               then manifest here again! -}
+                               identity
+
+                           _ ->
+                               identity
+
         
-        
+    in
+        ( Node.primer new_cre, live compositron )
+
+        --(1) change item and rebuild children
+            |> Structure.replace_branch
+               ( new_node, new_node.item |> Item.form )
+               Node.inc
+
+        --(2) impose templates in the siblings, manifesting each
+            |> Structure.each_sibling perhaps_impose_template
+
+        --(3) impose templates in the children, manifesting each
+            |> Structure.each_child perhaps_impose_template
+
+        -- back to Compositron, discard primer
+            |> Tuple.second
+            |> with compositron set_live
+
+               
 -- read
 
 
--- elements
-node = Zipper.label
-( signature, item, manifestation ) =
-    ( node >> .signature, node >> .item, node >> .manifestation )
+live ( Compositron c ) = c.live
+template ( Compositron c ) = c.template
+                         
+node = live >> Structure.node
+template_node = template >> Structure.node
+       
+signature = node >> .signature
+
+item = node >> .item
+       
+manifestation =  node >> .manifestation
+
 data = item >> Item.data
-parent = \z -> z |> Zipper.parent |> Maybe.withDefault ( Zipper.root z )
 
--- emptiness : Bool
-is_empty z =
-    item z |> Item.is_empty ( always ( are_children_empty z ) )
-are_children_empty =
-    Zipper.children >> List.all ( Zipper.fromTree >> is_empty )
-are_siblings_empty z =
-    z |> Zipper.parent >> Maybe.map are_children_empty >> Maybe.withDefault ( is_empty z )
 
--- template
-template : Compositron -> Maybe Item.Template
-template z =
-    case item z of
-        Item.Assume Item.Self ->
 
-        Item.Assume ( Item.Appscope reference )
-        _ -> Nothing
-           
-           
+
+-- map
+
+
+map_both : Map Structure -> Map Compositron
+map_both fu = map_live fu >> map_template fu
+    
+map_live : Map Structure -> Map Compositron
+map_live fu ( Compositron c ) = Compositron { c | live = fu c.live }
+
+set_live : Structure -> Map Compositron
+set_live = always >> map_live
+                                
+map_template : Map Structure -> Map Compositron
+map_template fu ( Compositron c ) = Compositron { c | template = fu c.template }
+
+
+                                    
+                                
 -- apply edit
 
 
 type Edit
     = Target Signature
-    -- signature: for siblings that are to be created/removed.
-    -- item: intended new.
-    | Choose Signature Item
-    | Modify Signature Data
+    -- creator: Signature.Creator of siblings that are to be created/removed.
+    -- item: intended new item for the target.
+    | Choose Item Creator
+    | Modify Data Creator
     | Freeze
 
 
 target : Signature -> Map Compositron
 target sig =
-    Zipper.findFromRoot ( \this -> this.signature == sig )
-    >> Maybe.withDefault trivial
+    mark Node.passivate
+        >> map_both ( Structure.find ( \this -> this.signature == sig ) |> perhaps )
+        >> mark Node.activate
 
-choose : Signature -> Item Compositron -> Map Compositron
-choose sig future_item =
-    prepare_emptiness sig ( Data.is_empty ( Item.data future_item ) ) 
-        >> map_item ( always future_item )
-        >> unfold
+choose : Item -> Creator -> Map Compositron
+choose future_item =
+    manifest ( always future_item )
         
-modify : Signature -> Data -> Map Compositron
-modify sig dat =
-    prepare_emptiness sig ( Data.is_empty dat )
-      >> map_item ( Item.set_data dat )
+modify : Data -> Creator -> Map Compositron
+modify dat =
+    manifest ( Item.set_data dat )
 
 freeze : Map Compositron
-freeze = map_item Item.freeze
+freeze =
+    mark ( Node.map_item Item.freeze )
 
 unfreeze : Map Compositron
-unfreeze = map_item Item.unfreeze
+unfreeze =
+    mark ( Node.map_item Item.unfreeze )
 
         
 create_intent :
-    Signature
-        -> Node Compositron
+    Creator
+        -> Node
         -> Edit
         -> Intent Compositron
-create_intent new_signature this edit =
+create_intent new_creator this edit =
     case edit of
         -- browse the actual tree.
-        Target sig ->
-            { serial = [ "🞋", Signature.serialize sig ] |> String.join (" ")
-            , function = target sig
+        Target new_signature ->
+            { serial = [ "🞋", Signature.serialize new_signature ] |> String.join (" ")
+            , function = target new_signature
             , inverse = target ( this.signature )
             }
         -- switch the item to a more concrete type or a more ambiguous one.
-        Choose sig itm ->
-            { serial = [ "!", Item.verbalize itm ] |> String.join (" ")
-            , function = choose new_signature itm -- new sig, new itm
-            , inverse = choose sig ( this.item ) -- old sig, old itm
+        Choose new_item cre ->
+            { serial = [ "!", Item.verbalize new_item ] |> String.join (" ")
+            , function = choose new_item new_creator
+            , inverse = choose ( this.item ) cre
             }
         -- switch the data in the item to be more concrete or a more empty.
-        Modify sig dat ->
-            { serial = [ "~", Data.enstring dat ] |> String.join (" ")
-            , function = modify new_signature dat -- new sig, new dat
-            , inverse = modify sig ( Item.data this.item ) -- old sig, old dat
+        Modify new_data cre ->
+            { serial = [ "~", Data.enstring new_data ] |> String.join (" ")
+            , function = modify new_data new_creator 
+            , inverse = modify ( Item.data this.item ) cre
             }
         -- make the UI render new data (workaround for contenteditable spans).
         Freeze ->
@@ -175,129 +275,19 @@ create_intent new_signature this edit =
 
         
 
--- change node
+-- modify node
 
-
-map_node : Map ( Node Compositron ) -> Map Compositron
-map_node = Zipper.mapLabel
-
+{-
 map_signature : Map Signature -> Map Compositron
-map_signature = Node.map_signature >> map_node 
-map_creator c = map_signature ( Signature.map_creator c )
+map_signature = Node.map_signature >> map_node
+                
 inc = map_signature ( Signature.inc )
-dec = map_signature ( Signature.dec )
-set_index i = map_signature ( Signature.scale i )
       
 map_item = Node.map_item >> map_node
 set_item = always >> map_item
 map_manifestation = Node.map_manifestation >> map_node 
-
+-}
                           
-
--- map                    
-                
-
--- turn the item's child items into fresh child compositrons
-unfold : Map Compositron
-unfold z =
-    let
-        item_to_compositron itm = branch Signature.inc z |> set_item itm
-        chitems = ( ( item z ) ) |> Item.children
-        new_children = ( chitems )
-            |> List.map item_to_compositron
-            |> List.indexedMap set_index
-            |> List.map unfold
-    in
-        z |> map_children ( (++) ( new_children ) )
-                   
--- map each sibling, including the targeted compositron.
-map_each_sibling : Map Compositron -> Map Compositron
-map_each_sibling = map_each_child >> map_parent
-
--- map the parent Compositron if it exists.
-map_parent : Map Compositron -> Map Compositron
-map_parent fu z =
-    z   |> Zipper.parent
-        |> Maybe.map ( fu >> Zipper.findNext ( (==) ( node z ) ) >> Maybe.withDefault z )
-        |> Maybe.withDefault z
-
--- modify each child.
-map_each_child : Map Compositron -> Map Compositron
-map_each_child fu z =
-    z   |> Zipper.firstChild
-        |> Maybe.map ( while_just fu Zipper.nextSibling >> Zipper.parent >> Maybe.withDefault z )
-        |> Maybe.withDefault z
-
-
-
--- change structure   
-
-
--- keep the branch, change the signature.
-branch : Map Signature -> Map Compositron
-branch sigmap =
-    Zipper.tree >> Zipper.fromTree >> map_signature sigmap
-
--- keep only siblings that fit a predicate.
-filter_siblings : ( Compositron -> Bool ) -> Map Compositron
-filter_siblings =
-    List.filter >> map_children
-        
--- insert a sibling for each match.
-copy_as_sibling_where : ( Compositron -> Bool ) -> Map Compositron
-copy_as_sibling_where predicate =
-    let
-        step sib ( list, instance ) =
-            if predicate sib
-            then ( ( inc instance ) :: sib :: list, inc instance )
-            else ( sib :: list, instance )
-        add_copies_of template =
-            List.foldr step ( [], template ) >> Tuple.first
-    in
-        \z -> z |> map_siblings ( add_copies_of z )
-
--- map the list of siblings, including the targeted compositron.
-map_siblings : Map ( List Compositron ) -> Map Compositron
-map_siblings = map_children >> map_parent
-
-trace mess z =
-    let heading fu = Debug.log mess () |> always fu
-    in ( z |> Zipper.root |> heading |> consolize 0 |> always z )
-               
--- modify the list of children.
-map_children : Map ( List Compositron ) -> Map Compositron
-map_children fu =
-    let
-        over_tree =
-            List.map Zipper.fromTree >> fu >> List.map Zipper.tree
-    in
-        trace "map_children before"
-        >> Zipper.tree
-        >> Tree.mapChildren over_tree
-        >> Zipper.fromTree
-        >> trace "map_children after"
-           
--- add copies when this item is empty, remove copies when new item is empty.
-prepare_emptiness : Signature -> Bool -> Map Compositron
-prepare_emptiness sig will_empty =
-    when ( is_empty >> (/=) will_empty )
-        <| map_parent ( prepare_emptiness sig will_empty )
-            >> if will_empty
-               then prepare_empty sig
-               else prepare_full sig
-
--- copy the empty node that will become full next to each "<".
-prepare_full : Signature -> Map Compositron
-prepare_full sig =
-    copy_as_sibling_where
-        ( item >> Item.is_assume_self )
-
--- undo the previous copying of empty items in preparation for fullness.
-prepare_empty : Signature -> Map Compositron
-prepare_empty sig =
-    signature >> ( (/=) sig )
-        |> filter_siblings
-
 
     
 -- preview
@@ -309,54 +299,48 @@ type alias Message msg m =
     }
 
 preview :
-    String
+    Creator
         -> Message msg m
         -> Compositron
         -> List ( Html msg )
            
-preview new_transformation message compositron =
+preview new_creator message compositron =
     let
-        targeted_compositron =
-            map_manifestation Manifestation.target compositron
-                |> Zipper.root
-        
-        new_sig = Signature.create new_transformation
-        
         incipit =
             Html.section []
                 [ Html.h2
                       [ class "compositron", class "caption" ]
-                      [ Html.text ( Signature.serialize new_sig )]
+                      [ Html.text new_creator ]
                 , Html.pre
                       []
-                      [ Html.text ( serialize 0 targeted_compositron ) ]
+                      [ Html.text ( serialize compositron ) ]
                 ]
                     
-        comp =
-            targeted_compositron
-                |> Zipper.tree
-                |> view new_sig message
+        composition =
+            live compositron
+                |> Structure.tree
+                |> view new_creator message
                 |> View.present
 
-    in [ incipit, comp ]
+    in [ incipit, composition ]
 
         
 view :
-    Signature
+    Creator
         -> Message msg m
-        -> Compositree
-        -> View msg ( Item Compositron ) Signature Data
+        -> Branch
+        -> View msg Item Signature Data
         
-view new_sig message compositree =
+view new_creator message branch =
     let
-        this : Node Compositron
-        this = Tree.label compositree
+        this : Node
+        this = Structure.bode branch
 
         -- elements
                 
         inner = \_->
-            Tree.children compositree
-            |> List.map ( view new_sig message )
+            Structure.bildren branch
+            |> List.map ( view new_creator message )
 
         is_targeted =
             Manifestation.targeted this.manifestation
@@ -366,7 +350,7 @@ view new_sig message compositree =
 
         to_attribute :
             Signature ->
-            Action ( Item Compositron ) Data ->
+            Action Item Data ->
             Html.Attribute msg
         to_attribute sig act = case act of
             Navigate_here -> 
@@ -378,14 +362,14 @@ view new_sig message compositree =
                     |> message.from_command
                     |> onClickNoBubble
             Choose_this itm ->
-                Choose new_sig itm
+                Choose itm new_creator
                     |> to_message >> onClickNoBubble
             Input_url old ->
-                ( Data.destring >> Modify new_sig >> to_message )
+                ( Data.destring >> with new_creator Modify >> to_message )
                     |> onInput
             Input_span old ->
                 Json.map
-                    ( Data.destring >> Modify new_sig >> to_message )
+                    ( Data.destring >> with new_creator Modify >> to_message )
                     ( Json.at ["target", "textContent"] Json.string )
                     |> on "input"
             Blur_span ->
@@ -400,37 +384,26 @@ view new_sig message compositree =
                                 
                 
         to_message =
-            create_intent new_sig this
+            create_intent new_creator this
             >> message.from_intent
                
     in
-        View.basic "compositron" this.signature inner
+        View.basic "Compositron" this.signature inner
             |> Node.view this
             |> View.activate to_attribute
             
 
 
-serialize : Int -> Compositron -> String
-serialize depth c =
-    let
-        children =
-            c |> Zipper.tree |> Tree.children |> List.map Zipper.fromTree
-        indent = "\n" ++ ( String.repeat (1+depth) "·  " )
-        serialize_children = List.map ( serialize ( depth+1 ) ) children
-    in
-        Node.serialize ( node c )
-            ++ ( if ( List.length children > 0 )
-                 then indent ++ ( serialize_children |> String.join indent )
-                 else "" )
+               
 
-consolize : Int -> Map Compositron
-consolize depth c =
-    let
-        children =
-            c |> Zipper.tree |> Tree.children |> List.map Zipper.fromTree
-        indent = String.repeat (1+depth) "·  "
-        consolize_children = List.map ( consolize ( depth+1 ) ) children
-    in
-        consolize_children
-            |> always ( Debug.log indent ( Node.serialize ( node c ) ) )
-            |> always c
+serialize : Compositron -> String
+serialize = live >> Structure.serialize Node.serialize
+
+deserialize : String -> Compositron
+deserialize =
+    Structure.deserialize Node.trivial Node.deserialize
+        >> with trivial set_live
+
+           
+            
+log = live >> Structure.log Node.serialize

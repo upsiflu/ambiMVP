@@ -27,3 +27,8 @@ destring string =
     case string of
         "" -> Nothing
         st -> Just st
+
+
+serialize = enstring
+
+deserialize = destring

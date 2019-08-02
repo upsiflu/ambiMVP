@@ -1,4 +1,5 @@
-module Compositron.Item exposing  (..)
+module Compositron.Item exposing
+    (..)
 
 import Html exposing ( Html )
 import Html.Attributes as Attributes
@@ -20,20 +21,20 @@ import Compositron.View as View exposing ( View, Action (..) )
 type alias Name = String
 type alias Frozen = Data
 type alias Fluid = Data
-type alias Group instance = List ( Item instance )
+type alias Group ref = List ( Item ref )
 
-type Reference instance
-    = Appscope instance
+type Codomain ref
+    = Reference ref
     | Self
         
-type Item instance
+type Item ref
             
     -- elements
     = Info String
     | Err String
-    | Field Name Flow ( Group instance )
-    | Ambiguous Name ( () -> ( Group instance ) )
-    | Assume ( Reference instance )
+    | Field Name Flow ( Group ref )
+    | Ambiguous Name ( () -> ( Group ref ) )
+    | Assume ( Codomain ref )
 
     -- editor for data (from a string) with variable width (span[contenteditable])
     | T Text
@@ -42,13 +43,16 @@ type Item instance
     | Y Youtube
     | V Vimeo
 
-form : Item instance -> List ( Item instance )
+primer : Item ref
+primer = Err "primer"
+      
+form : Item ref -> List ( Item ref )
 form itm =
     case itm of
         Field _ _ list -> list
         _-> []
     
-verbalize : ( Item instance ) -> String
+verbalize : ( Item ref ) -> String
 verbalize i =
     case i of
         Field n _ _ -> n
@@ -87,20 +91,6 @@ type Vimeo
       
 -- read
 
-
--- emptiness
-is_empty : ( () -> Bool ) -> Item -> Bool
-is_empty cascade i =
-    case i of
-        Assume _ -> True
-        Field _ _ _ -> cascade () -- this is a rubric, so its emptiness is decided further down.
-        Ambiguous _ _ -> True -- TODO: here we assume that all ambiguities, even partial, are empty!
-
-        Info _ -> True
-        Err _ -> True
-      
-        concrete -> data concrete |> Data.is_empty
-
 -- is type
 is_assume_self i =
     case i of
@@ -129,6 +119,7 @@ children i =
 set_data dat i =
     case i of
         T ( Text fluid frozen ) -> T ( Text dat frozen )
+        I _ -> I ( Image dat )
         Y _ -> Y ( Youtube dat )
         V _ -> V ( Vimeo dat )
         U _ -> U ( Url dat )
@@ -149,8 +140,8 @@ unfreeze i =
 -- create (templates, or what would be an ambilang program.
 
 
-type alias Template instance =
-    { pre : Group instance, suc : Group instance }
+type alias Template ref =
+    { pre : Group ref, suc : Group ref }
 
 layout =
     let style s = Field s Stacked [ Info s ]
@@ -271,13 +262,13 @@ add_view =
                 other -> proxy other
                 
     , option = \n itm -> -- TODO: remove signature from here!
-          View.basic ( String.fromInt n ) ( Signature.irrelevant n ) ( always [] )
+          View.basic ( String.fromInt n ) ( Signature.ephemeral n ) ( always [] )
               |> view ( add_view.info itm )
               |> View.add_action ( Choose_this itm )
               |> View.element ( always Html.button )
     }
 
-view : Item -> Map ( View msg Item Signature Data )
+view : Item ref -> Map ( View msg ( Item ref ) Signature Data )
 view itm =
     case itm of
 
@@ -336,18 +327,75 @@ view itm =
             View.add_class "Todo"
 
 
-serialize : Item -> String
+serialize : Item ref -> String
 serialize item =
     case item of
         Assume _ -> "<"
-        Field n f l -> n
-        Ambiguous n f -> "Ambiguous " ++ n
+        Field name flow list ->
+            "Field: " ++ name ++ ": " ++
+                ( List.map serialize list |> String.join ", " )
+        Ambiguous name f ->
+            "Ambiguous: " ++ name ++ ": " ++
+                ( List.map serialize ( f () ) |> String.join ", " )
         Info s -> "🛈 " ++ s
         Err s -> "⚠ " ++ s
-        T txt -> "Text"
-        I image -> "Image"
-        U irl -> "Url"
-        Y youtube -> "Youtube"
-        V vimeo -> "Vimeo"
+        T ( Text tx t ) -> "Text = " ++ Data.serialize tx ++ " = " ++ Data.serialize t
+        I ( Image image ) -> "Image = " ++ Data.serialize image
+        U ( Url url ) -> "Url = " ++ Data.serialize url
+        Y ( Youtube youtube ) -> "Youtube = " ++ Data.serialize youtube
+        V ( Vimeo vimeo ) -> "Vimeo = " ++ Data.serialize vimeo
 
           
+deserialize : String -> Maybe ( Item ref )
+deserialize str =
+    Just <| case str of
+        "<" ->
+            Assume Self
+
+        _ ->
+            case String.split ": " str of
+                "Field"::name::rest ->
+                    String.join ": " rest
+                        |> String.split ", "
+                        |> List.map deserialize
+                        |> List.foldl keep_just []
+                        |> Field name Inside
+                           
+                "Ambiguous"::name::rest ->
+                    String.join ": " rest
+                        |> String.split ", "
+                        |> List.map deserialize
+                        |> List.foldl keep_just []
+                        |> always
+                        |> Ambiguous name
+                 
+                _ ->
+                     case String.split " = " str of
+                         "Text"::da::ta ->
+                             String.join " = " ta 
+                                 |> Data.deserialize
+                                 |> Text ( Data.deserialize da ) >> T
+                         "Image"::dat ->
+                             String.join " = " dat
+                                 |> Data.deserialize
+                                 |> Image >> I
+                         "Url"::dat ->
+                             String.join " = " dat
+                                 |> Data.deserialize
+                                 |> Url >> U
+                         "Youtube"::dat ->
+                             String.join " = " dat
+                                 |> Data.deserialize
+                                 |> Youtube >> Y
+                         "Vimeo"::dat ->
+                             String.join " = " dat
+                                 |> Data.deserialize
+                                 |> Vimeo >> V
+                         _ ->
+                             if String.startsWith "🛈 " str
+                                 then String.dropLeft 3 str |> Info
+                             else if String.startsWith "⚠ " str
+                                 then String.dropLeft 2 str |> Err
+                                 else "unable to deserialize "++str |> Err 
+                             
+

@@ -5,15 +5,20 @@ import Html.Events exposing ( .. )
 import Json.Decode as Decode
 
 
+-- logging and debugging
+
+--trace text = \x -> Debug.log "🛈" text |> always x
+--multitrace text = \x -> Debug.log "::" text |> always x
+
+trace a b = b
+multitrace = trace
+
 -- aliases
 
 type alias Map a = a -> a
 
 
--- Wrappers
-
-skip = Skip
---match a = Match a
+-- wrapper(s)
 
 type Skippable a
     = Skip
@@ -44,6 +49,12 @@ when predicate fu probe =
 apply : a -> ( a -> b ) -> b
 apply parameter fu = fu parameter
 
+
+-- flipping parameters
+
+with base fu parameter =
+    fu parameter base
+                     
                      
 -- Tuple mapping
         
@@ -84,7 +95,11 @@ before xs x = x::xs
 after : List a -> a -> List a
 after xs x = xs++[x]
 
-              
+keep_just : Maybe a -> Map ( List a )
+keep_just may acc =
+    case may of
+        Just x -> x::acc
+        _ -> acc
               
 
 

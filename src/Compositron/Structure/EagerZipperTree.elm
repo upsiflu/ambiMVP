@@ -2,25 +2,35 @@ module Compositron.Structure.EagerZipperTree exposing
     ( Structure
     , Branch
         
-    -- create
+    -- create : a -> Structure a
     , singleton
         
-    -- read
+    -- read : Structure a -> x
     , node
+    , sibling_nodes
     , branch
+    , bode
+    , bildren
+    , tree
         
-    -- map
+    -- map : a -> Map ( Structure a )
     , find
-    , map_group
-    , fold_group
-    , replace_branch
+    , mark
+
+    -- potentially grow, with a primer of type a
+    , replace_branch 
     , impose_template
+
+    -- apply such a modification to a group
+    , each_sibling
+    , each_child
         
     -- string
     , serialize
     , deserialize
+    , log
         
-    -- testing
+    -- testing (with nice console output)
     , example0
     , test0
     , example1
@@ -54,28 +64,49 @@ singleton = Tree.singleton >> Zipper.fromTree
             
 -- read
 
+
 node : Structure a -> a
-node = branch >> bode
+node = branch >> Tree.label
 
-bode : Branch a -> a
-bode = Tree.label
-
-find : ( a -> Bool ) -> Structure a -> Maybe ( Structure a )
-find = Zipper.findFromRoot
+       
+sibling_nodes : Structure a -> ( List a, List a )
+sibling_nodes =
+    both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+        >> each ( List.map Tree.label )
 
 
 -- edit branches before inserting them
-
+    
 branch : Structure a -> Branch a
 branch = Zipper.tree
 
 bringleton = Tree.singleton
-         
-       
-       
+
+bode = Tree.label
+
+bildren = Tree.children
+
+tree : Structure a -> Branch a
+tree =
+    Zipper.root >> Zipper.tree
+
+            
+           
 -- map
 
 
+find : ( a -> Bool ) -> Structure a -> Maybe ( Structure a )
+find = Zipper.findFromRoot
+
+mark : Map a -> Map ( Structure a )
+mark = Zipper.mapLabel
+
+    
+         
+       
+       
+
+-- -- internal only:
 map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
 map_group fu struct =
     Zipper.parent struct
@@ -91,45 +122,30 @@ map_group fu struct =
            |> Maybe.map Zipper.fromTree
            |> Maybe.withDefault struct
            )
+-- --
 
 
-fold_group : ( Map ( a, Structure a ) ) -> Map ( a, Structure a )
-fold_group fu ( primer, struct ) =
-    let
-        pivot =
-            node struct
-                
-        first_sibling : Map ( Structure a )
-        first_sibling =
-            perhaps ( Zipper.parent >> Maybe.map ( perhaps Zipper.firstChild ) )
 
-        maybe_next ( x, s ) =
-            case Zipper.nextSibling s of
-                Nothing -> Nothing
-                Just ns -> Just ( x, ns )
-    in
-        ( primer, first_sibling struct )
-            |> while_just ( fu ) maybe_next
-            |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
 
-                
+-- modify with a primer (in a Tuple)
+
+
 replace_branch :
     ( a, List i ) ->
-    ( a -> i -> a ) ->
+    ( i -> a -> a ) ->
     Map ( a, Structure a )
-replace_branch ( head, forest ) match ( primer, struct ) =
+replace_branch ( head, forest ) succ ( primer, struct ) =
     let
         ( ender, children ) =
             forest
                 |> List.foldl
                    ( \itm ( pre, acc ) ->
-                         match pre itm |> both ( identity, bringleton >> after acc )
+                         succ itm pre |> both ( identity, bringleton >> after acc )
                    ) ( primer, [] )
     in
         ( ender
         , struct
-            |> Zipper.replaceTree
-               ( Tree.tree head children )
+            |> Zipper.replaceTree ( Tree.tree head children )
         )
 
                
@@ -155,7 +171,7 @@ impose_template ( temp_before, temp_after ) match ( primer, structure ) =
                         ( l, ive ) =
                             each ( Maybe.withDefault [] ) ( maybe_l, maybe_ive )
                                 
-                    in case match ( live |> List.head |> Maybe.map bode ) t of
+                    in case match ( live |> List.head |> Maybe.map Tree.label ) t of
                         Skip ->
                             -- accept the live branch.
                             forward ( pre, acc++l ) ( ive, t::emp )
@@ -185,8 +201,54 @@ impose_template ( temp_before, temp_after ) match ( primer, structure ) =
             ( \_-> back_branches ++ [ branch structure ] ++ forth_branches )
             structure
         )
- 
 
+
+
+        
+-- apply modification to a group
+
+
+each_sibling : Map ( Map ( a, Structure a ) )
+each_sibling fu ( primer, struct ) =
+    let
+        pivot =
+            node struct
+                
+        first_sibling : Map ( Structure a )
+        first_sibling =
+            perhaps ( Zipper.parent >> Maybe.map ( perhaps Zipper.firstChild ) )
+
+        maybe_next ( x, s ) =
+            case Zipper.nextSibling s of
+                Nothing -> Nothing
+                Just ns -> Just ( x, ns )
+    in
+        ( primer, first_sibling struct )
+            |> while_just ( fu ) maybe_next
+            |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
+
+each_child : Map ( Map ( a, Structure a ) )
+each_child fu ( primer, struct ) =
+    let
+        pivot =
+            node struct
+                
+        first_child : Map ( Structure a )
+        first_child =
+            perhaps Zipper.firstChild
+
+        maybe_next ( x, s ) =
+            case Zipper.nextSibling s of
+                Nothing -> Nothing
+                Just ns -> Just ( x, ns )
+    in
+        ( primer, first_child struct )
+            |> while_just ( fu ) maybe_next
+            |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
+
+
+
+               
          
 -- serialize and deserialize
 
@@ -232,7 +294,7 @@ log from_node =
     let
         trace_lines ll =
             case ll of
-                l::ines -> Debug.log "::" l |> always ( trace_lines ines )
+                l::ines -> multitrace l l |> always ( trace_lines ines )
                 _ -> ()
 
     in \str ->
@@ -245,8 +307,6 @@ log from_node =
 -- tests
 
            
-trace text = \x -> Debug.log "🛈" text |> always x
-             
 ----0
                          
 test0 =
@@ -358,14 +418,14 @@ test2 =
            {-
 replace_branch :
     ( Map i, List i ) ->
-    ( a -> i -> a ) ->
+    ( i -> a -> a ) ->
     Map ( a, Structure a )
 replace_branch ( head, forest ) match ( primer, struct ) =
 -}
 
 replace_branch2 stru =
     let
-        next_node ( n, itm ) new =
+        next_node new ( n, itm ) =
             ( (n+1), new )        
     in replace_branch
         ( stru |> node |> Tuple.mapSecond ( (++) "mapped head -> " )
@@ -383,7 +443,7 @@ test3 =
 
 replace_branch4 ( primer, stru ) =
     let
-        next_node ( n, itm ) new =
+        next_node new ( n, itm ) =
             ( (n+1), new )        
     in replace_branch
         ( stru |> node |> Tuple.mapSecond ( (++) "mapped node -> " )
@@ -445,8 +505,8 @@ impose_template5 =
                   _ -> Match Nothing
         )
 
---fold_group : ( Map ( a, Structure a ) ) -> Map ( a, Structure a )
---fold_group fu ( primer, struct ) =
+--each_sibling : ( Map ( a, Structure a ) ) -> Map ( a, Structure a )
+--each_sibling fu ( primer, struct ) =
 
 impose_all_templates5 structure =
     let
@@ -455,7 +515,7 @@ impose_all_templates5 structure =
                 ( _, "<->" ) -> impose_template5 ( pre, struct )
                 _            -> ( pre, struct )
     in
-        fold_group modify ( ( 99, "->" ), structure )
+        each_sibling modify ( ( 99, "->" ), structure )
 
 
 test5 =
