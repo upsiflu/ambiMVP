@@ -18,50 +18,44 @@ import Compositron.View as View exposing ( View, Action (..) )
 {-| Item defines the form if a Node, whose
     instanciation is probably within a Compositron. |-}
 
-type alias Name = String
-type alias Frozen = Data
-type alias Fluid = Data
-type alias Group ref = List ( Item ref )
 
-type Codomain ref
-    = Reference ref
-    | Self
-        
 type Item ref
-            
-    -- elements
+           
     = Info String
     | Err String
-    | Field Name Flow ( Group ref )
-    | Ambiguous Name ( () -> ( Group ref ) )
-    | Assume ( Codomain ref )
 
-    -- editor for data (from a string) with variable width (span[contenteditable])
+    | Assume ( Cogroup ref ) 
+    | Body Name Flow ( Cogroup ref )
+
     | T Text
-    | I Image
+    | P Picture
     | U Url
     | Y Youtube
     | V Vimeo
 
-primer : Item ref
-primer = Err "primer"
-      
-form : Item ref -> List ( Item ref )
-form itm =
-    case itm of
-        Field _ _ list -> list
-        _-> []
-    
-verbalize : ( Item ref ) -> String
-verbalize i =
-    case i of
-        Field n _ _ -> n
-        Ambiguous n _ -> "Ambiguous "++n
-        _ -> "?"
+type Group ref
+    = Empty ( Alternative ( Group ref ) ) 
+    | Group ( Nonempty ( Item ref ) ) ( Alternative ( Group ref ) )
 
+type Cogroup ref
+    = Self ( Alternative ( Cogroup ref ) )
+    | Of ( Nonempty ( Codomain ref ) ) ( Alternative ( Cogroup ref ) )
+
+      
+or = Of >> Alternative
+reset = Self >> Alternative
+     
+     
+type Codomain ref    
+    = Reference ( ref )
+    | I ( Item ref )
+    | M ( Macro )
+
+      
 type Flow
     = Meta -- can be above, below, introducing, or trailing.
     | Inside
+    | Ambi
     | Stacked
     | Sectioning
     | Heading
@@ -69,14 +63,20 @@ type Flow
     | Figure
     | Figcaption
     | Inaccessible -- for bodies that are not (yet) realized.
+
       
+type alias Name = String
+type alias Frozen = Data
+type alias Fluid = Data
+
+    
 type Text
-    -- while you edit text via a contenteditable span, the virtual DOM retains the frozen string\
+    -- while you edit text via a contenteditable span, the vDOM retains the frozen string\
     -- to keep the state within the Browser.
     = Text Fluid Frozen
       
-type Image
-    = Image Data
+type Picture
+    = Picture Data
 
 type Url
     = Url Data
@@ -88,29 +88,99 @@ type Vimeo
     = Vimeo Data
 
 
-      
+
+-- create
+
+
+primer : Item ref
+primer = Err "primer"
+
+
+initial : Item ref
+initial = demacro Macro_Paragraph
+
+          
+         
 -- read
 
--- is type
+
+form : Item ref -> Group ref
+form itm =
+    case itm of
+        Body _ _ cog ->
+            from_cogroup cog
+        _-> []
+
+
+from_cogroup : Cogroup ref -> Group ref
+from_cogroup cog =
+    case cog of
+        Self End ->
+            Empty End
+                
+        Self ( Alternative alt ) ->
+            Empty ( Alternative ( from_cogroup alt ) )
+                
+        Of ( head, tail ) End ->
+            Group ( from_codomain head, List.map from_codomain tail )
+                End
+                    
+        Of ( head, tail ) ( Alternative alt ) ->
+            Group ( from_codomain head, List.map from_codomain tail )
+                ( Alternative ( from_cogroup alt ) )
+
+from_codomain cod =
+    case cod of
+        Reference r -> Err "References are not yet implemented."
+        I itm -> itm
+        M _ -> Err "Macros are not yet implemented."
+                    
+verbalize : ( Item ref ) -> String
+verbalize i =
+    case i of
+        Body n _ _ -> n
+        _ -> "?"
+
+             {-
 is_assume_self i =
     case i of
-        Assume Self -> True
+        Assume ( Self _ ) -> True
         _ -> False
+-}
 
--- elements
+data : Item ref -> Maybe Data
 data i =
     case i of
-        T ( Text fluid frozen ) -> fluid
-        I ( Image dat ) -> dat
-        U ( Url dat ) -> dat
-        Y ( Youtube dat ) -> dat
-        V ( Vimeo dat ) -> dat
+        T ( Text fluid frozen ) -> Just fluid
+        P ( Picture dat ) -> Just dat
+        U ( Url dat ) -> Just dat
+        Y ( Youtube dat ) -> Just dat
+        V ( Vimeo dat ) -> Just dat
         _ -> Nothing
-children i =
-    case i of
-        Field name flow kids -> kids
-        _ -> []
 
+
+-- transformers
+
+
+map_cog_alternatives : ( Maybe ( Nonempty ( Codomain ref ) ) -> b ) ->
+                   Cogroup ref ->
+                   List b
+map_cog_alternatives fu cog =
+            case cog of
+                
+                Self End ->
+                    Nothing |> fu |> before []
+                        
+                Of g End ->
+                    Just g  |> fu |> before []
+                        
+                Self ( Alternative acog ) ->
+                    Nothing |> fu |> before ( map_cog_alternatives fu acog )
+                        
+                Of g ( Alternative acog ) ->
+                    Just g  |> fu |> before ( map_cog_alternatives fu acog )
+       
+             
 
              
 -- set
@@ -119,7 +189,7 @@ children i =
 set_data dat i =
     case i of
         T ( Text fluid frozen ) -> T ( Text dat frozen )
-        I _ -> I ( Image dat )
+        P _ -> P ( Picture dat )
         Y _ -> Y ( Youtube dat )
         V _ -> V ( Vimeo dat )
         U _ -> U ( Url dat )
@@ -136,90 +206,121 @@ unfreeze i =
         x -> x
                                    
 
-             
--- create (templates, or what would be an ambilang program.
 
 
-type alias Template ref =
-    { pre : Group ref, suc : Group ref }
 
+--type alias Template ref =
+--    { pre : Group ref, suc : Group ref }
+
+
+        
+-- macros
+
+
+type Macro
+    = Macro_Paragraph
+    | Macro_Figure
+    | Macro_Text
+
+
+demacro : Macro -> Item ref      
+demacro m =
+    case m of
+        Macro_Paragraph ->
+               Body "paragraph" Paragraph
+                <| Of ( I <| Assume <| Self End
+                      , [ I <| Body "+" Ambi
+                              <| Of ( I blocks, [] )
+                              <| or ( I spans, [] )
+                                  End
+                        ]
+                      , I layout
+                      )
+                    End
+                        
+        Macro_Figure ->
+               Body "figure" Figure
+                <| Of ( Body "figure media" Ambi
+                            <| Of ( I <| P <| Picture ( Nothing ), [] )
+                            <| or ( I <| Y <| Youtube ( Nothing ), [] )
+                            <| or ( I <| V <| Vimeo ( Nothing ), [] )
+                            <| or ( I blocks, [] )
+                                End
+                      , [ Body "caption" Figcaption
+                              <| Of ( I <| Body "caption" Ambi
+                                          <| Of ( I blocks, [] )
+                                          <| or ( I spans, [] )
+                                              End
+                                    , [] )
+                                  End
+                        , I layout
+                        ]
+                      )
+                    End
+
+        Macro_Text ->
+               Body "text" Inside
+                <| Of ( I spans
+                      , [ I <| T <| Text Nothing Nothing
+                        , I <| Body "+" Ambi
+                            <| Of ( I link, [] )
+                            <| reset
+                                End
+                        , I layout
+                        ]
+                      )
+                    End
+
+
+style s =
+    Body s Stacked
+        <| Of ( I <| Info s, [] )
+            End
+                
 layout =
-    let style s = Field s Stacked [ Info s ]
-    in
-        Field "layout" Meta
-            [ Assume Self
-            , Ambiguous "+" <|\_->
-                [ style "align right"
-                , style "align centered"
-                , style "shaded green"
+    Body "layout" Meta
+        <| Of ( I <| Assume <| Self End
+              , [ I <| Body "+" Ambi
+                      <| Of ( I <| style "align right", [] )
+                      <| or ( I <| style "align centered", [] )
+                      <| or ( I <| style "shaded green", [] )
                 ]
-            ]
-            
+              )
+            End
+        
 blocks =
-    Ambiguous "block..." <|\_->
-        [ paragraph
-        , heading
-        , figure
-        ]
+    Body "block..." Ambi
+        <| Of ( M Macro_Paragraph, [] )
+        <| or ( M Macro_Figure, [] )
+        <| or ( I heading, [] )
+            End
         
 spans =
-    Ambiguous "in line..." <|\_->
-        [ text Nothing
-        , link Nothing Nothing
-        ]
+    Body "in line..." Ambi
+        <| Of ( M Macro_Text, [] )
+        <| reset
+            End
 
-paragraph =
-    Field "paragraph" Paragraph
-        [ Assume Self
-        , Ambiguous "+" <|\_->
-            [ blocks
-            , spans
-            ]
-        , layout
-        ]
 
 heading =
-    Field "heading" Heading
-        [ Assume Self
-        , spans
-        , layout
-        ]
-
-figure =
-    Field "figure" Figure
-        [ Ambiguous "figure media" <| \_->
-            [ I <| Image ( Nothing )
-            , Y <| Youtube ( Nothing )
-            , V <| Vimeo ( Nothing )
-            , blocks
-            ]
-        , Field "caption" Figcaption
-            [ Ambiguous "caption" <| \_->
-                  [ blocks
-                  , spans
-                  ]
-            ]
-        , layout
-        ]
-
-text t =
-    Field "text" Inside
-        [ spans
-        , T <| Text t t
-        , layout
-        ]
+    Body "heading" Heading
+        <| Of ( I <| Assume <| Self End
+              , [ I spans, I layout ]
+              )
+            End
         
 link t u =
-    Field "link" Inside
-        [ Field "destination" Meta
-            [ U <| Url u ]
-        , text t
-        , layout
-        ]
+    Body "link" Inside
+        <| Of ( I <| Body "destination" Meta
+                    <| Of ( I <| U <| Url u, [] )
+                        End
+              , [ I <| T <| Text t t ]
+              )
+            End
         
 proxy itm =
-    Field "proxy" Stacked
-        [ itm ]
+    Body "proxy" Stacked
+        <| Of ( I itm, [] ) End
         
 
             
@@ -251,45 +352,67 @@ add_view =
                           Figcaption -> Html.figcaption
                           _ -> Html.button
           in insert_class >> set_element
-              
-    , info = \itm->
-            case itm of
-                Assume _ -> Info "<"
-                Field name _ _ -> Info name
-                Ambiguous name _ -> Info ( name ++ "..." )
-                Info name -> Info name
-                Err string -> Info string
-                other -> proxy other
+            
                 
     , option = \n itm -> -- TODO: remove signature from here!
           View.basic ( String.fromInt n ) ( Signature.ephemeral n ) ( always [] )
-              |> view ( add_view.info itm )
+              |> view
+                 ( case itm of
+                       Assume _ -> Info "<"
+                       Body name _ ( Group _ ( Alternative _ ) ) -> Info ( name ++ "..." )
+                       Body name _ _ -> Info name
+                       Info name -> Info name
+                       Err string -> Info ( "Error" ++ string )
+                       other -> proxy other
+                 )
               |> View.add_action ( Choose_this itm )
               |> View.element ( always Html.button )
     }
 
 view : Item ref -> Map ( View msg ( Item ref ) Signature Data )
 view itm =
-    case itm of
+    let             
+        alternative_to_info : Maybe ( Nonempty ( Codomain ref ) ) -> Item ref
+        alternative_to_info may_cog =
+            case may_cog of
+
+                Just ( head, tail ) ->
+                    from_codomain head
+
+                _ -> Info "done"
+                     
+    in case itm of
 
         Assume _ ->
             View.add_class "Assume"
-                      
-        Field name flow items ->
+
+        -- case 1: empty body
+        Body name flow ( Self End ) ->
             View.add_class name
-                >> View.add_class "Field"
+                >> View.add_class "Body"
                 >> add_view.flow flow
 
-        Ambiguous name create_items ->
+        -- case 2: body of certain group
+        Body name flow ( Of ( head, tail ) End ) ->
+            View.add_class name
+                >> View.add_class "Body"
+                >> add_view.flow flow
+                        
+        -- case 3: body of ambiguous group
+        Body name flow ( alternatives ) ->
             View.add_class name
                 >> View.add_class "Ambiguous"
-                >> add_view.flow Meta
-                >> View.set_text name
+                >> View.add_class "Body"
+                >> add_view.flow flow
+                >> View.set_text ( name ++ "...")
                 >> View.children
                     ( (++)
-                      ( create_items () |> List.indexedMap add_view.option )
+                      ( alternatives
+                          |> map_cog_alternatives alternative_to_info
+                          |> List.indexedMap add_view.option
+                      )
                     )
- 
+
         Info string ->
             View.add_class "info"
                 >> View.set_text string
@@ -308,9 +431,9 @@ view itm =
                        Just frozen_string ->
                            View.set_text frozen_string
                        
-        I ( Image source ) ->
-            View.add_class "image"
-                >> View.add_class "I"
+        P ( Picture source ) ->
+            View.add_class "picture"
+                >> View.add_class "P"
                 >> View.element ( always Html.img )
                 >> View.add_attribute ( Attributes.src ( Data.enstring source ) )
 
@@ -331,16 +454,39 @@ serialize : Item ref -> String
 serialize item =
     case item of
         Assume _ -> "<"
-        Field name flow list ->
-            "Field: " ++ name ++ ": " ++
-                ( List.map serialize list |> String.join ", " )
-        Ambiguous name f ->
-            "Ambiguous: " ++ name ++ ": " ++
-                ( List.map serialize ( f () ) |> String.join ", " )
+
+        -- case 1: final body
+        Body name flow ( Self End ) ->
+            "Self: "++name++": "
+
+        -- case 2: body of certain group
+        Body name flow ( Of ( head, tail ) End ) ->
+            "Body: "++name++": "++
+                ( head::tail
+                    |> List.map ( from_codomain >> serialize )
+                    |> String.join ", "
+                )
+                        
+        -- case 3: body of ambiguous group
+        Body name flow ( alternatives ) ->
+            "Ambi: "++name++": "++
+                ( alternatives
+                  |> map_cog_alternatives
+                      ( \may_nonempty_cogroup ->
+                            case may_nonempty_cogroup of
+                                Just ( head, tail ) ->
+                                    head::tail
+                                       |> List.map ( from_codomain >> serialize )
+                                       |> String.join ", "
+                                _-> ""
+                      )
+                  |> String.join " || "     
+                )
+
         Info s -> "🛈 " ++ s
         Err s -> "⚠ " ++ s
         T ( Text tx t ) -> "Text = " ++ Data.serialize tx ++ " = " ++ Data.serialize t
-        I ( Image image ) -> "Image = " ++ Data.serialize image
+        P ( Picture picture ) -> "Picture = " ++ Data.serialize picture
         U ( Url url ) -> "Url = " ++ Data.serialize url
         Y ( Youtube youtube ) -> "Youtube = " ++ Data.serialize youtube
         V ( Vimeo vimeo ) -> "Vimeo = " ++ Data.serialize vimeo
@@ -350,24 +496,16 @@ deserialize : String -> Maybe ( Item ref )
 deserialize str =
     Just <| case str of
         "<" ->
-            Assume Self
+            Assume ( Self End )
 
         _ ->
             case String.split ": " str of
-                "Field"::name::rest ->
+                "Body"::name::rest ->
                     String.join ": " rest
                         |> String.split ", "
                         |> List.map deserialize
                         |> List.foldl keep_just []
-                        |> Field name Inside
-                           
-                "Ambiguous"::name::rest ->
-                    String.join ": " rest
-                        |> String.split ", "
-                        |> List.map deserialize
-                        |> List.foldl keep_just []
-                        |> always
-                        |> Ambiguous name
+                        |> Body name Inside
                  
                 _ ->
                      case String.split " = " str of
@@ -375,10 +513,10 @@ deserialize str =
                              String.join " = " ta 
                                  |> Data.deserialize
                                  |> Text ( Data.deserialize da ) >> T
-                         "Image"::dat ->
+                         "Picture"::dat ->
                              String.join " = " dat
                                  |> Data.deserialize
-                                 |> Image >> I
+                                 |> Picture >> I
                          "Url"::dat ->
                              String.join " = " dat
                                  |> Data.deserialize

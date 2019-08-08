@@ -13,9 +13,9 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 
-type alias Node ref =
-    { signature : Signature
-    , item : Item ref
+type alias Node domain =
+    { signature : Signature domain
+    , item : Item ( Signature domain )
     , manifestation : Manifestation
     }
 
@@ -24,23 +24,25 @@ type alias Node ref =
 -- create
 
     
-trivial : Node ref
+trivial : Node domain
 trivial =
     { signature = Signature.root
     , item = Item.paragraph
-    , manifestation = Manifestation.active }
+    , manifestation = Manifestation.active
+    }
              
 
 primer = create Item.primer
          
-create : Item ref -> Signature.Creator -> Node ref
+create : Item ( Signature domain ) -> Signature.Creator -> Node domain
 create itm cre =
      { signature = Signature.create cre
      , item = itm
-     , manifestation = Manifestation.passive }
+     , manifestation = Manifestation.passive
+     }
 
 
-inc : Item ref -> Map ( Node ref )
+inc : Item ( Signature domain ) -> Map ( Node domain )
 inc itm =
     map_signature Signature.inc
 
@@ -55,15 +57,15 @@ set_index : Int -> Map ( Node instance )
 set_index n =
     map_signature <| Signature.scale n
   -}      
-map_signature : Map Signature -> Map ( Node ref )
+map_signature : Map ( Signature domain ) -> Map ( Node domain )
 map_signature fu =
     \this -> { this | signature = fu this.signature }
 
-map_item : Map ( Item ref ) -> Map ( Node ref )
+map_item : Map ( Item ( Signature domain ) ) -> Map ( Node domain )
 map_item fu =
     \this-> { this | item = fu this.item }   
 
-map_manifestation : Map Manifestation -> Map ( Node ref )
+map_manifestation : Map Manifestation -> Map ( Node domain )
 map_manifestation fu =
     \this-> { this | manifestation = fu this.manifestation }   
 
@@ -73,10 +75,10 @@ map_manifestation fu =
 set_item = always >> map_item
 set_manifestation = always >> map_manifestation
 
-activate : Map ( Node ref )
+activate : Map ( Node domain )
 activate = set_manifestation Manifestation.active
 
-passivate : Map ( Node ref )
+passivate : Map ( Node domain )
 passivate = set_manifestation Manifestation.passive
 
 
@@ -84,20 +86,20 @@ passivate = set_manifestation Manifestation.passive
 --view
                     
 
-view : Node ref -> Map ( View msg ( Item ref ) Signature Data )
+view : Node domain -> Map ( View msg ( Item ( Signature domain ) ) ( Signature domain ) Data )
 view node =
     Signature.view node.signature
         >> Item.view node.item
         >> Manifestation.view node.manifestation
 
 
-serialize : Node ref -> String
+serialize : Node domain -> String
 serialize node =
     ( Manifestation.serialize node.manifestation )
         ++ ( Signature.serialize node.signature ) ++ ": "
         ++ ( Item.serialize node.item ) 
 
-deserialize : String -> Maybe ( Node ref )
+deserialize : String -> Maybe ( Node domain )
 deserialize str =
     case String.split (": ") str of
 

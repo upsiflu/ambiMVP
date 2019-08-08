@@ -42,7 +42,7 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 type Compositron =
-    Compositron { live : Structure Live, template : Structure Template }
+    Compositron { live : Structure ( Signature Live ), template : Structure ( Signature Template ) }
         
 type alias Reference = Signature
         

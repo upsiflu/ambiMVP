@@ -14,6 +14,8 @@ import History.Intent exposing ( .. )
 import Svg exposing (svg) 
 import Svg.Attributes exposing ( viewBox, d, fill )
 
+
+
 {-  VIEW
 
     message:
@@ -25,12 +27,11 @@ import Svg.Attributes exposing ( viewBox, d, fill )
     option:
        the current Ui config.
     history: just a History.
-    preview: how to turn a State within the History into Html.
-    possible_intents: how to continue the history.
+    preview: how to turn a State within the History into view.
 
 -}
 
-view message option history preview possible_intents =
+Html message option history preview =
     let
         options_as_classes =
             classList [ -- on small screens, you toggle the review-view:
@@ -40,10 +41,8 @@ view message option history preview possible_intents =
                         -- when the layout is complex, switch to list view:
                       , ( "listing",   option.editor && ( not option.layout ) )
                       ]
-                
-        summary =
+        summary  =
             History.summary history
-                
         view_transformation ( sig, edit ) =
             button
                 [ class "transformation" ]

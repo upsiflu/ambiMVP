@@ -30,7 +30,7 @@ then each signature will be unique.
 
 type alias Creator = String
 
-type alias Signature =
+type alias Signature domain =
     { creator : Creator, scalar : Int }
 
 
@@ -38,19 +38,19 @@ type alias Signature =
 -- create
 
         
-root : Signature
-root = create "upsiflu" |> inc
+root : domain -> Signature domain
+root = create "upsiflu" d |> inc
 
 
 inc : Map Signature
 inc = map_scalar ( (+) 1 )
 
 
-create : String -> Signature
-create cre = { creator = cre, scalar = -1 }
+create : String -> domain -> Signature domain
+create cre d = { creator = cre, scalar = -1 }
 
-ephemeral : Int -> Signature
-ephemeral n = { creator = "ephemeral", scalar = n }
+ephemeral : Int -> domain -> Signature domain
+ephemeral n d = { creator = "ephemeral", scalar = n }
 
              
 
@@ -70,12 +70,12 @@ dec = map_scalar ( (-) 1 )
 -- serialize
 
 
-serialize : Signature -> String
+serialize : Signature domain -> String
 serialize signature =
     signature.creator ++ "/" ++ ( String.fromInt signature.scalar )
 
-deserialize : String -> Maybe Signature
-deserialize str =
+deserialize : String -> domain -> Maybe ( Signature domain )
+deserialize str d =
     case String.split "/" str |> List.reverse of
 
         x::xs ->
@@ -97,6 +97,6 @@ deserialize str =
 -- view
 
 
-view : Signature -> Map ( View msg item Signature data )
+view : Signature domain -> Map ( View msg item ( Signature domain ) data )
 view signature =
     View.add_id <| serialize signature

@@ -18,13 +18,20 @@ multitrace = trace
 type alias Map a = a -> a
 
 
--- wrapper(s)
+-- wrappers
 
 type Skippable a
     = Skip
     | Match a
 
+type Alternative a
+    = End
+    | Alternative a
 
+
+
+                         
+                                                                                   
 -- maybe
 
 perhaps : ( a -> Maybe a ) -> Map a
