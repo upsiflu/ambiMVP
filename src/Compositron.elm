@@ -41,20 +41,22 @@ import Compositron.View as View exposing ( View, Action (..) )
 -- Compositron (=State)
 
 
-type Compositron =
-    Compositron { live : Structure Live, template : Structure Template }
-        
-type alias Reference = Signature
-        
-type alias Node = Node.Node Reference
-
-type alias Item = Item.Item Reference
-
 type alias State = Compositron
+    
+type Compositron =
+    Compositron { live : LStructure, template : TempStructure }
+                
+type alias LiveNode = Node.Node Live
+type alias TempNode = Node.Node Template
 
-type alias Branch = Structure.Branch Node
+type alias LiveItem = Item.Item ( Signature Live )
+type alias TempItem = Item.Item ( Signature Template )
 
-type alias Structure = Structure.Structure Node
+type alias LiveBranch = Structure.Branch LiveNode
+type alias TempBranch = Structure.Branch TempNode
+    
+type alias LiveStructure = Structure.Structure LiveNode
+type alias TempStructure = Structure.Structure TempNode
     
 type Domain
     = Live
@@ -63,7 +65,7 @@ type Domain
 -- create
 
 
-template : Structure
+template : TempStructure
 template = """
 ▶template/0: Field: proxy: ⚠ former root
    template/1: Field: proxy: 🛈 Hoppla
@@ -85,7 +87,7 @@ trivial =
 -- mark the target node
 
 
-mark : Map Node -> Map Compositron
+mark : Map LiveNode -> Map Compositron
 mark =
     Structure.mark >> map_live 
 
@@ -103,21 +105,38 @@ mark =
  (3) fields have their groups manifested as child nodes.
  (4) assumes have their template manifested in place.
 
+ (5) 
+
 --}
 
+dereference : Signature Live -> Compositron -> TempStructure
+dereference sig =
+    template
+        >> perhaps ( Structure.find ( \this -> this.signature == sig_in_template sig ) )
 
 
-manifest : Map Item -> Creator -> Map Compositron
+manifest : Map LiveItem -> Creator -> Map Compositron
 manifest itm_fu new_cre compositron =
 
     let
         new_node = node compositron |> Node.map_item itm_fu
 
-        -- Given a primer and a Compositron, impose a templ
-        perhaps_impose_template : Map ( Node, Structure )
-        perhaps_impose_template ( pre, structure ) =
+        -- Given a primer and a Compositron, perhaps impose a template and manifest it here
+        satisfy : Map ( Node, Structure )
+        satisfy ( pre, structure ) =
 
-            let 
+            let
+                this_template : Maybe ( List TempItem, List TempItem )
+                this_template =
+                    structure
+                        |> Structure.node >> .item
+                        |> Item.self_reference             -- Maybe ( Signature Live )
+                        |> Maybe.map
+                           ( dereference                   -- Maybe ( TempStructure )
+                               >> Structure.sibling_nodes  -- ( [ TempNode ], [ TempNode ] )
+                               >> each ( List.map .item )  -- ( [ TempItem ], [ TempItem ] )
+                           )
+                
                 match_template_replacement : Maybe Node -> Item -> Skippable ( Maybe ( Map Node ) )
                 match_template_replacement may_live temp_item =
 
@@ -136,44 +155,29 @@ manifest itm_fu new_cre compositron =
 
                     -- template match, accept the template item here:
                         else Node.inc temp_item |> Just |> Match
-                        
- 
+                  
             in
-                ( pre, structure )
-                    |> case Structure.node structure |> .item of
-                
-                           Item.Assume ( Item.Reference template_signature ) ->
-                               Structure.impose_template
-                                   ( template compositron
-                                         |> Structure.find ( .signature >> (==) template_signature )
-                                         |> Maybe.withDefault ( template compositron )
-                                         |> Structure.sibling_nodes
-                                         |> each ( List.map .item )
-                                   )
-                                   match_template_replacement
-                               
-                           Item.Assume Item.Self ->
-                               {- todo: needs to generate prototype information,
-                               then manifest here again! -}
-                               identity
+                case this_template of
+                    Nothing ->
+                        ( pre, structure )
 
-                           _ ->
-                               identity
-
-        
+                    Just template_neighbours ->
+                        Structure.impose_template
+                            template_neighbours
+                            match_template_replacement
+                            ( pre, structure )
+                                   
     in
         ( Node.primer new_cre, live compositron )
 
-        --(1) change item and rebuild children
+        --(1) replace the current branch by a stub from the new item
             |> Structure.replace_branch
-               ( new_node, new_node.item |> Item.form )
+               ( new_node, [] )
                Node.inc
 
-        --(2) impose templates in the siblings, manifesting each
-            |> Structure.each_sibling perhaps_impose_template
-
-        --(3) impose templates in the children, manifesting each
-            |> Structure.each_child perhaps_impose_template
+        --(2) reimpose desatisfied assumptions in the group, and do it up to root.
+            |> Structure.up_the_ancestry
+                   ( Structure.each_in_group satisfy )
 
         -- back to Compositron, discard primer
             |> Tuple.second
@@ -188,7 +192,33 @@ template ( Compositron c ) = c.template
                          
 node = live >> Structure.node
 template_node = template >> Structure.node
-       
+
+sig_in_template : Signature Live -> Signature Template
+sig_in_template = identity
+              
+form : Compositron -> LiveItem -> LiveForm 
+form comp =
+    let
+        find_in_template : Signature Live -> TempNode
+        find_in_template =
+            sig_in_template >> \t_sig ->
+                template comp
+                    |> perhaps ( Structure.find ( \this -> this.signature == t_sig ) )
+                    |> Structure.node
+
+        dereference : Signature Live -> List LiveItem
+        dereference sig =
+            case find_in_template sig |> Node.map_domain Template Live of
+                Assume _ |>
+                
+    in
+        find_in_template
+            >> \t_itm -> case t_itm of
+                             Structure.kid_nodes
+            >> List.map ( Node.map_domain Live Template >> .item )
+            |> Item.form
+
+            
 signature = node >> .signature
 
 item = node >> .item
@@ -203,16 +233,16 @@ data = item >> Item.data
 -- map
 
 
-map_both : Map Structure -> Map Compositron
+map_both : Map ( Structure any ) -> Map Compositron
 map_both fu = map_live fu >> map_template fu
     
-map_live : Map Structure -> Map Compositron
+map_live : Map LiveStructure -> Map Compositron
 map_live fu ( Compositron c ) = Compositron { c | live = fu c.live }
 
-set_live : Structure -> Map Compositron
+set_live : LiveStructure -> Map Compositron
 set_live = always >> map_live
                                 
-map_template : Map Structure -> Map Compositron
+map_template : Map TempStructure -> Map Compositron
 map_template fu ( Compositron c ) = Compositron { c | template = fu c.template }
 
 
@@ -222,21 +252,21 @@ map_template fu ( Compositron c ) = Compositron { c | template = fu c.template }
 
 
 type Edit
-    = Target Signature
+    = Target ( Signature Live )
     -- creator: Signature.Creator of siblings that are to be created/removed.
     -- item: intended new item for the target.
-    | Choose Item Creator
+    | Choose TempItem Creator
     | Modify Data Creator
     | Freeze
 
 
-target : Signature -> Map Compositron
+target : Signature Live -> Map Compositron
 target sig =
     mark Node.passivate
-        >> map_both ( Structure.find ( \this -> this.signature == sig ) |> perhaps )
+        >> map_live ( Structure.find ( \this -> this.signature == sig ) |> perhaps )
         >> mark Node.activate
 
-choose : Item -> Creator -> Map Compositron
+choose : TempItem -> Creator -> Map Compositron
 choose future_item =
     manifest ( always future_item )
         
@@ -255,7 +285,7 @@ unfreeze =
         
 create_intent :
     Creator
-        -> Node
+        -> LiveNode
         -> Edit
         -> Intent Compositron
 create_intent new_creator this edit =
@@ -284,25 +314,11 @@ create_intent new_creator this edit =
             , function = freeze
             , inverse = unfreeze
             }
-
-        
-
--- modify node
-
-{-
-map_signature : Map Signature -> Map Compositron
-map_signature = Node.map_signature >> map_node
-                
-inc = map_signature ( Signature.inc )
-      
-map_item = Node.map_item >> map_node
-set_item = always >> map_item
-map_manifestation = Node.map_manifestation >> map_node 
--}
-                          
+                     
 
     
 -- preview
+
 
 type alias Message msg m =
     { m | from_intent : Intent Compositron -> msg
@@ -340,8 +356,8 @@ preview new_creator message compositron =
 view :
     Creator
         -> Message msg m
-        -> Branch
-        -> View msg Item Signature Data
+        -> LiveBranch
+        -> View msg LiveItem ( Signature Live ) Data
         
 view new_creator message branch =
     let
@@ -361,8 +377,8 @@ view new_creator message branch =
         -- interactivity
 
         to_attribute :
-            Signature ->
-            Action Item Data ->
+            Signature Live ->
+            Action LiveItem Data ->
             Html.Attribute msg
         to_attribute sig act = case act of
             Navigate_here -> 
@@ -408,14 +424,17 @@ view new_creator message branch =
 
                
 
-serialize : Compositron -> String
-serialize = live >> Structure.serialize Node.serialize
+serialize : Compositron -> { live : String, template : String }
+serialize c =
+    { live = live c |> Structure.serialize Node.serialize
+    , template = template c |> Structure.serialize Node.serialize
+    }
 
-deserialize : String -> Compositron
-deserialize =
-    Structure.deserialize Node.trivial Node.deserialize
-        >> with trivial set_live
-
+deserialize : { live : String, template : String } -> Compositron
+deserialize serial =
+    { live = serial.live |> Structure.deserialize Node.trivial Node.deserialize
+    , template = serial.template |> Structure.deserialize Node.trivial Node.deserialize
+    }
            
             
 log = live >> Structure.log Node.serialize

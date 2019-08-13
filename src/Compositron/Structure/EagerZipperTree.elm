@@ -8,6 +8,7 @@ module Compositron.Structure.EagerZipperTree exposing
     -- read : Structure a -> x
     , node
     , sibling_nodes
+    , kid_nodes
     , branch
     , bode
     , bildren
@@ -21,9 +22,9 @@ module Compositron.Structure.EagerZipperTree exposing
     , replace_branch 
     , impose_template
 
-    -- apply such a modification to a group
-    , each_sibling
-    , each_child
+    -- apply such a modification recursively to a group
+    , each_in_group
+    , up_the_ancestry
         
     -- string
     , serialize
@@ -54,6 +55,10 @@ type alias Structure a =
 type alias Branch a =
     Tree a
 
+        {--
+type alias Fork a =
+    LZipper ( Branch a )
+        --}
         
 -- create
 
@@ -74,6 +79,10 @@ sibling_nodes =
     both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
         >> each ( List.map Tree.label )
 
+kid_nodes : Structure a -> List a
+kid_nodes =
+    branch >> bildren >> List.map bode
+            
 
 -- edit branches before inserting them
     
@@ -106,23 +115,6 @@ mark = Zipper.mapLabel
        
        
 
--- -- internal only:
-map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
-map_group fu struct =
-    Zipper.parent struct
-        |> Maybe.map
-           ( Zipper.tree
-                 >> Tree.mapChildren fu
-                 >> Zipper.fromTree
-                 >> perhaps ( Zipper.findNext ( (==) ( node struct ) ) )
-           )
-        |> Maybe.withDefault
-           ( fu [ branch struct ]
-           |> List.head
-           |> Maybe.map Zipper.fromTree
-           |> Maybe.withDefault struct
-           )
--- --
 
 
 
@@ -134,7 +126,7 @@ replace_branch :
     ( a, List i ) ->
     ( i -> a -> a ) ->
     Map ( a, Structure a )
-replace_branch ( head, forest ) succ ( primer, struct ) =
+replace_branch ( head, forest ) succ ( primer, structure ) =
     let
         ( ender, children ) =
             forest
@@ -144,7 +136,7 @@ replace_branch ( head, forest ) succ ( primer, struct ) =
                    ) ( primer, [] )
     in
         ( ender
-        , struct
+        , structure
             |> Zipper.replaceTree ( Tree.tree head children )
         )
 
@@ -157,6 +149,22 @@ impose_template ( temp_before, temp_after ) match ( primer, structure ) =
     let
         ( live_before, live_after ) =
             structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+        
+        map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
+        map_group fu struct =
+            Zipper.parent struct
+                |> Maybe.map
+                   ( Zipper.tree
+                         >> Tree.mapChildren fu
+                         >> Zipper.fromTree
+                         >> perhaps ( Zipper.findNext ( (==) ( node struct ) ) )
+                   )
+                |> Maybe.withDefault
+                   ( fu [ branch struct ]
+                       |> List.head
+                       |> Maybe.map Zipper.fromTree
+                       |> Maybe.withDefault struct
+                   )
                 
         forward :
             ( a, List ( Branch a ) ) ->
@@ -208,25 +216,41 @@ impose_template ( temp_before, temp_after ) match ( primer, structure ) =
 -- apply modification to a group
 
 
-each_sibling : Map ( Map ( a, Structure a ) )
-each_sibling fu ( primer, struct ) =
+each_in_group : Map ( Map ( a, Structure a ) )
+each_in_group fu ( primer, struct ) =
     let
         pivot =
             node struct
                 
-        first_sibling : Map ( Structure a )
         first_sibling =
-            perhaps ( Zipper.parent >> Maybe.map ( perhaps Zipper.firstChild ) )
+            perhaps ( Zipper.parent >> Maybe.map ( perhaps Zipper.firstChild ) ) struct
 
         maybe_next ( x, s ) =
             case Zipper.nextSibling s of
                 Nothing -> Nothing
                 Just ns -> Just ( x, ns )
     in
-        ( primer, first_sibling struct )
+        ( primer, first_sibling )
             |> while_just ( fu ) maybe_next
             |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
 
+
+up_the_ancestry : Map ( Map ( a, Structure a ) )
+up_the_ancestry fu ( primer, struct ) =
+    let
+        pivot =
+            node struct
+
+        maybe_next ( x, cur ) =
+            case Zipper.parent cur of
+                Nothing -> Nothing
+                Just ancestor -> Just ( x, ancestor )
+    in
+        ( primer, struct )
+            |> while_just ( fu ) maybe_next
+            |> Tuple.mapSecond ( perhaps <| Zipper.findNext ( (==) pivot ) )
+
+               
 each_child : Map ( Map ( a, Structure a ) )
 each_child fu ( primer, struct ) =
     let
@@ -515,7 +539,7 @@ impose_all_templates5 structure =
                 ( _, "<->" ) -> impose_template5 ( pre, struct )
                 _            -> ( pre, struct )
     in
-        each_sibling modify ( ( 99, "->" ), structure )
+        each_in_group modify ( ( 99, "->" ), structure )
 
 
 test5 =

@@ -30,8 +30,8 @@ then each signature will be unique.
 
 type alias Creator = String
 
-type alias Signature domain =
-    { creator : Creator, scalar : Int }
+type Signature domain =
+    Signature { creator : Creator, scalar : Int }
 
 
         
@@ -39,27 +39,27 @@ type alias Signature domain =
 
         
 root : domain -> Signature domain
-root = create "upsiflu" d |> inc
+root d = create "upsiflu" d |> inc
 
 
-inc : Map Signature
+inc : Map ( Signature domain )
 inc = map_scalar ( (+) 1 )
 
 
 create : String -> domain -> Signature domain
-create cre d = { creator = cre, scalar = -1 }
+create cre d = Signature { creator = cre, scalar = -1 }
 
 ephemeral : Int -> domain -> Signature domain
-ephemeral n d = { creator = "ephemeral", scalar = n }
+ephemeral n d = Signature { creator = "ephemeral", scalar = n }
 
              
 
              
 map_scalar fu =
-    \sig -> { sig | scalar = fu sig.scalar }
+    \( Signature sig ) -> Signature { sig | scalar = fu sig.scalar }
 
 map_creator fu =
-    \sig -> { sig | creator = fu sig.creator }
+    \( Signature sig ) -> Signature { sig | creator = fu sig.creator }
 
 scale = always >> map_scalar
              
@@ -71,8 +71,8 @@ dec = map_scalar ( (-) 1 )
 
 
 serialize : Signature domain -> String
-serialize signature =
-    signature.creator ++ "/" ++ ( String.fromInt signature.scalar )
+serialize ( Signature sig ) =
+    sig.creator ++ "/" ++ ( String.fromInt sig.scalar )
 
 deserialize : String -> domain -> Maybe ( Signature domain )
 deserialize str d =
@@ -83,7 +83,7 @@ deserialize str d =
                 , String.join "/" xs )
            of
                ( Just sca, cre ) ->
-                   Just { creator = cre, scalar = sca }
+                   Just ( Signature { creator = cre, scalar = sca } )
                _ ->
                    trace ("Parts of the signature '"++str++"' could not be parsed.")
                        Nothing

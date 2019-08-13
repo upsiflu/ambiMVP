@@ -24,13 +24,22 @@ type Skippable a
     = Skip
     | Match a
 
-type Alternative a
-    = End
-    | Alternative a
+type Ambiguation a
+    = Or a ( Ambiguation a )
+    | Of a
 
+type alias Nonempty a =
+    ( a, List a )
 
+map_nonempty fu ( head, tail ) =
+    ( fu head, List.map fu tail )
+        
+type alias LZipper a =
+    { before : List a, focus: a, after: List a }
 
-                         
+map_lzipper : ( a -> b ) -> LZipper a -> LZipper b
+map_lzipper fu lza =
+    { before = List.map fu lza.before, focus = fu lza.focus, after = List.map fu lza.after }
                                                                                    
 -- maybe
 
@@ -90,8 +99,6 @@ while_just fu may_succ variable =
 
        
 -- List
-
-type alias Nonempty a = ( a, List a )
 
 prepend : a -> Map ( List a )
 prepend x xs = x::xs

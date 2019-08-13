@@ -52,6 +52,10 @@ inc itm =
     
 -- map
 
+
+map_domain : d0 -> d1 -> Node d0 -> Node d1
+map_domain = \_ _ -> identity
+
 {-
 set_index : Int -> Map ( Node instance )
 set_index n =
