@@ -13,9 +13,11 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 
-type alias Node domain =
+type alias Node domain codomain =
     { signature : Signature domain
-    , item : Item ( Signature domain )
+    , prototype : Signature codomain
+    --todo: once we implement charge, item must have a second ref, Sig dom.
+    , item : Item ( Signature codomain )
     , manifestation : Manifestation
     }
 
@@ -27,6 +29,7 @@ type alias Node domain =
 trivial : Node domain
 trivial =
     { signature = Signature.root
+    , prototype = Signature.root
     , item = Item.paragraph
     , manifestation = Manifestation.active
     }
@@ -37,6 +40,7 @@ primer = create Item.primer
 create : Item ( Signature domain ) -> Signature.Creator -> Node domain
 create itm cre =
      { signature = Signature.create cre
+     , prototype = Signature.root
      , item = itm
      , manifestation = Manifestation.passive
      }
@@ -54,13 +58,9 @@ inc itm =
 
 
 map_domain : d0 -> d1 -> Node d0 -> Node d1
-map_domain = \_ _ -> identity
+map_domain =
+    \_ _ -> identity
 
-{-
-set_index : Int -> Map ( Node instance )
-set_index n =
-    map_signature <| Signature.scale n
-  -}      
 map_signature : Map ( Signature domain ) -> Map ( Node domain )
 map_signature fu =
     \this -> { this | signature = fu this.signature }
@@ -74,7 +74,9 @@ map_manifestation fu =
     \this-> { this | manifestation = fu this.manifestation }   
 
 
+            
 -- set
+
 
 set_item = always >> map_item
 set_manifestation = always >> map_manifestation

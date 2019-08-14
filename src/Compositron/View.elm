@@ -115,8 +115,9 @@ basic descriptor sig inner =
     , actions = []
     , attributes = [ Attributes.class descriptor ]
     , children = Children inner
-    }
+    }    
 
+    
 activate : 
     ( signature -> ( Action item data -> Attribute msg ) ) ->
     Map ( View msg item signature data )

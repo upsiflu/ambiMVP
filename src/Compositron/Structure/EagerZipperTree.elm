@@ -2,36 +2,36 @@ module Compositron.Structure.EagerZipperTree exposing
     ( Structure
     , Branch
         
-    -- create : a -> Structure a
+    -- create
     , singleton
         
-    -- read : Structure a -> x
+    -- read
     , node
-    , sibling_nodes
+    , group_nodes
     , kid_nodes
     , branch
     , bode
     , bildren
     , tree
         
-    -- map : a -> Map ( Structure a )
+    -- navigate
     , find
     , mark
 
-    -- potentially grow, with a primer of type a
-    , replace_branch 
-    , impose_template
+    -- map (with a primer)
+    , tuck_items 
+    , satisfy_template
 
-    -- apply such a modification recursively to a group
+    -- map a Map
     , each_in_group
     , up_the_ancestry
         
-    -- string
+    -- serial form
     , serialize
     , deserialize
     , log
         
-    -- testing (with nice console output)
+    -- testing to console
     , example0
     , test0
     , example1
@@ -55,12 +55,10 @@ type alias Structure a =
 type alias Branch a =
     Tree a
 
-        {--
-type alias Fork a =
-    LZipper ( Branch a )
-        --}
+
         
 -- create
+
 
 singleton : a -> Structure a
 singleton = Tree.singleton >> Zipper.fromTree
@@ -73,19 +71,21 @@ singleton = Tree.singleton >> Zipper.fromTree
 node : Structure a -> a
 node = branch >> Tree.label
 
-       
-sibling_nodes : Structure a -> ( List a, List a )
-sibling_nodes =
-    both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-        >> each ( List.map Tree.label )
+group_nodes : Structure a -> LZipper a
+group_nodes struct =
+    
+  --🅁 Template Spaces: Toplevel template branches are not mutual neighbours.
+    if parent struct == Just Zipper.root struct || parent struct == Nothing
+    then { before = [], focus = node struct, after = [] }
+    else
+        struct |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+               |> each ( List.map Tree.label )
+               |> \( b, a ) -> { before = b, focus = node struct, after = a }
 
 kid_nodes : Structure a -> List a
 kid_nodes =
     branch >> bildren >> List.map bode
-            
 
--- edit branches before inserting them
-    
 branch : Structure a -> Branch a
 branch = Zipper.tree
 
@@ -101,70 +101,55 @@ tree =
 
             
            
--- map
+-- navigate
 
 
 find : ( a -> Bool ) -> Structure a -> Maybe ( Structure a )
 find = Zipper.findFromRoot
 
 mark : Map a -> Map ( Structure a )
-mark = Zipper.mapLabel
+mark = Zipper.mapLabel       
+
+
+
+-- modify (with a primer)
+
+
+accept_branch : ( Branch b -> a -> a ) -> ( a, Branch b ) -> ( a, Branch a )
+accept_branch succ ( primer, branch ) =
+    
+
 
     
-         
-       
-       
 
-
-
-
-
--- modify with a primer (in a Tuple)
-
-
-replace_branch :
-    ( a, List i ) ->
+tuck_items :
+    List i ->
     ( i -> a -> a ) ->
     Map ( a, Structure a )
-replace_branch ( head, forest ) succ ( primer, structure ) =
-    let
-        ( ender, children ) =
-            forest
-                |> List.foldl
-                   ( \itm ( pre, acc ) ->
-                         succ itm pre |> both ( identity, bringleton >> after acc )
-                   ) ( primer, [] )
+tuck_items items succ ( primer, structure ) =
+    let     
+        ( back_branches, forth_branches )
+            = structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+
+        next itm ( pre, acc ) =
+            pre |> succ itm |> both ( identity, bringleton >> before acc )
+
+        ( ender, new_branches ) =
+            items |> List.foldr next primer
     in
         ( ender
-        , structure
-            |> Zipper.replaceTree ( Tree.tree head children )
+        , structure |> map_group ( \_-> back_branches ++ new_branches ++ forth_branches )
         )
 
                
-impose_template :
+satisfy_template :
     ( List i, List i ) ->
     ( Maybe a -> i -> Skippable ( Maybe ( a -> a ) ) ) ->
     Map ( a, Structure a )
-impose_template ( temp_before, temp_after ) match ( primer, structure ) =
+satisfy_template ( temp_before, temp_after ) match ( primer, structure ) =
     let
         ( live_before, live_after ) =
             structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-        
-        map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
-        map_group fu struct =
-            Zipper.parent struct
-                |> Maybe.map
-                   ( Zipper.tree
-                         >> Tree.mapChildren fu
-                         >> Zipper.fromTree
-                         >> perhaps ( Zipper.findNext ( (==) ( node struct ) ) )
-                   )
-                |> Maybe.withDefault
-                   ( fu [ branch struct ]
-                       |> List.head
-                       |> Maybe.map Zipper.fromTree
-                       |> Maybe.withDefault struct
-                   )
                 
         forward :
             ( a, List ( Branch a ) ) ->
@@ -211,9 +196,28 @@ impose_template ( temp_before, temp_after ) match ( primer, structure ) =
         )
 
 
+-- map helper
+map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
+map_group fu struct =
+    Zipper.parent struct
+        |> Maybe.map
+           ( Zipper.tree
+                 >> Tree.mapChildren fu
+                 >> Zipper.fromTree
+                 >> perhaps ( Zipper.findNext ( (==) ( node struct ) ) )
+           )
+        |> Maybe.withDefault
+           ( fu [ branch struct ]
+                 |> List.head
+                 |> Maybe.map Zipper.fromTree
+                 |> Maybe.withDefault struct
+           )
+        
 
         
--- apply modification to a group
+
+        
+-- map a Map
 
 
 each_in_group : Map ( Map ( a, Structure a ) )
@@ -272,9 +276,9 @@ each_child fu ( primer, struct ) =
 
 
 
-               
-         
--- serialize and deserialize
+                      
+-- serial form
+
 
 serialize : ( a -> String ) -> Structure a -> String
 serialize from_node =
@@ -425,7 +429,7 @@ impose_template1 stru =
 
            
 ----2
-
+{-- DEFUNCT due to refactoring
 
 test2 =
     example1
@@ -441,7 +445,7 @@ test2 =
 
            {-
 replace_branch :
-    ( Map i, List i ) ->
+    List i ->
     ( i -> a -> a ) ->
     Map ( a, Structure a )
 replace_branch ( head, forest ) match ( primer, struct ) =
@@ -475,7 +479,6 @@ replace_branch4 ( primer, stru ) =
         next_node
         ( primer, stru )
 
-
 test4 =
     example1
         |> trace "Testing a continuous primer."
@@ -492,7 +495,7 @@ test4 =
         |> log node_to_string1
 
 
-
+--}
            
 ----4
 

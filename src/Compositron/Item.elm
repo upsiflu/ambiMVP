@@ -13,18 +13,13 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 
--- Item
-
-{-| Item defines the form if a Node, whose
-    instanciation is probably within a Compositron. |-}
-
 
 type Item ref
            
     = Info String | Err String
 
-    | Assume ( Ambiguation ( Cogroup ref ) ) 
-    | Body Name Flow ref
+    | Assume ( Ambiguation ( Cogroup ref ) )
+    | Body Name Flow
 
     | T Text
     | P Picture
@@ -104,6 +99,37 @@ self_reference itm =
         _ ->
             Nothing
 
+
+template_reference : Item ref -> ref
+template_reference 
+
+                
+-- for each alternative, list the assumed references.
+alternatives : Item ref -> List ( Nonempty ref )
+alternatives itm =
+    let
+        accumulate ambiguation =
+            case ambiguation of
+                
+                Or ( Self ref ) alt ->
+                    ( ref, [] )::( accumulate alt )
+                Or ( Referral ( Insatiable ref ) ) alt ->
+                    ( ref, [] )::( accumulate alt )
+                Or ( Referral ( Open refs ) ) alt ->
+                    ( refs )::( accumulate alt )
+                        
+                Of ( Self ref ) ->
+                    [ ( ref, [] ) ]
+                Of ( Referral ( Insatiable ref ) ) ->
+                    [ ( ref, [] ) ]
+                Of ( Referral ( Open refs ) ) ->
+                    [ ( refs ) ]
+                
+    in case itm of
+        Assume ambiguation ->
+            accumulate ambiguation
+        _ -> []
+                
 {--
 type alias Form ref
     = List ( Item ref )
@@ -173,6 +199,10 @@ data i =
 -- transformers
 
 
+info : Map ( Item ref )
+info = serialize >> Info
+
+{--
 map_alternatives :
     ( Maybe ( Nonempty ref ) -> b ) ->
     Cogroup ref ->
@@ -201,7 +231,7 @@ map_alternatives fu cog =
                         
                 Of g ( Alternative acog ) ->
                     Just g  |> fu |> before ( map_cog_alternatives fu acog )
-       
+   --}    
 
              
 -- set
@@ -387,7 +417,7 @@ add_view =
 view : Item ref -> Map ( View msg ( Item ref ) ref Data )
 view itm =
     let             
-        alternative_to_info : Maybe ( Nonempty ( Codomain ref ) ) -> Item ref
+        alternative_to_info :  -> Item ref
         alternative_to_info may_cog =
             case may_cog of
 
@@ -400,15 +430,22 @@ view itm =
 
         Assume ( Of ( Self r ) ) ->
             View.add_class "Assume"
-                >> View.add_class "Self"
+                >> View.add_class "self"
 
-        Assume ( Or head tail ) ->
+        Assume ( Of ( Referral ( Insatiable ref ) ) ) ->
             View.add_class "Assume"
-                >> View.add_class "Self"
+                >> View.add_class "insatiable"
+
+        Assume ( Of ( Referral ( Open _ ) ) ) ->
+            view ( Err "open referral in this assumption" )
+
+        Assume ( Or head more ) ->
+            View.add_class "Assume"
+                >> View.add_class "options"
                 >> View.set_text "..."
-                >> View.children
+                >> View.add_child
                     ( (++)
-                      ( ( head, 
+                      ( ( ( Or head more 
                           |> map_alternatives alternative_to_info
                           |> List.indexedMap add_view.option
                       )
