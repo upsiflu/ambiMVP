@@ -34,16 +34,6 @@ trivial =
     }
              
 
-primer = create Item.primer
-         
-create : Item ( Signature domain ) -> Signature.Creator -> Node domain
-create itm cre =
-     { signature = Signature.create cre
-     , prototype = Signature.root
-     , item = itm
-     , manifestation = Manifestation.passive
-     }
-
 
 inc : Item ( Signature domain ) -> Map ( Node domain )
 inc itm =

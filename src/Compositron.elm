@@ -56,20 +56,22 @@ type Domain
     = Live
     | Template
                 
-type alias LiveNode = Node.Node Live
-type alias TempNode = Node.Node Template
-
+type alias LiveNode = Node.Node Live Template
+type alias TempNode = Node.Node Template Template
+type alias PrimNode = LiveNode
+    
 type alias LiveSignature = Signature.Signature Live
 type alias TempSignature = Signature.Signature Template
-    
-type alias LiveItem = Item.Item ( LiveSignature )
-type alias TempItem = Item.Item ( TempSignature )
 
 type alias LiveBranch = Structure.Branch LiveNode
 type alias TempBranch = Structure.Branch TempNode
     
 type alias LiveStructure = Structure.Structure LiveNode
 type alias TempStructure = Structure.Structure TempNode
+
+type alias LiveItem = Item.Item LiveSignature TempSignature
+type alias TempItem = Item.Item TempSignature TempSignature
+
     
     
 -- create
@@ -106,30 +108,7 @@ template_node = template >> Structure.node
 
 sig_in_template : LiveSignature -> TempSignature
 sig_in_template = identity
-              
-form : Compositron -> LiveItem -> LiveForm 
-form comp =
-    let
-        find_in_template : LiveSignature -> TempNode
-        find_in_template =
-            sig_in_template >> \t_sig ->
-                template comp
-                    |> perhaps ( Structure.find ( \this -> this.signature == t_sig ) )
-                    |> Structure.node
 
-        dereference : LiveSignature -> List LiveItem
-        dereference sig =
-            case find_in_template sig |> Node.map_domain Template Live of
-                Assume _ |>
-                
-    in
-        find_in_template
-            >> \t_itm -> case t_itm of
-                             Structure.kid_nodes
-            >> List.map ( Node.map_domain Live Template >> .item )
-            |> Item.form
-
-            
 signature = node >> .signature
 
 item = node >> .item
@@ -169,17 +148,17 @@ map_template fu ( Compositron c ) = Compositron { c | template = fu c.template }
 -- modify
 
 
-manifest : List LiveItem -> Creator -> Map Compositron
-manifest new_items new_cre compositron =
+manifest : List TempSignature -> Creator -> Map Compositron
+manifest new_signatures new_cre compositron =
 
     let
         
         -- Given a primer and a Compositron, perhaps impose a template and manifest it here
-        satisfy : Map ( Node, Structure )
+        satisfy : Map ( LiveNode, LiveStructure )
         satisfy ( pre, structure ) =
 
             let
-                this_template : Maybe ( LZipper TempItem )
+                this_template : Maybe ( LZipper TempBranch )
                 this_template =
                     structure
                         |> Structure.node >> .item
@@ -187,26 +166,28 @@ manifest new_items new_cre compositron =
                         |> Maybe.map
                            ( dereference                   -- Maybe ( TempStructure )
                                >> Structure.group_nodes )  -- ( [ TempNode ], TN, [ TempNode ] )
-                           
-                match_template_replacement : Maybe Node -> Item -> Skippable ( Maybe ( Map Node ) )
-                match_template_replacement may_live temp_item =
-
-                  case ( Maybe.map .item may_live, temp_item ) of
+                               
+                match_template_replacement :
+                    Maybe LiveBranch ->
+                    TempBranch ->
+                         Match ( PrimNode, TempBranch ) ( PrimNode, LiveBranch )
+                match_template_replacement may_live tmp =
+                  case may_liv of
                     
-                    ( Nothing, _ ) ->
+                    Nothing ->
                     -- more template items than live nodes, accept them:
-                        Node.inc temp_item |> Just |> Match
-                            
-                    ( Just live_item, _ ) ->
-                    -- compare a live item with a template item:
-                        if live_item == temp_item
+                            Fix <| Structure.accept_branch Node.inc Node.accept
+                                   
+                    Just liv ->
+                        if Structure.branches_equal Node.items_equal liv tmp
 
-                    -- live match, discard the template item here:
-                        then Match Nothing
+                    -- live matches. Discard the template branch here:
+                        then Pursue
 
-                    -- template match, accept the template item here:
-                        else Node.inc temp_item |> Just |> Match
-                  
+                    -- template differs. Accept the template branch here:
+                        else
+                            Fix <|Structure.accept_branch Node.inc Node.accept
+                                
             in
                 case this_template of
                     
@@ -215,16 +196,9 @@ manifest new_items new_cre compositron =
                             
                     Just template_group ->
                         ( pre, structure )
-
-                        --(1) manifest the template item
-                            |> Structure.tuck_items
-                               [ template_group.focus ]
-                               Node.inc
-                                   
-                        --(2) satisfy the neighbours
-                            |> Structure.satisfy_template
-                               ( template_group.before, template_group.after )
-                               match_template_replacement
+                            |> Structure.accept_template
+                                   template_group
+                                   match_template_replacement
 
     in
         ( Node.primer new_cre, live compositron )
@@ -360,7 +334,7 @@ view_live_branch :
     Creator
         -> Message msg m
         -> LiveBranch
-        -> View msg LiveItem ( LiveSignature ) Data
+        -> View msg Item LiveSignature Data
         
 view_live_branch new_creator message branch =
     let
@@ -399,7 +373,7 @@ view_live_branch new_creator message branch =
 
         to_attribute :
             LiveSignature ->
-            Action LiveItem Data ->
+            Action Item Data ->
             Html.Attribute msg
         to_attribute sig act = case act of
             Navigate_here -> 

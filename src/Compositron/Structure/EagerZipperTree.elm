@@ -19,8 +19,8 @@ module Compositron.Structure.EagerZipperTree exposing
     , mark
 
     -- map (with a primer)
-    , tuck_items 
-    , satisfy_template
+    , accept_branch
+    , accept_template
 
     -- map a Map
     , each_in_group
@@ -30,8 +30,9 @@ module Compositron.Structure.EagerZipperTree exposing
     , serialize
     , deserialize
     , log
+
         
-    -- testing to console
+{-- -- testing to console
     , example0
     , test0
     , example1
@@ -40,6 +41,7 @@ module Compositron.Structure.EagerZipperTree exposing
     , test3
     , test4
     , test5
+--}
     )
 
 import String.Extra
@@ -75,7 +77,7 @@ group_nodes : Structure a -> LZipper a
 group_nodes struct =
     
   --🅁 Template Spaces: Toplevel template branches are not mutual neighbours.
-    if parent struct == Just Zipper.root struct || parent struct == Nothing
+    if Zipper.parent struct == Just ( Zipper.root struct ) || Zipper.parent struct == Nothing
     then { before = [], focus = node struct, after = [] }
     else
         struct |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
@@ -99,7 +101,7 @@ tree : Structure a -> Branch a
 tree =
     Zipper.root >> Zipper.tree
 
-            
+        
            
 -- navigate
 
@@ -115,79 +117,67 @@ mark = Zipper.mapLabel
 -- modify (with a primer)
 
 
-accept_branch : ( Branch b -> a -> a ) -> ( a, Branch b ) -> ( a, Branch a )
-accept_branch succ ( primer, branch ) =
-    
-
-
-    
-
-tuck_items :
-    List i ->
-    ( i -> a -> a ) ->
-    Map ( a, Structure a )
-tuck_items items succ ( primer, structure ) =
-    let     
-        ( back_branches, forth_branches )
-            = structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-
-        next itm ( pre, acc ) =
-            pre |> succ itm |> both ( identity, bringleton >> before acc )
-
-        ( ender, new_branches ) =
-            items |> List.foldr next primer
-    in
-        ( ender
-        , structure |> map_group ( \_-> back_branches ++ new_branches ++ forth_branches )
-        )
-
-               
-satisfy_template :
-    ( List i, List i ) ->
-    ( Maybe a -> i -> Skippable ( Maybe ( a -> a ) ) ) ->
-    Map ( a, Structure a )
-satisfy_template ( temp_before, temp_after ) match ( primer, structure ) =
+accept_branch :
+    ( p -> p ) ->
+    ( t -> p -> a ) ->
+    Branch t ->
+        ( p, Branch t ) -> ( p, Branch a )
+accept_branch inc_primer accept_node template_branch ( primer, live_branch ) =
     let
-        ( live_before, live_after ) =
-            structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+        next pre nod =
+            pre |> both ( inc_primer, accept_node nod ) 
+            
+    in Tree.mapAccumulate next primer template_branch
+
                 
+accept_template :
+    LZipper ( Branch t ) ->
+    ( Maybe ( Branch a ) -> Branch t -> Match ( p, Branch t ) ( p, Branch a ) ) ->
+        Map ( p, Structure a )
+accept_template template match ( primer, structure ) =
+    let         
         forward :
-            ( a, List ( Branch a ) ) ->
-            ( List ( Branch a ), List i ) ->
-            ( a, List ( Branch a ) )
-        forward ( pre, acc ) remainder =
+            ( List ( Branch a ), List ( Branch t ) ) ->
+                Map ( p, List ( Branch a ) )
+        forward remainder ( pre, acc ) =
             case remainder of
-                -- List ( Branch a ), List i
                 ( live, t::emp ) ->
                     let ( maybe_l, maybe_ive ) =
-                            both ( List.head >> Maybe.map ( \x -> [x] ), List.tail ) live
+                            live |> both ( List.head, List.tail )
                         ( l, ive ) =
-                            each ( Maybe.withDefault [] ) ( maybe_l, maybe_ive )
+                            ( maybe_l |> Maybe.map List.singleton, maybe_ive )
+                                |> each ( Maybe.withDefault [] )
                                 
-                    in case match ( live |> List.head |> Maybe.map Tree.label ) t of
+                    in case match maybe_l t of
                         Skip ->
-                            -- accept the live branch.
-                            forward ( pre, acc++l ) ( ive, t::emp )
+                        -- accept the live branch.
+                            forward ( ive, t::emp ) ( pre, acc++l )
                                 
-                        Match Nothing ->
-                            -- successful match, discard the template branch.
-                            forward ( pre, acc++l ) ( ive, emp )
+                        Pursue ->
+                        -- successful match, discard the template branch.
+                            forward ( ive, emp ) ( pre, acc++l )
                                 
-                        Match ( Just make_template_node ) ->
-                            -- accept the template branch.
-                            let new = pre |> make_template_node
-                            in forward ( new, acc++[( bringleton new )] ) ( live, emp )
-                            
+                        Fix accept_template_branch ->
+                        -- accept the template branch.
+                            let ( end, accepted_branch ) = accept_template_branch ( pre, t ) 
+                            in
+                                forward ( live, emp ) ( end, acc++[accepted_branch] )
+
+            -- extra live branches remain.
                 ( live, [] ) -> ( pre, acc++live )
 
-        backward ( pre, acc ) ( l, t ) =
-            forward ( pre, acc ) ( List.reverse l, List.reverse t )
+        backward ( l, t ) ( pre, acc )=
+            forward ( List.reverse l, List.reverse t ) ( pre, acc )
                 |> Tuple.mapSecond List.reverse
-                   
+        
+        ( live_before, live_after ) =
+            structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
+       
+        -- let the primer churn back and forth.
         ( follower, back_branches ) =
-            backward ( primer, [] ) ( live_before, temp_before )
+            backward ( live_before, template.before ) ( primer, [] )
         ( ender, forth_branches ) =
-            forward ( follower, [] ) ( live_after, temp_after )
+            forward ( live_after, template.after ) ( follower, [] )
     in
         ( ender
         , map_group
@@ -196,7 +186,7 @@ satisfy_template ( temp_before, temp_after ) match ( primer, structure ) =
         )
 
 
--- map helper
+-- helpers
 map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
 map_group fu struct =
     Zipper.parent struct
@@ -213,6 +203,13 @@ map_group fu struct =
                  |> Maybe.withDefault struct
            )
         
+
+branches_equal :
+    ( t -> a -> Bool ) -> Branch t -> Branch a -> Bool
+branches_equal eq bt ba =
+    (&&) ( eq ( bode bt ) ( bode ba ) )
+        <| List.foldl (&&) True
+            ( List.map2 ( branches_equal eq ) ( Tree.children bt ) ( Tree.children ba ) )
 
         
 
@@ -334,7 +331,7 @@ log from_node =
             
 -- tests
 
-           
+           {--
 ----0
                          
 test0 =
@@ -426,7 +423,7 @@ impose_template1 stru =
                   _ -> Match Nothing
         )
         ( ( 99, "->" ), stru )
-
+--}
            
 ----2
 {-- DEFUNCT due to refactoring
@@ -498,7 +495,7 @@ test4 =
 --}
            
 ----4
-
+{--
 
 example5 =
     --i ( item type ) is String
@@ -554,3 +551,4 @@ test5 =
         |> Tuple.second
         |> log node_to_string1
         |> trace "Note that in this ruleset, '<->' replaces the template."
+--}

@@ -99,9 +99,7 @@ self_reference itm =
         _ ->
             Nothing
 
-
-template_reference : Item ref -> ref
-template_reference 
+    
 
                 
 -- for each alternative, list the assumed references.

@@ -20,9 +20,10 @@ type alias Map a = a -> a
 
 -- wrappers
 
-type Skippable a
+type Match a b
     = Skip
-    | Match a
+    | Pursue
+    | Fix ( a -> b )
 
 type Ambiguation a
     = Or a ( Ambiguation a )
