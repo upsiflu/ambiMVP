@@ -320,23 +320,39 @@ preview new_creator message compositron =
                       []
                       [ Html.text ( serialize compositron ) ]
                 ]
-                    
+                
         composition =
-            live compositron
-                |> Structure.tree
-                |> view_live_branch new_creator message
-                |> View.present
+            let
+                view_template_branch :
+                    Compositron ->
+                    TempSignature ->
+                        View msg Item LiveSignature Data
+                view_template_branch =
+                    dereference
+                        >> Structure.node
+                        >> .item
+                        >> with ( View.static "Template" ) Item.view
+            in
+                live compositron
+                    |> Structure.tree
+                    |> view_live_branch
+                           new_creator
+                           message
+                           ( view_template_branch compositron )
+                    |> View.present
+    in
+        [ incipit, composition ]
 
-    in [ incipit, composition ]
 
         
 view_live_branch :
     Creator
         -> Message msg m
+        -> ( TempSignature -> View msg Item LiveSignature Data )
         -> LiveBranch
         -> View msg Item LiveSignature Data
         
-view_live_branch new_creator message branch =
+view_live_branch new_creator message view_template_branch branch =
     let
         this : LiveNode
         this = Structure.bode branch
@@ -350,21 +366,20 @@ view_live_branch new_creator message branch =
                             
         inner = \_->
             let
-                alternatives_views =
-                    if is_targeted then this.item |> Item.alternatives else []
+                alternative_cogroup_views =
+                    ( if is_targeted then this.item |> Item.alternatives else [] )
                         |> List.map
-                            ( \( r, efs ) ->
-                               ( ( r, efs ), r |> dereference |> Structure.node |> .item ) )
-                        |> List.map view_option
-
-                view_option ( sigs, itm ) =
-                    View.basic "option" this.signature ( always [] )
-                        |> Item.view ( Item.info itm )
-                        |> View.add_action ( Choose_this )
+                               \cog ->
+                                   Item.view_cogroup this.prototype view_template_branch cog
+                                       >> View.add_action ( Choose_this () )
+                                       
+                                       
+                        |> List.map ( with ( View.active "Option" signature 
+                        |> 
                         |> View.element ( always Html.button )
                         |> View.activate to_attribute    
-        
-            in Structure.bildren branch
+            in
+                Structure.bildren branch
                 |> List.map ( view_live_branch new_creator message )
                 |> (++) alternatives_views
             
@@ -384,7 +399,7 @@ view_live_branch new_creator message branch =
                     |> Task.attempt (\_->message.noop)
                     |> message.from_command
                     |> onClickNoBubble
-            Choose_this refs ->
+            Choose_these refs ->
                 Choose refs new_creator
                     |> to_message >> onClickNoBubble
             Input_url old ->

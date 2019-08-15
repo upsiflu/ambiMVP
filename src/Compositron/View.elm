@@ -39,10 +39,10 @@ type alias Element msg =
     List ( Html msg ) ->
     Html msg
 
-type Action item data
+type Action ref data
     = Navigate_here
     | Focus_here
-    | Choose_this item
+    | Choose_these ( List ref )
     | Input_url data
     | Input_span data
     | Blur_span
@@ -51,7 +51,7 @@ type Action item data
     
 type alias View msg item signature data =
     { descriptor : String
-    , signature : signature
+    , focus_signature : Maybe signature
     , element : Element msg
     , text : String
     , actions : List ( Action item data )
@@ -102,29 +102,43 @@ set_text t =
     \v-> { v | text = t }
 
 
-basic :
+active :
     String ->
     signature ->
     ( () -> List ( View msg item signature data ) ) ->
     View msg item signature data
-basic descriptor sig inner =
+active descriptor sig inner =
+    { static descriptor
+        | focus_signatures = Just sig
+        , children = Children inner
+    }
+
+static : String -> View msg item signature data
+static descriptor =
     { descriptor = descriptor
-    , signature = sig
+    , focus_signatures = Nothing
     , element = Html.span
     , text = ""
     , actions = []
     , attributes = [ Attributes.class descriptor ]
-    , children = Children inner
+    , children = Children ( always [] )
     }    
-
+    
     
 activate : 
     ( signature -> ( Action item data -> Attribute msg ) ) ->
     Map ( View msg item signature data )
 activate act v =
-    v   |> attributes ( (++) ( List.map ( act v.signature ) v.actions ) )
-        |> actions ( always [] )
-        
+    case v.focus_signature of
+        Nothing ->
+            identity
+        Just signature ->
+            v   |> attributes ( (++) ( List.map ( act signature ) v.actions ) )
+                |> clear_actions ( always [] )
+
+clear_actions =
+    actions ( always [] )
+                   
 preview :
     View msg item signature data ->
     Html msg

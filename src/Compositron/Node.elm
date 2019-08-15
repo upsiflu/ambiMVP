@@ -13,10 +13,10 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 
-type alias Node domain codomain =
-    { signature : Signature domain
-    , prototype : Signature codomain
-    , item : Item ( Signature codomain )
+type alias Node sig cosig =
+    { signature : sig
+    , prototype : cosig
+    , item : Item sig cosig
     , manifestation : Manifestation
     }
 
@@ -25,7 +25,7 @@ type alias Node domain codomain =
 -- create
 
     
-trivial : Node domain codomain
+trivial : Node sig cosig
 trivial =
     { signature = Signature.root
     , prototype = Signature.root
@@ -34,20 +34,9 @@ trivial =
     }
              
 
-primer = create Item.primer
-         
-create : Item ( Signature domain ) -> Signature.Creator -> Node domain
-create itm cre =
-     { signature = Signature.create cre
-     , prototype = Signature.root
-     , item = itm
-     , manifestation = Manifestation.passive
-     }
 
-
-inc : Item ( Signature domain ) -> Map ( Node domain )
-inc itm =
-    map_signature Signature.inc
+inc : Map ( Node sig cosig )
+inc = map_signature Signature.inc
 
 
 accept : Node t t -> Node p t -> Node l t
@@ -59,27 +48,32 @@ accept tmp prm =
 -- read
 
 
-items_equal : Node d0 c0 -> Node d1 c1 -> Bool
-items_equal na nb =
-    na.item == nb.item
+items_equal : Node s0 c0 -> Node s1 c1 -> Bool
+items_equal node0 node1 =
+    node0.item == node1.item
         
     
 -- map
 
 
-map_domain : d0 -> d1 -> Node d0 -> Node d1
+map_domain : d0 -> d1 -> Node d0 c -> Node d1 c
 map_domain =
     \_ _ -> identity
 
-map_signature : Map ( Signature domain ) -> Map ( Node domain )
+map_signature : Map sig -> Map ( Node sig cosig )
 map_signature fu =
     \this -> { this | signature = fu this.signature }
 
-map_item : Map ( Item ( Signature domain ) ) -> Map ( Node domain )
+map_prototype : Map cosig -> Map ( Node sig cosig )
+map_prototyp fu =
+    \this -> { this | prototype = fu this.prototype }
+
+             
+map_item : Map ( Item sig cosig ) -> Map ( Node sig cosig )
 map_item fu =
     \this-> { this | item = fu this.item }   
 
-map_manifestation : Map Manifestation -> Map ( Node domain )
+map_manifestation : Map Manifestation -> Map ( Node sig cosig )
 map_manifestation fu =
     \this-> { this | manifestation = fu this.manifestation }   
 
@@ -91,10 +85,10 @@ map_manifestation fu =
 set_item = always >> map_item
 set_manifestation = always >> map_manifestation
 
-activate : Map ( Node domain )
+activate : Map ( Node sig cosig )
 activate = set_manifestation Manifestation.active
 
-passivate : Map ( Node domain )
+passivate : Map ( Node sig cosig )
 passivate = set_manifestation Manifestation.passive
 
 
@@ -102,20 +96,20 @@ passivate = set_manifestation Manifestation.passive
 --view
                     
 
-view : Node domain -> Map ( View msg ( Item ( Signature domain ) ) ( Signature domain ) Data )
+view : Node sig cosig -> Map ( View msg ( Item sig cosig ) sig Data )
 view node =
     Signature.view node.signature
         >> Item.view node.item
         >> Manifestation.view node.manifestation
 
 
-serialize : Node domain -> String
+serialize : Node sig cosig -> String
 serialize node =
     ( Manifestation.serialize node.manifestation )
         ++ ( Signature.serialize node.signature ) ++ ": "
         ++ ( Item.serialize node.item ) 
 
-deserialize : String -> Maybe ( Node domain )
+deserialize : String -> Maybe ( Node cosig )
 deserialize str =
     case String.split (": ") str of
 

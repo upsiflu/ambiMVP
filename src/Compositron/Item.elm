@@ -14,11 +14,11 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 
-type Item ref
+type Item l t
            
     = Info String | Err String
 
-    | Assume ( Ambiguation ( Cogroup ref ) )
+    | Assume ( Ambiguation ( Cogroup t ) )
     | Body Name Flow
 
     | T Text
@@ -66,7 +66,7 @@ type Vimeo
 
 type Cogroup ref
     = Referral ( Considering ref )
-    | Self ref
+    | Self
       
 type Considering ref
     = Open ( Nonempty ref )
@@ -78,12 +78,12 @@ type Considering ref
 -- create
 
 
-primer : Item ref
+primer : Item l t
 primer = Err "primer"
 
 
-initial : Item ref
-initial = demacro Macro_Paragraph
+initial : Item l t
+initial = Info "root"
 
           
          
@@ -91,97 +91,47 @@ initial = demacro Macro_Paragraph
 -- read
 
 
-self_reference : Item ref -> Maybe ref
+self_reference : Item l t -> Bool
 self_reference itm =
-    case itm of
-        Assume ( Of ( Self ref ) ) ->
-            Just ref
-        _ ->
-            Nothing
-
-    
+    itm == Assume ( Of Self )
 
                 
--- for each alternative, list the assumed references.
-alternatives : Item ref -> List ( Nonempty ref )
+alternatives : Item l t -> List ( Cogroup t )
 alternatives itm =
     let
         accumulate ambiguation =
             case ambiguation of
                 
-                Or ( Self ref ) alt ->
-                    ( ref, [] )::( accumulate alt )
-                Or ( Referral ( Insatiable ref ) ) alt ->
-                    ( ref, [] )::( accumulate alt )
-                Or ( Referral ( Open refs ) ) alt ->
-                    ( refs )::( accumulate alt )
+                Or cog alternative ->
+                    cog :: ( accumulate alternative )
                         
-                Of ( Self ref ) ->
-                    [ ( ref, [] ) ]
-                Of ( Referral ( Insatiable ref ) ) ->
-                    [ ( ref, [] ) ]
-                Of ( Referral ( Open refs ) ) ->
-                    [ ( refs ) ]
+                Of cog ->
+                    [ cog ]
                 
     in case itm of
         Assume ambiguation ->
             accumulate ambiguation
         _ -> []
-                
-{--
-type alias Form ref
-    = List ( Item ref )
 
-kids : ( ref -> Nonempty ( Item ref ) ) -> Item ref -> List ( Item ref )
-kids deference itm =
-    case itm of
-        Body _ _ ref ->
-            case deference ref of
-                ( itm, tail ) -> itm
-                ( def, tail ) -> def |> form deference
-      
-eval : ( ref -> List ( Item ref ) ) -> Item ref -> Form ref
-eval dereference itm =
 
-    let 
-    case itm of
-        Assume ( Of ( Self ref ) ) ->
-            dereference ref
-                
-        Assume ( Of ( Referral ( Open ( head, tail ) ) ) ) ->
-            head::tail |> List.map ( eval dereference )
-                
-        Assume _ ->
-            []
-
-        Body _ _ ref ->
-            dereference ref
-                
-        _ ->
-            []
---}
-{--
-from_codomain cod =
-    case cod of
-        Reference r -> Err "References are not yet implemented."
-        I itm -> itm
-        M _ -> Err "Macros are not yet implemented."
-   --}
-
-verbalize : ( Item ref ) -> String
+assumptions : t -> Cogroup t -> List t
+assumptions prototype cog =
+    case cog of
+        Self ->
+            [ prototype ]
+        Referral ( Open ( ref, refs ) ) ->
+            [ ref::refs ]
+        Referral ( Insatiable ref ) ->
+            [ ref ]
+             
+             
+verbalize : ( Item l t ) -> String
 verbalize i =
     case i of
         Body n _ _ -> n
         _ -> "?"
 
-             {-
-is_assume_self i =
-    case i of
-        Assume ( Self _ ) -> True
-        _ -> False
--}
-
-data : Item ref -> Maybe Data
+data : Item l t -> Maybe Data
 data i =
     case i of
         T ( Text fluid frozen ) -> Just fluid
@@ -194,44 +144,14 @@ data i =
 
 
              
--- transformers
+-- transformer
 
 
-info : Map ( Item ref )
+info : Map ( Item l t )
 info = serialize >> Info
 
-{--
-map_alternatives :
-    ( Maybe ( Nonempty ref ) -> b ) ->
-    Cogroup ref ->
-    List b
-map_alternatives fu cog =
-    case cog of
-                
-        Of Self ->
-                    Lone itm
-                Or Self alt ->
-                    from_codomain alternative
-                Of ( Referring refs ) ->
-                    Surrounded ( map_lzipper dereference refs )
-                Or ( Referring refs ) alt ->
-                    Surrounded ( map_lzipper dereference refs ) |> mix ( from_codomain alt )
 
-
-                                                                   Self End ->
-            Nothing |> fu |> before []
-                        
-                Of g End ->
-                    Just g  |> fu |> before []
-                        
-                Self ( Alternative acog ) ->
-                    Nothing |> fu |> before ( map_cog_alternatives fu acog )
-                        
-                Of g ( Alternative acog ) ->
-                    Just g  |> fu |> before ( map_cog_alternatives fu acog )
-   --}    
-
-             
+       
 -- set
 
 
@@ -259,7 +179,7 @@ unfreeze i =
         
 -- macros
 
-
+{--
 type Macro
     = Macro_Paragraph
     | Macro_Figure
@@ -365,7 +285,7 @@ proxy itm =
     Body "proxy" Stacked
         <| Of ( I itm, [] ) End
         
-
+--}
             
 -- present
 
@@ -396,43 +316,48 @@ add_view =
                           _ -> Html.button
           in insert_class >> set_element
             
-                
-    , option = \n itm -> -- TODO: remove signature from here!
-          View.basic ( String.fromInt n ) ( Signature.ephemeral n ) ( always [] )
-              |> view
-                 ( case itm of
-                       Assume _ -> Info "<"
-                       Body name _ ( Group _ ( Alternative _ ) ) -> Info ( name ++ "..." )
-                       Body name _ _ -> Info name
-                       Info name -> Info name
-                       Err string -> Info ( "Error" ++ string )
-                       other -> proxy other
-                 )
-              |> View.add_action ( Choose_this itm )
-              |> View.element ( always Html.button )
     }
 
-view : Item ref -> Map ( View msg ( Item ref ) ref Data )
+
+
+view_cogroup :
+    t ->
+    ( t -> View msg ( Item l t ) l Data ) ->
+    Cogroup t ->
+        Map (View msg ( Item l t ) l Data )
+view_cogroup prototype make_child cog =
+
+    let
+        children =
+            case cog of
+                Referral ( Open ( ref, refs ) ) ->
+                    ( ref::refs ) |> List.map ( make_child >> View.add_class "Referral" )
+
+                Referral ( Insatiable ref ) ->
+                    [ ref |> make_child >> View.add_class "Insatiable" ]
+                    
+                Self ->
+                    [ prtotype |> make_child >> View.add_class "Self" ]
+
+    in List.foldl (\child -> View.addChild m ) identity children
+        
+    
+
+    
+view :
+    Item l t ->
+        Map ( View msg ( Item l t ) l Data )
 view itm =
-    let             
-        alternative_to_info :  -> Item ref
-        alternative_to_info may_cog =
-            case may_cog of
+    case itm of
 
-                Just ( head, tail ) ->
-                    from_codomain head
-
-                _ -> Info "done"
-                     
-    in case itm of
-
-        Assume ( Of ( Self r ) ) ->
+        Assume ( Of ( Self ) ) ->
             View.add_class "Assume"
                 >> View.add_class "self"
 
         Assume ( Of ( Referral ( Insatiable ref ) ) ) ->
             View.add_class "Assume"
                 >> View.add_class "insatiable"
+                >> View.set_text "Insatiable."
 
         Assume ( Of ( Referral ( Open _ ) ) ) ->
             view ( Err "open referral in this assumption" )
@@ -441,15 +366,8 @@ view itm =
             View.add_class "Assume"
                 >> View.add_class "options"
                 >> View.set_text "..."
-                >> View.add_child
-                    ( (++)
-                      ( ( ( Or head more 
-                          |> map_alternatives alternative_to_info
-                          |> List.indexedMap add_view.option
-                      )
-                    )
 
-        Body name flow r ->
+        Body name flow ->
             View.add_class name
                 >> View.add_class "Body"
                 >> add_view.flow flow
@@ -501,14 +419,14 @@ view itm =
             View.add_class "Todo"
 
 
-serialize : Item ref -> String
+serialize : Item l t -> String
 serialize item =
     case item of
         Assume _ -> "<"
 
         -- case 1: final body
-        Body name flow ( Self End ) ->
-            "Self: "++name++": "
+        Assume ( Self ref ) ->
+            "<" ++name++": "
 
         -- case 2: body of certain group
         Body name flow ( Of ( head, tail ) End ) ->
@@ -543,7 +461,7 @@ serialize item =
         V ( Vimeo vimeo ) -> "Vimeo = " ++ Data.serialize vimeo
 
           
-deserialize : String -> Maybe ( Item ref )
+deserialize : String -> Maybe ( Item l t )
 deserialize str =
     Just <| case str of
         "<" ->
