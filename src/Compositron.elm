@@ -371,17 +371,14 @@ view_live_branch new_creator message view_template_branch branch =
                         |> List.map
                                \cog ->
                                    Item.view_cogroup this.prototype view_template_branch cog
-                                       >> View.add_action ( Choose_this () )
-                                       
-                                       
-                        |> List.map ( with ( View.active "Option" signature 
-                        |> 
+                                       -->> View.add_action ( Choose_this () )
+                        |> List.map ( with ( View.ephemeral "Option" Signature.ephemeral ) ) 
                         |> View.element ( always Html.button )
                         |> View.activate to_attribute    
             in
                 Structure.bildren branch
                 |> List.map ( view_live_branch new_creator message )
-                |> (++) alternatives_views
+                |> (++) alternatives_cogroup_views
             
 
         -- interactivity

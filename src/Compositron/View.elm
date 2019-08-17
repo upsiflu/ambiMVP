@@ -4,7 +4,9 @@ module Compositron.View exposing
     , Action (..)
 
     -- create
-    , basic
+    , static
+    , ephemeral
+    , active
 
     -- map
     , element
@@ -47,11 +49,11 @@ type Action ref data
     | Input_span data
     | Blur_span
     | Contenteditable
-    | Targeted ( Action item data )
+    | Targeted ( Action ref data )
     
 type alias View msg item signature data =
     { descriptor : String
-    , focus_signature : Maybe signature
+    , signature : Maybe signature
     , element : Element msg
     , text : String
     , actions : List ( Action item data )
@@ -102,39 +104,38 @@ set_text t =
     \v-> { v | text = t }
 
 
-active :
-    String ->
-    signature ->
-    ( () -> List ( View msg item signature data ) ) ->
-    View msg item signature data
-active descriptor sig inner =
-    { static descriptor
-        | focus_signatures = Just sig
-        , children = Children inner
-    }
-
 static : String -> View msg item signature data
 static descriptor =
     { descriptor = descriptor
-    , focus_signatures = Nothing
+    , signature = Nothing
     , element = Html.span
     , text = ""
     , actions = []
     , attributes = [ Attributes.class descriptor ]
     , children = Children ( always [] )
     }    
+
+active :
+    String ->
+    signature ->
+    ( () -> List ( View msg item signature data ) ) ->
+    View msg item signature data
+active descriptor sig inner =
+    static descriptor |> \v -> { v | children = Children inner }
     
+
+ephemeral descriptor sig = active descriptor sig ( always [] )
     
 activate : 
     ( signature -> ( Action item data -> Attribute msg ) ) ->
     Map ( View msg item signature data )
 activate act v =
-    case v.focus_signature of
+    case v.signature of
         Nothing ->
-            identity
-        Just signature ->
-            v   |> attributes ( (++) ( List.map ( act signature ) v.actions ) )
-                |> clear_actions ( always [] )
+            v
+        Just sig ->
+            v   |> attributes ( (++) ( List.map ( act sig ) v.actions ) )
+                |> clear_actions
 
 clear_actions =
     actions ( always [] )

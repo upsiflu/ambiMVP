@@ -144,7 +144,7 @@ data i =
 
 
              
--- transformer
+-- map
 
 
 info : Map ( Item l t )
@@ -417,9 +417,8 @@ view itm =
 serialize : Item l t -> String
 serialize item =
     case item of
-        Assume _ -> "<"
+        Assume Self -> "<"
 
-        -- case 1: final body
         Assume ( Self ref ) ->
             "<" ++name++": "
 
