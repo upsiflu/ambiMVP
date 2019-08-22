@@ -40,7 +40,37 @@ type Flow
     | Figcaption
     | Inaccessible -- for bodies that are not (yet) realized.
 
-      
+serialize_flow : Flow -> String
+serialize_flow f =
+    case f of
+        Meta -> "⍚"
+        Inside -> "⌻"
+        Ambi -> "⍰"
+        Stacked -> "⌺"
+        Sectioning -> "⌸"
+        Heading -> "⍞"
+        Paragraph -> "¶"
+        Figure -> "⌹"
+        Figcaption -> "⌯"
+        Inaccessible -> "⌧"
+
+deserialize_flow : String -> Maybe Flow
+deserialize_flow s =
+    case s of
+        "⍚" -> Just Meta
+        "⌻" -> Just Inside
+        "⍰" -> Just Ambi
+        "⌺" -> Just Stacked
+        "⌸" -> Just Sectioning
+        "⍞" -> Just Heading
+        "¶" -> Just Paragraph
+        "⌹" -> Just Figure
+        "⌯" -> Just Figcaption
+        "⌧" -> Just Inaccessible
+        _ -> Nothing
+
+
+                   
 type alias Name = String
 type alias Frozen = Data
 type alias Fluid = Data
@@ -86,31 +116,35 @@ initial : Item l t
 initial = Info "root"
 
           
+accept : Item t t -> Item l t
+accept itm =
+    case itm of
+        Info str -> Info str
+        Err str -> Err str
+        Assume ( ambiguation ) -> Assume ( ambiguation )
+        Body n f -> Body n f
+        T text -> T text
+        P picture -> P picture
+        U url -> U url
+        Y youtube -> Y youtube
+        V vimeo -> V vimeo
+
+          
          
 
 -- read
 
 
-self_reference : Item l t -> Bool
-self_reference itm =
+is_self_assumption : Item l t -> Bool
+is_self_assumption itm =
     itm == Assume ( Of Self )
 
                 
 alternatives : Item l t -> List ( Cogroup t )
 alternatives itm =
-    let
-        accumulate ambiguation =
-            case ambiguation of
-                
-                Or cog alternative ->
-                    cog :: ( accumulate alternative )
-                        
-                Of cog ->
-                    [ cog ]
-                
-    in case itm of
-        Assume ambiguation ->
-            accumulate ambiguation
+    case itm of
+        Assume a ->
+            ambiguation_to_list a
         _ -> []
 
 
@@ -120,7 +154,7 @@ assumptions prototype cog =
         Self ->
             [ prototype ]
         Referral ( Open ( ref, refs ) ) ->
-            [ ref::refs ]
+            ref::refs
         Referral ( Insatiable ref ) ->
             [ ref ]
              
@@ -128,7 +162,7 @@ assumptions prototype cog =
 verbalize : ( Item l t ) -> String
 verbalize i =
     case i of
-        Body n _ _ -> n
+        Body n _ -> n
         _ -> "?"
 
 data : Item l t -> Maybe Data
@@ -141,15 +175,17 @@ data i =
         V ( Vimeo dat ) -> Just dat
         _ -> Nothing
 
-
+equal : Item l t -> Item t t -> Bool
+equal live_itm temp_itm =
+    live_itm == accept temp_itm        
 
              
--- transformer
+-- map
 
-
+{--
 info : Map ( Item l t )
 info = serialize >> Info
-
+--}
 
        
 -- set
@@ -299,11 +335,7 @@ add_view =
           let
               insert_class =
                   View.add_class <|
-                      case f of
-                          Meta -> "meta"
-                          Inaccessible -> "inaccessible"
-                          Stacked -> "stacked"
-                          _ -> ""
+                      serialize_flow f
               set_element =
                   View.element <| always <|
                       case f of
@@ -322,9 +354,9 @@ add_view =
 
 view_cogroup :
     t ->
-    ( t -> View msg ( Item l t ) l Data ) ->
+    ( t -> View msg l t Data ) ->
     Cogroup t ->
-        Map (View msg ( Item l t ) l Data )
+        Map (View msg l t Data )
 view_cogroup prototype make_child cog =
 
     let
@@ -350,7 +382,7 @@ view_cogroup prototype make_child cog =
     
 view :
     Item l t ->
-        Map ( View msg ( Item l t ) l Data )
+        Map ( View msg l t Data )
 view itm =
     case itm of
 
@@ -414,90 +446,102 @@ view itm =
             View.add_class "Todo"
 
 
-serialize : Item l t -> String
-serialize item =
-    case item of
-        Assume _ -> "<"
+serialize : ( l -> String ) -> ( t -> String ) -> Item l t -> String
+serialize from_l from_t itm =
+    let
+        serialize_cogroup cog =
+            case cog of
+                Self ->
+                    ""
 
-        -- case 1: final body
-        Assume ( Self ref ) ->
-            "<" ++name++": "
+                Referral ( Insatiable t ) ->
+                    "∞ "++( from_t t )
 
-        -- case 2: body of certain group
-        Body name flow ( Of ( head, tail ) End ) ->
-            "Body: "++name++": "++
-                ( head::tail
-                    |> List.map ( from_codomain >> serialize )
-                    |> String.join ", "
-                )
+                Referral ( Open ( t, tt ) ) ->
+                    ( t::tt ) |> List.map from_t |> String.join ", "
+
+    in
+        case itm of
+            Assume a ->
+                "<" ++ ( ambiguation_to_list a |> List.map serialize_cogroup |> String.join " | " )
+        
+            Body name flow ->
+                name ++ " | " ++ serialize_flow flow
                         
-        -- case 3: body of ambiguous group
-        Body name flow ( alternatives ) ->
-            "Ambi: "++name++": "++
-                ( alternatives
-                  |> map_alternatives
-                      ( \may_nonempty_cogroup ->
-                            case may_nonempty_cogroup of
-                                Just ( head, tail ) ->
-                                    head::tail
-                                       |> List.map ( from_codomain >> serialize )
-                                       |> String.join ", "
-                                _-> ""
-                      )
-                  |> String.join " || "     
-                )
-
-        Info s -> "🛈 " ++ s
-        Err s -> "⚠ " ++ s
-        T ( Text tx t ) -> "Text = " ++ Data.serialize tx ++ " = " ++ Data.serialize t
-        P ( Picture picture ) -> "Picture = " ++ Data.serialize picture
-        U ( Url url ) -> "Url = " ++ Data.serialize url
-        Y ( Youtube youtube ) -> "Youtube = " ++ Data.serialize youtube
-        V ( Vimeo vimeo ) -> "Vimeo = " ++ Data.serialize vimeo
+            Info s -> "🛈 " ++ s
+            Err s -> "⚠ " ++ s
+            T ( Text tx t ) -> "Text " ++ Data.serialize tx ++ " | " ++ Data.serialize t
+            P ( Picture picture ) -> "Picture " ++ Data.serialize picture
+            U ( Url url ) -> "Url " ++ Data.serialize url
+            Y ( Youtube youtube ) -> "Youtube " ++ Data.serialize youtube
+            V ( Vimeo vimeo ) -> "Vimeo " ++ Data.serialize vimeo
 
           
-deserialize : String -> Maybe ( Item l t )
-deserialize str =
-    Just <| case str of
-        "<" ->
-            Assume ( Self End )
+deserialize :
+    ( String -> Maybe l ) ->
+    ( String -> Maybe t ) ->
+    String ->
+        Item l t
+deserialize to_l to_t str =
+    let
+        deserialize_cogroup s =
+            if s == "" then
+                Just Self
 
-        _ ->
-            case String.split ": " str of
-                "Body"::name::rest ->
-                    String.join ": " rest
-                        |> String.split ", "
-                        |> List.map deserialize
-                        |> List.foldl keep_just []
-                        |> Body name Inside
-                 
-                _ ->
-                     case String.split " = " str of
-                         "Text"::da::ta ->
-                             String.join " = " ta 
-                                 |> Data.deserialize
-                                 |> Text ( Data.deserialize da ) >> T
-                         "Picture"::dat ->
-                             String.join " = " dat
-                                 |> Data.deserialize
-                                 |> Picture >> I
-                         "Url"::dat ->
-                             String.join " = " dat
-                                 |> Data.deserialize
-                                 |> Url >> U
-                         "Youtube"::dat ->
-                             String.join " = " dat
-                                 |> Data.deserialize
-                                 |> Youtube >> Y
-                         "Vimeo"::dat ->
-                             String.join " = " dat
-                                 |> Data.deserialize
-                                 |> Vimeo >> V
-                         _ ->
-                             if String.startsWith "🛈 " str
-                                 then String.dropLeft 3 str |> Info
-                             else if String.startsWith "⚠ " str
-                                 then String.dropLeft 2 str |> Err
-                                 else "unable to deserialize "++str |> Err 
-                             
+            else if s |> String.startsWith " ∞ " then
+                     case ( s |> String.dropLeft 3 |> to_t ) of
+                    Just t ->
+                        t |> Insatiable >> Referral >> Just 
+                    _ ->
+                        Nothing
+
+            else
+                case s |> String.split ", " |> List.map to_t |> fold_must of
+                    Just ts ->
+                        ts |> to_nonempty
+                           |> Maybe.map ( Open >> Referral )
+                    _ ->
+                        Nothing
+
+    in
+        case String.words str
+            |> both
+               ( List.head >> Maybe.withDefault ""
+               , List.tail >> Maybe.withDefault [""] >> String.join " " )
+        of
+            ( "<", rest ) ->
+                rest |> String.split " | "
+                     |> List.map ( deserialize_cogroup >> Maybe.withDefault Self )
+                     |> to_nonempty |> Maybe.withDefault ( Self, [] )
+                     |> ambiguation_from_nonempty
+                     |> Assume
+                       
+            ( "🛈", rest ) ->
+                Info rest
+            ( "⚠", rest ) ->
+                Err rest
+            ( "Text", rest ) ->
+                rest |> String.split " | "
+                     |> list_to_tuple
+                     |> Maybe.map ( each Data.deserialize >> \( te, xt ) -> T ( Text te xt ) ) 
+                     |> Maybe.withDefault
+                        ( "Failed to compose a T Text item from " ++ rest |> Err )
+            ( "Picture", dat ) ->
+                Data.deserialize dat |> Picture >> P
+            ( "Url", dat ) ->
+                Data.deserialize dat |> Url >> U
+            ( "Youtube", dat ) ->
+                Data.deserialize dat |> Youtube >> Y
+            ( "Vimeo", dat ) ->
+                Data.deserialize dat |> Vimeo >> V
+            _ ->
+                case String.split " | " str
+                    |> both
+                       ( List.head
+                       , List.tail >> Maybe.map ( String.join " | " >> deserialize_flow )
+                       )
+                of
+                    ( Just name, Just ( Just flow ) ) ->
+                        Body name flow
+                    _ -> "Unable to deserialize " ++ str ++ " to item" |> Err
 

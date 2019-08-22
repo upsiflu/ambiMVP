@@ -2,10 +2,13 @@ module Compositron.Signature exposing
     ( Signature
     , Creator
 
+    -- map
+    , accept
+        
     -- create
     , root
     , ephemeral
-    , create
+    , prime
     , inc
 
     -- view
@@ -38,21 +41,27 @@ type Signature domain =
 -- create
 
         
-root : domain -> Signature domain
-root d = create "upsiflu" d |> inc
+root : Signature domain
+root = prime "upsiflu" |> inc
 
 
 inc : Map ( Signature domain )
 inc = map_scalar ( (+) 1 )
 
 
-create : String -> domain -> Signature domain
-create cre d = Signature { creator = cre, scalar = -1 }
+prime : String -> Signature prime
+prime cre = Signature { creator = cre, scalar = -1 }
 
-ephemeral : Int -> domain -> Signature domain
-ephemeral n d = Signature { creator = "ephemeral", scalar = n }
+ephemeral : Int -> Signature domain
+ephemeral n = Signature { creator = "ephemeral", scalar = n }
 
              
+-- map
+
+accept : Signature p -> Signature l
+accept ( Signature primer ) =
+        Signature { creator = primer.creator, scalar = primer.scalar }
+
 
              
 map_scalar fu =
@@ -74,8 +83,8 @@ serialize : Signature domain -> String
 serialize ( Signature sig ) =
     sig.creator ++ "/" ++ ( String.fromInt sig.scalar )
 
-deserialize : String -> domain -> Maybe ( Signature domain )
-deserialize str d =
+deserialize : String -> Maybe ( Signature domain )
+deserialize str =
     case String.split "/" str |> List.reverse of
 
         x::xs ->
@@ -85,7 +94,8 @@ deserialize str d =
                ( Just sca, cre ) ->
                    Just ( Signature { creator = cre, scalar = sca } )
                _ ->
-                   trace ("Parts of the signature '"++str++"' could not be parsed.")
+                   trace
+                   ("Parts of signature '"++str++"' could not be parsed.")
                        Nothing
 
         _ ->
@@ -97,6 +107,6 @@ deserialize str d =
 -- view
 
 
-view : Signature domain -> Map ( View msg item ( Signature domain ) data )
+view : Signature domain -> Map ( View msg ( Signature domain ) cosig data )
 view signature =
     View.add_id <| serialize signature

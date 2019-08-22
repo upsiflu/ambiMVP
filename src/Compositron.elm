@@ -52,16 +52,18 @@ type alias State = Compositron
 type Compositron =
     Compositron { live : LiveStructure, template : TempStructure }
 
-type Domain
-    = Live
-    | Template
+type Live = Live
+type Template = Template
+type Prime = Prime
+
                 
-type alias LiveNode = Node.Node Live Template
-type alias TempNode = Node.Node Template Template
-type alias PrimNode = LiveNode
+type alias LiveNode = Node.Node LiveSignature TempSignature
+type alias TempNode = Node.Node TempSignature TempSignature
+type alias PrimNode = Node.Node PrimSignature PrimSignature
     
 type alias LiveSignature = Signature.Signature Live
 type alias TempSignature = Signature.Signature Template
+type alias PrimSignature = Signature.Signature Prime
 
 type alias LiveBranch = Structure.Branch LiveNode
 type alias TempBranch = Structure.Branch TempNode
@@ -80,9 +82,12 @@ type alias TempItem = Item.Item TempSignature TempSignature
 trivial : Compositron
 trivial =
     Compositron
-        { live = Structure.singleton ( Node.trivial )
+        { live = Structure.singleton ( Node.trivial |> Node.map_domain )
         , template =
-            Structure.deserialize """
+            Structure.deserialize
+                Node.trivial
+                Node.deserialize
+                """
 ▶template/0: Field: proxy: ⚠ former root
    template/1: Field: proxy: 🛈 Hoppla
      dupsel/0: ⚠ primer
@@ -94,10 +99,10 @@ trivial =
 --read
 
 
-dereference : Compositron -> LiveSignature -> TempStructure
+dereference : Compositron -> TempSignature -> Maybe TempStructure
 dereference comp sig =
     template comp
-        |> perhaps ( Structure.find ( \this -> this.signature == sig_in_template sig ) )
+        |> Structure.find ( \this -> this.signature == sig )
 
 
 live ( Compositron c ) = c.live
@@ -105,9 +110,6 @@ template ( Compositron c ) = c.template
                          
 node = live >> Structure.node
 template_node = template >> Structure.node
-
-sig_in_template : LiveSignature -> TempSignature
-sig_in_template = identity
 
 signature = node >> .signature
 
@@ -131,9 +133,6 @@ mark =
 -- map
 
 
-map_both : Map ( Structure any ) -> Map Compositron
-map_both fu = map_live fu >> map_template fu
-    
 map_live : Map LiveStructure -> Map Compositron
 map_live fu ( Compositron c ) = Compositron { c | live = fu c.live }
 
@@ -148,50 +147,48 @@ map_template fu ( Compositron c ) = Compositron { c | template = fu c.template }
 -- modify
 
 
-manifest : List TempSignature -> Creator -> Map Compositron
-manifest new_signatures new_cre compositron =
+manifest : Creator -> Maybe ( Nonempty TempBranch ) -> Map Compositron
+manifest new_cre new_branches compositron =
 
-    let
-        
-        -- Given a primer and a Compositron, perhaps impose a template and manifest it here
-        satisfy : Map ( LiveNode, LiveStructure )
-        satisfy ( pre, structure ) =
-
-            let
-                this_template : Maybe ( LZipper TempBranch )
-                this_template =
-                    structure
-                        |> Structure.node >> .item
-                        |> Item.self_reference             -- Maybe ( LiveSignature )
-                        |> Maybe.map
-                           ( dereference                   -- Maybe ( TempStructure )
-                               >> Structure.group_nodes )  -- ( [ TempNode ], TN, [ TempNode ] )
-                               
-                match_template_replacement :
-                    Maybe LiveBranch ->
-                    TempBranch ->
-                         Match ( PrimNode, TempBranch ) ( PrimNode, LiveBranch )
-                match_template_replacement may_live tmp =
-                  case may_liv of
+    let         
+        match_template_replacement :
+            Maybe LiveBranch ->
+            TempBranch ->
+                Match ( PrimNode, TempBranch ) ( PrimNode, LiveBranch )
+        match_template_replacement may_live tmp =
+            case may_live of
                     
-                    Nothing ->
+                Nothing ->
                     -- more template items than live nodes, accept them:
-                            Fix <| Structure.accept_branch Node.inc Node.accept
+                    Fix <| Structure.accept_branch Node.inc Node.accept
                                    
-                    Just liv ->
-                        if Structure.branches_equal Node.items_equal liv tmp
+                Just liv ->
+                    if Structure.equal_branches Node.equal_items liv tmp
 
                     -- live matches. Discard the template branch here:
                         then Pursue
 
                     -- template differs. Accept the template branch here:
                         else
-                            Fix <|Structure.accept_branch Node.inc Node.accept
+                            Fix <| Structure.accept_branch Node.inc Node.accept
+        
+        -- Given a primer and a Compositron, perhaps impose a template and manifest it here
+        satisfy : Map ( PrimNode, LiveStructure )
+        satisfy ( pre, structure ) =
+
+            let
+                this_template : Maybe ( LZipper TempBranch )
+                this_template =
+                    structure
+                        |> Structure.node
+                        |> Node.self_reference             -- Maybe ( LiveSignature )
+                        |> Maybe.andThen ( dereference compositron )-- Maybe ( TempStructure )
+                        |> Maybe.map Structure.group_branches -- ( [ TempB ], TempB, [ TempB ] )
                                 
             in
                 case this_template of
                     
-                    Nothing ->    
+                    Nothing ->
                         ( pre, structure )
                             
                     Just template_group ->
@@ -200,12 +197,21 @@ manifest new_signatures new_cre compositron =
                                    template_group
                                    match_template_replacement
 
+        accept_new_branches =
+            case new_branches of
+                Nothing ->
+                    identity
+                Just branches ->
+                    Structure.accept_template
+                        ( branches |> nonempty_to_lzipper )
+                        match_template_replacement
+
     in
         ( Node.primer new_cre, live compositron )
 
-        --(1) manifest all new items
-            |> Structure.tuck_items new_items Node.inc
-
+        --(1) manifest new branches if there are any
+            |> accept_new_branches
+               
         --(2) resatisfy assumptions in the group; repeat up to root.
             |> Structure.up_the_ancestry
                    ( Structure.each_in_group satisfy )
@@ -223,8 +229,8 @@ type Edit
     = Target ( LiveSignature )
       
     -- creator: Signature.Creator of siblings that are to be created/removed.
-    | Choose ( Nonempty TempSignature ) Creator
-    | Modify Data Creator
+    | Choose Creator ( List TempSignature )
+    | Modify Creator Data
       
     | Freeze
 
@@ -235,21 +241,25 @@ target sig =
         >> map_live ( Structure.find ( \this -> this.signature == sig ) |> perhaps )
         >> mark Node.activate
 
-choose : ( List TempSignature ) -> Creator -> Map Compositron
-choose new_sigs cre comp =
-    manifest
-        ( new_sigs |> List.map ( dereference comp >> Structure.node >> .item >> always ) )
-        cre comp
-
+choose : Creator -> ( List TempSignature ) -> Map Compositron
+choose cre new_signatures compositron =
+    new_signatures
+        |> List.map ( dereference compositron )
+        |> filter_just
+        |> List.map Structure.branch
+        |> to_nonempty
+        |> \new_branches -> manifest cre new_branches compositron
+       
 revert : Creator -> TempSignature -> Map Compositron
 revert cre proto_ref comp =
-    
+    comp
         
-modify : Data -> Creator -> Map Compositron
-modify new_dat cre comp =
-    manifest
-        ( live comp |> Structure.node >> .item |> Item.set_data new_dat )
-        cre comp
+modify : Creator -> Data -> Map Compositron
+modify cre new_dat compositron =
+    compositron
+        |> mark ( Node.map_item ( Item.set_data new_dat ) )
+        |> manifest cre Nothing
+            
 
 freeze : Map Compositron
 freeze =
@@ -274,20 +284,23 @@ create_intent new_creator this edit =
             , inverse = target ( this.signature )
             }
         -- switch the item to more concrete items, and revert them back to the more ambiguous one.
-        Choose new_refs cre ->
-            { serial = [ "!", Item.verbalize new_item ] |> String.join (" ")
-            , function = choose new_refs new_creator
+        Choose cre new_refs ->
+            { serial = [ "!", "some new references" ] |> String.join (" ")
+            , function = choose new_creator new_refs
             , inverse = revert cre ( this.prototype )
             }
         -- switch the data in the item to be more concrete or a more empty.
-        Modify new_data cre ->
+        Modify cre new_data ->
             { serial = [ "~", Data.enstring new_data ] |> String.join (" ")
-            , function = modify new_data new_creator 
-            , inverse = modify ( Item.data this.item ) cre
+            , function = modify new_creator new_data 
+            , inverse =
+                case Item.data this.item of
+                    Nothing -> identity
+                    Just old_data -> modify cre old_data
             }
         -- make the UI render new data (workaround for contenteditable spans).
         Freeze ->
-            { serial = [ "=", Data.enstring ( Item.data this.item ) ] |> String.join (" ")
+            { serial = [ "=", "current data" ] |> String.join (" ")
             , function = freeze
             , inverse = unfreeze
             }
@@ -318,27 +331,30 @@ preview new_creator message compositron =
                       [ Html.text new_creator ]
                 , Html.pre
                       []
-                      [ Html.text ( serialize compositron ) ]
+                      [ Html.text ( serialize compositron |> .live )
+                      , Html.br [] []
+                      , Html.text ( serialize compositron |> .template )
+                      ]
                 ]
                 
         composition =
             let
                 view_template_branch :
-                    Compositron ->
                     TempSignature ->
-                        View msg Item LiveSignature Data
+                        View msg LiveSignature TempSignature Data
                 view_template_branch =
-                    dereference
-                        >> Structure.node
-                        >> .item
-                        >> with ( View.static "Template" ) Item.view
+                    dereference compositron
+                        >> Maybe.map Structure.node
+                        >> Maybe.map ( .item >> Item.accept >> Item.view )
+                        >> Maybe.withDefault identity
+                        >> over ( View.static "Template" )
             in
                 live compositron
                     |> Structure.tree
                     |> view_live_branch
                            new_creator
                            message
-                           ( view_template_branch compositron )
+                           view_template_branch
                     |> View.present
     in
         [ incipit, composition ]
@@ -348,9 +364,9 @@ preview new_creator message compositron =
 view_live_branch :
     Creator
         -> Message msg m
-        -> ( TempSignature -> View msg Item LiveSignature Data )
+        -> ( TempSignature -> View msg LiveSignature TempSignature Data )
         -> LiveBranch
-        -> View msg Item LiveSignature Data
+        -> View msg LiveSignature TempSignature Data
         
 view_live_branch new_creator message view_template_branch branch =
     let
@@ -367,25 +383,27 @@ view_live_branch new_creator message view_template_branch branch =
         inner = \_->
             let
                 alternative_cogroup_views =
-                    ( if is_targeted then this.item |> Item.alternatives else [] )
+                    ( if is_targeted then Item.alternatives this.item else [] )
                         |> List.map
-                               \cog ->
-                                   Item.view_cogroup this.prototype view_template_branch cog
+                           ( Item.view_cogroup this.prototype view_template_branch )
                                        -->> View.add_action ( Choose_this () )
-                        |> List.map ( with ( View.ephemeral "Option" Signature.ephemeral ) ) 
-                        |> View.element ( always Html.button )
-                        |> View.activate to_attribute    
+                        |> List.map
+                           (\cog -> View.ephemeral "Option" Signature.ephemeral
+                               |> cog 
+                               |> View.element ( always Html.button )
+                               |> View.activate to_attribute
+                           )
             in
                 Structure.bildren branch
-                |> List.map ( view_live_branch new_creator message )
-                |> (++) alternatives_cogroup_views
+                |> List.map ( view_live_branch new_creator message view_template_branch )
+                |> (++) alternative_cogroup_views
             
 
         -- interactivity
 
         to_attribute :
             LiveSignature ->
-            Action Item Data ->
+            Action TempSignature Data ->
             Html.Attribute msg
         to_attribute sig act = case act of
             Navigate_here -> 
@@ -397,14 +415,14 @@ view_live_branch new_creator message view_template_branch branch =
                     |> message.from_command
                     |> onClickNoBubble
             Choose_these refs ->
-                Choose refs new_creator
+                Choose new_creator refs
                     |> to_message >> onClickNoBubble
             Input_url old ->
-                ( Data.destring >> with new_creator Modify >> to_message )
+                ( Data.destring >> Modify new_creator >> to_message )
                     |> onInput
             Input_span old ->
                 Json.map
-                    ( Data.destring >> with new_creator Modify >> to_message )
+                    ( Data.destring >> Modify new_creator >> to_message )
                     ( Json.at ["target", "textContent"] Json.string )
                     |> on "input"
             Blur_span ->
@@ -424,7 +442,7 @@ view_live_branch new_creator message view_template_branch branch =
 
                
     in
-        View.basic "Compositron" this.signature inner
+        View.active "Compositron" this.signature inner
             |> Node.view this
             |> View.activate to_attribute
             
@@ -439,10 +457,19 @@ serialize c =
     , template = template c |> Structure.serialize Node.serialize
     }
 
-deserialize : { live : String, template : String } -> Compositron
+deserialize : { live : String, template : String } ->
+              { live : LiveStructure
+              , template : TempStructure
+              }
 deserialize serial =
-    { live = serial.live |> Structure.deserialize Node.trivial Node.deserialize
-    , template = serial.template |> Structure.deserialize Node.trivial Node.deserialize
+    { live = serial.live
+        |> Structure.deserialize
+              ( Node.trivial |> Node.map_domain )
+              ( Node.deserialize >> Maybe.map Node.map_domain)
+    , template = serial.template
+        |> Structure.deserialize
+              ( Node.trivial )
+              ( Node.deserialize )
     }
            
             

@@ -36,37 +36,37 @@ import Helpers exposing ( .. )
 
 
 
+type alias View msg sig cosig data =
+    { descriptor : String
+    , signature : Maybe sig
+    , element : Element msg
+    , text : String
+    , actions : List ( Action cosig data )
+    , attributes : List ( Attribute msg )
+    , children : Children msg sig cosig data
+    }
+
 type alias Element msg =
     List ( Attribute msg ) ->
     List ( Html msg ) ->
     Html msg
 
-type Action ref data
+type Action prototype data
     = Navigate_here
     | Focus_here
-    | Choose_these ( List ref )
+    | Choose_these ( List prototype )
     | Input_url data
     | Input_span data
     | Blur_span
     | Contenteditable
-    | Targeted ( Action ref data )
-    
-type alias View msg item signature data =
-    { descriptor : String
-    , signature : Maybe signature
-    , element : Element msg
-    , text : String
-    , actions : List ( Action item data )
-    , attributes : List ( Attribute msg )
-    , children : Children msg item signature data
-    }
+    | Targeted ( Action prototype data )
 
-type Children msg item signature data =
-    Children ( () -> List ( View msg item signature data ) )
+type Children msg sig cosig data =
+    Children ( () -> List ( View msg sig cosig data ) )
 
 force_children :
-    View msg item signature data ->
-    List ( View msg item signature data )
+    View msg sig cosig data ->
+    List ( View msg sig cosig data )
 force_children v =
     case v.children of
         Children force_list -> force_list ()
@@ -78,8 +78,8 @@ attributes fu =
 element fu =
     \v-> { v | element = fu v.element }
 children :
-    Map ( List ( View msg item signature data ) ) ->
-    Map ( View msg item signature data )
+    Map ( List ( View msg sig cosig data ) ) ->
+    Map ( View msg sig cosig data )
 children fu =
     \v-> { v | children =
                Children ( fu ( force_children v ) |> always ) }
@@ -91,20 +91,20 @@ add_attribute =
 add_child =
     (::) >> children
          
-add_class : String -> Map ( View msg item signature data )
+add_class : String -> Map ( View msg sig cosig data )
 add_class =
     Attributes.class >> add_attribute
 
-add_id : String -> Map ( View msg item signature data )
+add_id : String -> Map ( View msg sig cosig data )
 add_id =
     Attributes.id >> add_attribute
         
-set_text : String -> Map ( View msg item signature data )
+set_text : String -> Map ( View msg sig cosig data )
 set_text t =
     \v-> { v | text = t }
 
 
-static : String -> View msg item signature data
+static : String -> View msg sig cosig data
 static descriptor =
     { descriptor = descriptor
     , signature = Nothing
@@ -118,8 +118,8 @@ static descriptor =
 active :
     String ->
     signature ->
-    ( () -> List ( View msg item signature data ) ) ->
-    View msg item signature data
+    ( () -> List ( View msg sig cosig data ) ) ->
+    View msg sig cosig data
 active descriptor sig inner =
     static descriptor |> \v -> { v | children = Children inner }
     
@@ -127,8 +127,8 @@ active descriptor sig inner =
 ephemeral descriptor sig = active descriptor sig ( always [] )
     
 activate : 
-    ( signature -> ( Action item data -> Attribute msg ) ) ->
-    Map ( View msg item signature data )
+    ( sig -> ( Action prototype data -> Attribute msg ) ) ->
+    Map ( View msg sig prototype data )
 activate act v =
     case v.signature of
         Nothing ->
@@ -141,7 +141,7 @@ clear_actions =
     actions ( always [] )
                    
 preview :
-    View msg item signature data ->
+    View msg sig cosig data ->
     Html msg
 preview v =
     let

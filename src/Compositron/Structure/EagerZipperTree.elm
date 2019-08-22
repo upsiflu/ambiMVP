@@ -7,12 +7,13 @@ module Compositron.Structure.EagerZipperTree exposing
         
     -- read
     , node
-    , group_nodes
     , kid_nodes
     , branch
+    , group_branches
     , bode
     , bildren
     , tree
+    , equal_branches
         
     -- navigate
     , find
@@ -73,16 +74,15 @@ singleton = Tree.singleton >> Zipper.fromTree
 node : Structure a -> a
 node = branch >> Tree.label
 
-group_nodes : Structure a -> LZipper a
-group_nodes struct =
+group_branches : Structure a -> LZipper ( Tree a )
+group_branches struct =
     
   --🅁 Template Spaces: Toplevel template branches are not mutual neighbours.
     if Zipper.parent struct == Just ( Zipper.root struct ) || Zipper.parent struct == Nothing
-    then { before = [], focus = node struct, after = [] }
+    then { before = [], focus = branch struct, after = [] }
     else
         struct |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-               |> each ( List.map Tree.label )
-               |> \( b, a ) -> { before = b, focus = node struct, after = a }
+               |> \( b, a ) -> { before = b, focus = branch struct, after = a }
 
 kid_nodes : Structure a -> List a
 kid_nodes =
@@ -120,9 +120,8 @@ mark = Zipper.mapLabel
 accept_branch :
     ( p -> p ) ->
     ( t -> p -> a ) ->
-    Branch t ->
         ( p, Branch t ) -> ( p, Branch a )
-accept_branch inc_primer accept_node template_branch ( primer, live_branch ) =
+accept_branch inc_primer accept_node ( primer, template_branch ) =
     let
         next pre nod =
             pre |> both ( inc_primer, accept_node nod ) 
@@ -159,7 +158,8 @@ accept_template template match ( primer, structure ) =
                                 
                         Fix accept_template_branch ->
                         -- accept the template branch.
-                            let ( end, accepted_branch ) = accept_template_branch ( pre, t ) 
+                            let ( end, accepted_branch ) =
+                                    accept_template_branch ( pre, t ) 
                             in
                                 forward ( live, emp ) ( end, acc++[accepted_branch] )
 
@@ -204,12 +204,12 @@ map_group fu struct =
            )
         
 
-branches_equal :
-    ( t -> a -> Bool ) -> Branch t -> Branch a -> Bool
-branches_equal eq bt ba =
-    (&&) ( eq ( bode bt ) ( bode ba ) )
+equal_branches :
+    ( a -> t -> Bool ) -> Branch a -> Branch t -> Bool
+equal_branches eq ba bt =
+    (&&) ( eq ( bode ba ) ( bode bt ) )
         <| List.foldl (&&) True
-            ( List.map2 ( branches_equal eq ) ( Tree.children bt ) ( Tree.children ba ) )
+            ( List.map2 ( equal_branches eq ) ( Tree.children ba ) ( Tree.children bt ) )
 
         
 
@@ -217,7 +217,7 @@ branches_equal eq bt ba =
 -- map a Map
 
 
-each_in_group : Map ( Map ( a, Structure a ) )
+each_in_group : Map ( Map ( p, Structure a ) )
 each_in_group fu ( primer, struct ) =
     let
         pivot =
@@ -236,7 +236,7 @@ each_in_group fu ( primer, struct ) =
             |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
 
 
-up_the_ancestry : Map ( Map ( a, Structure a ) )
+up_the_ancestry : Map ( Map ( p, Structure a ) )
 up_the_ancestry fu ( primer, struct ) =
     let
         pivot =
@@ -252,7 +252,7 @@ up_the_ancestry fu ( primer, struct ) =
             |> Tuple.mapSecond ( perhaps <| Zipper.findNext ( (==) pivot ) )
 
                
-each_child : Map ( Map ( a, Structure a ) )
+each_child : Map ( Map ( p, Structure a ) )
 each_child fu ( primer, struct ) =
     let
         pivot =
