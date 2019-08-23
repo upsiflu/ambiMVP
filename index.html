@@ -242,87 +242,6 @@ var _JsArray_appendN = F3(function(n, dest, source)
 
 
 
-var _List_Nil_UNUSED = { $: 0 };
-var _List_Nil = { $: '[]' };
-
-function _List_Cons_UNUSED(hd, tl) { return { $: 1, a: hd, b: tl }; }
-function _List_Cons(hd, tl) { return { $: '::', a: hd, b: tl }; }
-
-
-var _List_cons = F2(_List_Cons);
-
-function _List_fromArray(arr)
-{
-	var out = _List_Nil;
-	for (var i = arr.length; i--; )
-	{
-		out = _List_Cons(arr[i], out);
-	}
-	return out;
-}
-
-function _List_toArray(xs)
-{
-	for (var out = []; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		out.push(xs.a);
-	}
-	return out;
-}
-
-var _List_map2 = F3(function(f, xs, ys)
-{
-	for (var arr = []; xs.b && ys.b; xs = xs.b, ys = ys.b) // WHILE_CONSES
-	{
-		arr.push(A2(f, xs.a, ys.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map3 = F4(function(f, xs, ys, zs)
-{
-	for (var arr = []; xs.b && ys.b && zs.b; xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A3(f, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map4 = F5(function(f, ws, xs, ys, zs)
-{
-	for (var arr = []; ws.b && xs.b && ys.b && zs.b; ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A4(f, ws.a, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map5 = F6(function(f, vs, ws, xs, ys, zs)
-{
-	for (var arr = []; vs.b && ws.b && xs.b && ys.b && zs.b; vs = vs.b, ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A5(f, vs.a, ws.a, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_sortBy = F2(function(f, xs)
-{
-	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
-		return _Utils_cmp(f(a), f(b));
-	}));
-});
-
-var _List_sortWith = F2(function(f, xs)
-{
-	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
-		var ord = A2(f, a, b);
-		return ord === elm$core$Basics$EQ ? 0 : ord === elm$core$Basics$LT ? -1 : 1;
-	}));
-});
-
-
-
 // LOG
 
 var _Debug_log_UNUSED = F2(function(tag, value)
@@ -803,6 +722,147 @@ function _Utils_ap(xs, ys)
 
 
 
+var _List_Nil_UNUSED = { $: 0 };
+var _List_Nil = { $: '[]' };
+
+function _List_Cons_UNUSED(hd, tl) { return { $: 1, a: hd, b: tl }; }
+function _List_Cons(hd, tl) { return { $: '::', a: hd, b: tl }; }
+
+
+var _List_cons = F2(_List_Cons);
+
+function _List_fromArray(arr)
+{
+	var out = _List_Nil;
+	for (var i = arr.length; i--; )
+	{
+		out = _List_Cons(arr[i], out);
+	}
+	return out;
+}
+
+function _List_toArray(xs)
+{
+	for (var out = []; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		out.push(xs.a);
+	}
+	return out;
+}
+
+var _List_map2 = F3(function(f, xs, ys)
+{
+	for (var arr = []; xs.b && ys.b; xs = xs.b, ys = ys.b) // WHILE_CONSES
+	{
+		arr.push(A2(f, xs.a, ys.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map3 = F4(function(f, xs, ys, zs)
+{
+	for (var arr = []; xs.b && ys.b && zs.b; xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A3(f, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map4 = F5(function(f, ws, xs, ys, zs)
+{
+	for (var arr = []; ws.b && xs.b && ys.b && zs.b; ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A4(f, ws.a, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map5 = F6(function(f, vs, ws, xs, ys, zs)
+{
+	for (var arr = []; vs.b && ws.b && xs.b && ys.b && zs.b; vs = vs.b, ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A5(f, vs.a, ws.a, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_sortBy = F2(function(f, xs)
+{
+	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
+		return _Utils_cmp(f(a), f(b));
+	}));
+});
+
+var _List_sortWith = F2(function(f, xs)
+{
+	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
+		var ord = A2(f, a, b);
+		return ord === elm$core$Basics$EQ ? 0 : ord === elm$core$Basics$LT ? -1 : 1;
+	}));
+});
+
+
+
+// MATH
+
+var _Basics_add = F2(function(a, b) { return a + b; });
+var _Basics_sub = F2(function(a, b) { return a - b; });
+var _Basics_mul = F2(function(a, b) { return a * b; });
+var _Basics_fdiv = F2(function(a, b) { return a / b; });
+var _Basics_idiv = F2(function(a, b) { return (a / b) | 0; });
+var _Basics_pow = F2(Math.pow);
+
+var _Basics_remainderBy = F2(function(b, a) { return a % b; });
+
+// https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+var _Basics_modBy = F2(function(modulus, x)
+{
+	var answer = x % modulus;
+	return modulus === 0
+		? _Debug_crash(11)
+		:
+	((answer > 0 && modulus < 0) || (answer < 0 && modulus > 0))
+		? answer + modulus
+		: answer;
+});
+
+
+// TRIGONOMETRY
+
+var _Basics_pi = Math.PI;
+var _Basics_e = Math.E;
+var _Basics_cos = Math.cos;
+var _Basics_sin = Math.sin;
+var _Basics_tan = Math.tan;
+var _Basics_acos = Math.acos;
+var _Basics_asin = Math.asin;
+var _Basics_atan = Math.atan;
+var _Basics_atan2 = F2(Math.atan2);
+
+
+// MORE MATH
+
+function _Basics_toFloat(x) { return x; }
+function _Basics_truncate(n) { return n | 0; }
+function _Basics_isInfinite(n) { return n === Infinity || n === -Infinity; }
+
+var _Basics_ceiling = Math.ceil;
+var _Basics_floor = Math.floor;
+var _Basics_round = Math.round;
+var _Basics_sqrt = Math.sqrt;
+var _Basics_log = Math.log;
+var _Basics_isNaN = isNaN;
+
+
+// BOOLEANS
+
+function _Basics_not(bool) { return !bool; }
+var _Basics_and = F2(function(a, b) { return a && b; });
+var _Basics_or  = F2(function(a, b) { return a || b; });
+var _Basics_xor = F2(function(a, b) { return a !== b; });
+
+
+
 var _String_cons = F2(function(chr, str)
 {
 	return chr + str;
@@ -1112,66 +1172,6 @@ function _String_fromList(chars)
 	return _List_toArray(chars).join('');
 }
 
-
-
-
-// MATH
-
-var _Basics_add = F2(function(a, b) { return a + b; });
-var _Basics_sub = F2(function(a, b) { return a - b; });
-var _Basics_mul = F2(function(a, b) { return a * b; });
-var _Basics_fdiv = F2(function(a, b) { return a / b; });
-var _Basics_idiv = F2(function(a, b) { return (a / b) | 0; });
-var _Basics_pow = F2(Math.pow);
-
-var _Basics_remainderBy = F2(function(b, a) { return a % b; });
-
-// https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
-var _Basics_modBy = F2(function(modulus, x)
-{
-	var answer = x % modulus;
-	return modulus === 0
-		? _Debug_crash(11)
-		:
-	((answer > 0 && modulus < 0) || (answer < 0 && modulus > 0))
-		? answer + modulus
-		: answer;
-});
-
-
-// TRIGONOMETRY
-
-var _Basics_pi = Math.PI;
-var _Basics_e = Math.E;
-var _Basics_cos = Math.cos;
-var _Basics_sin = Math.sin;
-var _Basics_tan = Math.tan;
-var _Basics_acos = Math.acos;
-var _Basics_asin = Math.asin;
-var _Basics_atan = Math.atan;
-var _Basics_atan2 = F2(Math.atan2);
-
-
-// MORE MATH
-
-function _Basics_toFloat(x) { return x; }
-function _Basics_truncate(n) { return n | 0; }
-function _Basics_isInfinite(n) { return n === Infinity || n === -Infinity; }
-
-var _Basics_ceiling = Math.ceil;
-var _Basics_floor = Math.floor;
-var _Basics_round = Math.round;
-var _Basics_sqrt = Math.sqrt;
-var _Basics_log = Math.log;
-var _Basics_isNaN = isNaN;
-
-
-// BOOLEANS
-
-function _Basics_not(bool) { return !bool; }
-var _Basics_and = F2(function(a, b) { return a && b; });
-var _Basics_or  = F2(function(a, b) { return a || b; });
-var _Basics_xor = F2(function(a, b) { return a !== b; });
 
 
 
@@ -4357,58 +4357,14 @@ function _Browser_load(url)
 		}
 	}));
 }
-var zwilias$elm_rosetree$Tree$Tree = F2(
-	function (a, b) {
-		return {$: 'Tree', a: a, b: b};
-	});
-var zwilias$elm_rosetree$Tree$mapLabel = F2(
-	function (f, _n0) {
-		var v = _n0.a;
-		var cs = _n0.b;
-		return A2(
-			zwilias$elm_rosetree$Tree$Tree,
-			f(v),
-			cs);
-	});
-var elm$core$Basics$identity = function (x) {
-	return x;
+var author$project$Compositron$template = function (_n0) {
+	var c = _n0.a;
+	return c.template;
 };
-var zwilias$elm_rosetree$Tree$Zipper$Zipper = function (a) {
-	return {$: 'Zipper', a: a};
+var elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
 };
-var zwilias$elm_rosetree$Tree$Zipper$mapTree = F2(
-	function (f, _n0) {
-		var zipper = _n0.a;
-		return zwilias$elm_rosetree$Tree$Zipper$Zipper(
-			_Utils_update(
-				zipper,
-				{
-					focus: f(zipper.focus)
-				}));
-	});
-var zwilias$elm_rosetree$Tree$Zipper$mapLabel = F2(
-	function (f, zipper) {
-		return A2(
-			zwilias$elm_rosetree$Tree$Zipper$mapTree,
-			zwilias$elm_rosetree$Tree$mapLabel(f),
-			zipper);
-	});
-var author$project$Compositron$map_node = zwilias$elm_rosetree$Tree$Zipper$mapLabel;
-var author$project$Compositron$Node$map_manifestation = function (fu) {
-	return function (_this) {
-		return _Utils_update(
-			_this,
-			{
-				manifestation: fu(_this.manifestation)
-			});
-	};
-};
-var elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
-var author$project$Compositron$map_manifestation = A2(elm$core$Basics$composeR, author$project$Compositron$Node$map_manifestation, author$project$Compositron$map_node);
+var elm$core$Maybe$Nothing = {$: 'Nothing'};
 var elm$core$Basics$apL = F2(
 	function (f, x) {
 		return f(x);
@@ -4425,7 +4381,32 @@ var zwilias$elm_rosetree$Tree$Zipper$label = function (zipper) {
 	return zwilias$elm_rosetree$Tree$label(
 		zwilias$elm_rosetree$Tree$Zipper$tree(zipper));
 };
-var author$project$Compositron$node = zwilias$elm_rosetree$Tree$Zipper$label;
+var zwilias$elm_rosetree$Tree$Zipper$find = F3(
+	function (predicate, move, zipper) {
+		find:
+		while (true) {
+			var _n0 = move(zipper);
+			if (_n0.$ === 'Just') {
+				var next = _n0.a;
+				if (predicate(
+					zwilias$elm_rosetree$Tree$Zipper$label(next))) {
+					return elm$core$Maybe$Just(next);
+				} else {
+					var $temp$predicate = predicate,
+						$temp$move = move,
+						$temp$zipper = next;
+					predicate = $temp$predicate;
+					move = $temp$move;
+					zipper = $temp$zipper;
+					continue find;
+				}
+			} else {
+				return elm$core$Maybe$Nothing;
+			}
+		}
+	});
+var elm$core$Basics$EQ = {$: 'EQ'};
+var elm$core$Basics$LT = {$: 'LT'};
 var elm$core$Elm$JsArray$foldr = _JsArray_foldr;
 var elm$core$Array$foldr = F3(
 	function (func, baseCase, _n0) {
@@ -4447,8 +4428,6 @@ var elm$core$Array$foldr = F3(
 			A3(elm$core$Elm$JsArray$foldr, func, baseCase, tail),
 			tree);
 	});
-var elm$core$Basics$EQ = {$: 'EQ'};
-var elm$core$Basics$LT = {$: 'LT'};
 var elm$core$List$cons = _List_cons;
 var elm$core$Array$toList = function (array) {
 	return A3(elm$core$Array$foldr, elm$core$List$cons, _List_Nil, array);
@@ -4506,72 +4485,83 @@ var elm$core$Set$toList = function (_n0) {
 	var dict = _n0.a;
 	return elm$core$Dict$keys(dict);
 };
-var elm$core$Basics$append = _Utils_append;
-var author$project$Compositron$Item$serialize = function (item) {
-	switch (item.$) {
-		case 'Assume':
-			return '<';
-		case 'Field':
-			var n = item.a;
-			var f = item.b;
-			var l = item.c;
-			return n;
-		case 'Ambiguous':
-			var n = item.a;
-			var f = item.b;
-			return 'Ambiguous ' + n;
-		case 'Info':
-			var s = item.a;
-			return '🛈 ' + s;
-		case 'Err':
-			var s = item.a;
-			return '⚠ ' + s;
-		case 'T':
-			var txt = item.a;
-			return 'Text';
-		case 'I':
-			var image = item.a;
-			return 'Image';
-		case 'U':
-			var irl = item.a;
-			return 'Url';
-		case 'Y':
-			var youtube = item.a;
-			return 'Youtube';
-		default:
-			var vimeo = item.a;
-			return 'Vimeo';
-	}
+var elm$core$Basics$identity = function (x) {
+	return x;
 };
-var elm$core$Basics$True = {$: 'True'};
-var elm$core$Basics$eq = _Utils_equal;
-var author$project$Compositron$Manifestation$targeted = elm$core$Basics$eq(
-	{target: true});
-var author$project$Compositron$Manifestation$serialize = function (manifestation) {
-	var _n0 = author$project$Compositron$Manifestation$targeted(manifestation);
-	if (_n0) {
-		return '▶';
+var zwilias$elm_rosetree$Tree$children = function (_n0) {
+	var c = _n0.b;
+	return c;
+};
+var zwilias$elm_rosetree$Tree$Zipper$Zipper = function (a) {
+	return {$: 'Zipper', a: a};
+};
+var zwilias$elm_rosetree$Tree$Zipper$firstChild = function (_n0) {
+	var zipper = _n0.a;
+	var _n1 = zwilias$elm_rosetree$Tree$children(zipper.focus);
+	if (!_n1.b) {
+		return elm$core$Maybe$Nothing;
 	} else {
-		return '▷';
+		var c = _n1.a;
+		var cs = _n1.b;
+		return elm$core$Maybe$Just(
+			zwilias$elm_rosetree$Tree$Zipper$Zipper(
+				{
+					after: cs,
+					before: _List_Nil,
+					crumbs: A2(
+						elm$core$List$cons,
+						{
+							after: zipper.after,
+							before: zipper.before,
+							label: zwilias$elm_rosetree$Tree$label(zipper.focus)
+						},
+						zipper.crumbs),
+					focus: c
+				}));
 	}
 };
-var elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var elm$core$Maybe$Nothing = {$: 'Nothing'};
-var elm$core$String$fromInt = _String_fromNumber;
-var author$project$Compositron$Signature$serialize = function (signature) {
-	return signature.creator + ('/' + elm$core$String$fromInt(signature.scalar));
-};
-var author$project$Compositron$Node$serialize = function (node) {
-	return author$project$Compositron$Manifestation$serialize(node.manifestation) + (' ' + (author$project$Compositron$Signature$serialize(node.signature) + (': ' + author$project$Compositron$Item$serialize(node.item))));
-};
-var elm$core$Basics$add = _Basics_add;
-var elm$core$Basics$apR = F2(
-	function (x, f) {
-		return f(x);
+var zwilias$elm_rosetree$Tree$Zipper$firstOf = F2(
+	function (options, v) {
+		firstOf:
+		while (true) {
+			if (!options.b) {
+				return elm$core$Maybe$Nothing;
+			} else {
+				var option = options.a;
+				var rest = options.b;
+				var _n1 = option(v);
+				if (_n1.$ === 'Just') {
+					var r = _n1.a;
+					return elm$core$Maybe$Just(r);
+				} else {
+					var $temp$options = rest,
+						$temp$v = v;
+					options = $temp$options;
+					v = $temp$v;
+					continue firstOf;
+				}
+			}
+		}
 	});
-var elm$core$Basics$gt = _Utils_gt;
+var zwilias$elm_rosetree$Tree$Zipper$nextSibling = function (_n0) {
+	var zipper = _n0.a;
+	var _n1 = zipper.after;
+	if (!_n1.b) {
+		return elm$core$Maybe$Nothing;
+	} else {
+		var next = _n1.a;
+		var rest = _n1.b;
+		return elm$core$Maybe$Just(
+			zwilias$elm_rosetree$Tree$Zipper$Zipper(
+				{
+					after: rest,
+					before: A2(elm$core$List$cons, zipper.focus, zipper.before),
+					crumbs: zipper.crumbs,
+					focus: next
+				}));
+	}
+};
+var elm$core$Basics$append = _Utils_append;
 var elm$core$List$foldl = F3(
 	function (func, acc, list) {
 		foldl:
@@ -4591,19 +4581,197 @@ var elm$core$List$foldl = F3(
 			}
 		}
 	});
-var elm$core$List$length = function (xs) {
-	return A3(
-		elm$core$List$foldl,
-		F2(
-			function (_n0, i) {
-				return i + 1;
-			}),
-		0,
-		xs);
-};
 var elm$core$List$reverse = function (list) {
 	return A3(elm$core$List$foldl, elm$core$List$cons, _List_Nil, list);
 };
+var zwilias$elm_rosetree$Tree$Tree = F2(
+	function (a, b) {
+		return {$: 'Tree', a: a, b: b};
+	});
+var zwilias$elm_rosetree$Tree$tree = zwilias$elm_rosetree$Tree$Tree;
+var zwilias$elm_rosetree$Tree$Zipper$reconstruct = F4(
+	function (focus, before, after, l) {
+		return A2(
+			zwilias$elm_rosetree$Tree$tree,
+			l,
+			_Utils_ap(
+				elm$core$List$reverse(before),
+				_Utils_ap(
+					_List_fromArray(
+						[focus]),
+					after)));
+	});
+var zwilias$elm_rosetree$Tree$Zipper$parent = function (_n0) {
+	var zipper = _n0.a;
+	var _n1 = zipper.crumbs;
+	if (!_n1.b) {
+		return elm$core$Maybe$Nothing;
+	} else {
+		var crumb = _n1.a;
+		var rest = _n1.b;
+		return elm$core$Maybe$Just(
+			zwilias$elm_rosetree$Tree$Zipper$Zipper(
+				{
+					after: crumb.after,
+					before: crumb.before,
+					crumbs: rest,
+					focus: A4(zwilias$elm_rosetree$Tree$Zipper$reconstruct, zipper.focus, zipper.before, zipper.after, crumb.label)
+				}));
+	}
+};
+var zwilias$elm_rosetree$Tree$Zipper$nextSiblingOfAncestor = function (zipper) {
+	nextSiblingOfAncestor:
+	while (true) {
+		var _n0 = zwilias$elm_rosetree$Tree$Zipper$parent(zipper);
+		if (_n0.$ === 'Nothing') {
+			return elm$core$Maybe$Nothing;
+		} else {
+			var parent_ = _n0.a;
+			var _n1 = zwilias$elm_rosetree$Tree$Zipper$nextSibling(parent_);
+			if (_n1.$ === 'Nothing') {
+				var $temp$zipper = parent_;
+				zipper = $temp$zipper;
+				continue nextSiblingOfAncestor;
+			} else {
+				var s = _n1.a;
+				return elm$core$Maybe$Just(s);
+			}
+		}
+	}
+};
+var zwilias$elm_rosetree$Tree$Zipper$forward = function (zipper) {
+	return A2(
+		zwilias$elm_rosetree$Tree$Zipper$firstOf,
+		_List_fromArray(
+			[zwilias$elm_rosetree$Tree$Zipper$firstChild, zwilias$elm_rosetree$Tree$Zipper$nextSibling, zwilias$elm_rosetree$Tree$Zipper$nextSiblingOfAncestor]),
+		zipper);
+};
+var zwilias$elm_rosetree$Tree$Zipper$findNext = F2(
+	function (f, zipper) {
+		return A3(zwilias$elm_rosetree$Tree$Zipper$find, f, zwilias$elm_rosetree$Tree$Zipper$forward, zipper);
+	});
+var zwilias$elm_rosetree$Tree$Zipper$previousSibling = function (_n0) {
+	var zipper = _n0.a;
+	var _n1 = zipper.before;
+	if (!_n1.b) {
+		return elm$core$Maybe$Nothing;
+	} else {
+		var previous = _n1.a;
+		var rest = _n1.b;
+		return elm$core$Maybe$Just(
+			zwilias$elm_rosetree$Tree$Zipper$Zipper(
+				{
+					after: A2(elm$core$List$cons, zipper.focus, zipper.after),
+					before: rest,
+					crumbs: zipper.crumbs,
+					focus: previous
+				}));
+	}
+};
+var zwilias$elm_rosetree$Tree$Zipper$firstSibling = function (zipper) {
+	firstSibling:
+	while (true) {
+		var _n0 = zwilias$elm_rosetree$Tree$Zipper$previousSibling(zipper);
+		if (_n0.$ === 'Nothing') {
+			return zipper;
+		} else {
+			var z = _n0.a;
+			var $temp$zipper = z;
+			zipper = $temp$zipper;
+			continue firstSibling;
+		}
+	}
+};
+var zwilias$elm_rosetree$Tree$Zipper$root = function (zipper) {
+	root:
+	while (true) {
+		var _n0 = zwilias$elm_rosetree$Tree$Zipper$parent(zipper);
+		if (_n0.$ === 'Nothing') {
+			return zwilias$elm_rosetree$Tree$Zipper$firstSibling(zipper);
+		} else {
+			var z = _n0.a;
+			var $temp$zipper = z;
+			zipper = $temp$zipper;
+			continue root;
+		}
+	}
+};
+var zwilias$elm_rosetree$Tree$Zipper$findFromRoot = F2(
+	function (f, zipper) {
+		var r = zwilias$elm_rosetree$Tree$Zipper$root(zipper);
+		return f(
+			zwilias$elm_rosetree$Tree$Zipper$label(r)) ? elm$core$Maybe$Just(r) : A2(zwilias$elm_rosetree$Tree$Zipper$findNext, f, r);
+	});
+var author$project$Compositron$Structure$EagerZipperTree$find = zwilias$elm_rosetree$Tree$Zipper$findFromRoot;
+var elm$core$Basics$apR = F2(
+	function (x, f) {
+		return f(x);
+	});
+var elm$core$Basics$eq = _Utils_equal;
+var author$project$Compositron$dereference = F2(
+	function (comp, sig) {
+		return A2(
+			author$project$Compositron$Structure$EagerZipperTree$find,
+			function (_this) {
+				return _Utils_eq(_this.signature, sig);
+			},
+			author$project$Compositron$template(comp));
+	});
+var author$project$Compositron$live = function (_n0) {
+	var c = _n0.a;
+	return c.live;
+};
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$Compositron$Data$enstring = elm$core$Maybe$withDefault('');
+var author$project$Compositron$Data$serialize = author$project$Compositron$Data$enstring;
+var author$project$Compositron$Item$serialize_flow = function (f) {
+	switch (f.$) {
+		case 'Meta':
+			return '⍚';
+		case 'Inside':
+			return '⌻';
+		case 'Ambi':
+			return '⍰';
+		case 'Stacked':
+			return '⌺';
+		case 'Sectioning':
+			return '⌸';
+		case 'Heading':
+			return '⍞';
+		case 'Paragraph':
+			return '¶';
+		case 'Figure':
+			return '⌹';
+		case 'Figcaption':
+			return '⌯';
+		default:
+			return '⌧';
+	}
+};
+var author$project$Helpers$ambiguation_to_list = function (a) {
+	if (a.$ === 'Or') {
+		var x = a.a;
+		var y = a.b;
+		return A2(
+			elm$core$List$cons,
+			x,
+			author$project$Helpers$ambiguation_to_list(y));
+	} else {
+		var x = a.a;
+		return _List_fromArray(
+			[x]);
+	}
+};
+var elm$core$Basics$add = _Basics_add;
+var elm$core$Basics$gt = _Utils_gt;
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -4680,6 +4848,94 @@ var elm$core$String$join = F2(
 			sep,
 			_List_toArray(chunks));
 	});
+var author$project$Compositron$Item$serialize = F3(
+	function (from_l, from_t, itm) {
+		var serialize_cogroup = function (cog) {
+			if (cog.$ === 'Self') {
+				return '';
+			} else {
+				if (cog.a.$ === 'Insatiable') {
+					var t = cog.a.a;
+					return '∞ ' + from_t(t);
+				} else {
+					var _n3 = cog.a.a;
+					var t = _n3.a;
+					var tt = _n3.b;
+					return A2(
+						elm$core$String$join,
+						', ',
+						A2(
+							elm$core$List$map,
+							from_t,
+							A2(elm$core$List$cons, t, tt)));
+				}
+			}
+		};
+		switch (itm.$) {
+			case 'Assume':
+				var a = itm.a;
+				return '<' + A2(
+					elm$core$String$join,
+					' | ',
+					A2(
+						elm$core$List$map,
+						serialize_cogroup,
+						author$project$Helpers$ambiguation_to_list(a)));
+			case 'Body':
+				var name = itm.a;
+				var flow = itm.b;
+				return name + (' | ' + author$project$Compositron$Item$serialize_flow(flow));
+			case 'Info':
+				var s = itm.a;
+				return '🛈 ' + s;
+			case 'Err':
+				var s = itm.a;
+				return '⚠ ' + s;
+			case 'T':
+				var _n1 = itm.a;
+				var tx = _n1.a;
+				var t = _n1.b;
+				return 'Text ' + (author$project$Compositron$Data$serialize(tx) + (' | ' + author$project$Compositron$Data$serialize(t)));
+			case 'P':
+				var picture = itm.a.a;
+				return 'Picture ' + author$project$Compositron$Data$serialize(picture);
+			case 'U':
+				var url = itm.a.a;
+				return 'Url ' + author$project$Compositron$Data$serialize(url);
+			case 'Y':
+				var youtube = itm.a.a;
+				return 'Youtube ' + author$project$Compositron$Data$serialize(youtube);
+			default:
+				var vimeo = itm.a.a;
+				return 'Vimeo ' + author$project$Compositron$Data$serialize(vimeo);
+		}
+	});
+var elm$core$Basics$True = {$: 'True'};
+var author$project$Compositron$Manifestation$targeted = elm$core$Basics$eq(
+	{target: true});
+var author$project$Compositron$Manifestation$serialize = function (manifestation) {
+	var _n0 = author$project$Compositron$Manifestation$targeted(manifestation);
+	if (_n0) {
+		return '▶';
+	} else {
+		return ' ';
+	}
+};
+var elm$core$String$fromInt = _String_fromNumber;
+var author$project$Compositron$Signature$serialize = function (_n0) {
+	var sig = _n0.a;
+	return sig.creator + ('/' + elm$core$String$fromInt(sig.scalar));
+};
+var author$project$Compositron$Node$serialize = function (node) {
+	return author$project$Compositron$Manifestation$serialize(node.manifestation) + (author$project$Compositron$Signature$serialize(node.signature) + (' (' + (author$project$Compositron$Signature$serialize(node.prototype) + ('): ' + A3(author$project$Compositron$Item$serialize, author$project$Compositron$Signature$serialize, author$project$Compositron$Signature$serialize, node.item)))));
+};
+var author$project$Compositron$Structure$EagerZipperTree$branch = zwilias$elm_rosetree$Tree$Zipper$tree;
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var author$project$Compositron$Structure$EagerZipperTree$node = A2(elm$core$Basics$composeR, author$project$Compositron$Structure$EagerZipperTree$branch, zwilias$elm_rosetree$Tree$label);
 var elm$core$Basics$le = _Utils_le;
 var elm$core$Bitwise$and = _Bitwise_and;
 var elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
@@ -4695,33 +4951,49 @@ var elm$core$String$repeat = F2(
 	function (n, chunk) {
 		return A3(elm$core$String$repeatHelp, n, chunk, '');
 	});
-var zwilias$elm_rosetree$Tree$children = function (_n0) {
-	var c = _n0.b;
-	return c;
-};
 var zwilias$elm_rosetree$Tree$Zipper$fromTree = function (t) {
 	return zwilias$elm_rosetree$Tree$Zipper$Zipper(
 		{after: _List_Nil, before: _List_Nil, crumbs: _List_Nil, focus: t});
 };
-var author$project$Compositron$serialize = F2(
-	function (depth, c) {
-		var indent = '\n' + A2(elm$core$String$repeat, 1 + depth, '·  ');
-		var children = A2(
-			elm$core$List$map,
-			zwilias$elm_rosetree$Tree$Zipper$fromTree,
-			zwilias$elm_rosetree$Tree$children(
-				zwilias$elm_rosetree$Tree$Zipper$tree(c)));
-		var serialize_children = A2(
-			elm$core$List$map,
-			author$project$Compositron$serialize(depth + 1),
-			children);
-		return _Utils_ap(
-			author$project$Compositron$Node$serialize(
-				author$project$Compositron$node(c)),
-			(elm$core$List$length(children) > 0) ? _Utils_ap(
-				indent,
-				A2(elm$core$String$join, indent, serialize_children)) : '');
-	});
+var author$project$Compositron$Structure$EagerZipperTree$serialize = function (from_node) {
+	var serialize_at = F2(
+		function (depth, structure) {
+			return A2(
+				elm$core$String$join,
+				'\n' + A2(elm$core$String$repeat, 1 + depth, '  '),
+				A2(
+					elm$core$List$cons,
+					from_node(
+						author$project$Compositron$Structure$EagerZipperTree$node(structure)),
+					A2(
+						elm$core$List$map,
+						serialize_at(depth + 1),
+						A3(
+							elm$core$Basics$composeR,
+							author$project$Compositron$Structure$EagerZipperTree$branch,
+							A2(
+								elm$core$Basics$composeR,
+								zwilias$elm_rosetree$Tree$children,
+								elm$core$List$map(zwilias$elm_rosetree$Tree$Zipper$fromTree)),
+							structure))));
+		});
+	return A2(
+		elm$core$Basics$composeR,
+		zwilias$elm_rosetree$Tree$Zipper$root,
+		serialize_at(0));
+};
+var author$project$Compositron$serialize = function (c) {
+	return {
+		live: A2(
+			author$project$Compositron$Structure$EagerZipperTree$serialize,
+			author$project$Compositron$Node$serialize,
+			author$project$Compositron$live(c)),
+		template: A2(
+			author$project$Compositron$Structure$EagerZipperTree$serialize,
+			author$project$Compositron$Node$serialize,
+			author$project$Compositron$template(c))
+	};
+};
 var author$project$Compositron$Choose = F2(
 	function (a, b) {
 		return {$: 'Choose', a: a, b: b};
@@ -4734,129 +5006,299 @@ var author$project$Compositron$Modify = F2(
 var author$project$Compositron$Target = function (a) {
 	return {$: 'Target', a: a};
 };
-var author$project$Compositron$Node$map_item = function (fu) {
-	return function (_this) {
-		return _Utils_update(
-			_this,
-			{
-				item: fu(_this.item)
-			});
-	};
+var author$project$Compositron$Compositron = function (a) {
+	return {$: 'Compositron', a: a};
 };
-var author$project$Compositron$map_item = A2(elm$core$Basics$composeR, author$project$Compositron$Node$map_item, author$project$Compositron$map_node);
-var author$project$Compositron$item = A2(
-	elm$core$Basics$composeR,
-	author$project$Compositron$node,
-	function ($) {
-		return $.item;
-	});
-var author$project$Compositron$Data$is_empty = elm$core$Basics$eq(elm$core$Maybe$Nothing);
-var author$project$Compositron$Item$data = function (i) {
-	switch (i.$) {
-		case 'T':
-			var _n1 = i.a;
-			var fluid = _n1.a;
-			var frozen = _n1.b;
-			return fluid;
-		case 'I':
-			var dat = i.a.a;
-			return dat;
-		case 'U':
-			var dat = i.a.a;
-			return dat;
-		case 'Y':
-			var dat = i.a.a;
-			return dat;
-		case 'V':
-			var dat = i.a.a;
-			return dat;
-		default:
-			return elm$core$Maybe$Nothing;
-	}
-};
-var author$project$Compositron$Item$is_empty = F2(
-	function (cascade, i) {
-		switch (i.$) {
-			case 'Assume':
-				return true;
-			case 'Field':
-				return cascade(_Utils_Tuple0);
-			case 'Ambiguous':
-				return true;
-			case 'Info':
-				return true;
-			case 'Err':
-				return true;
-			default:
-				var concrete = i;
-				return author$project$Compositron$Data$is_empty(
-					author$project$Compositron$Item$data(concrete));
-		}
+var author$project$Compositron$map_live = F2(
+	function (fu, _n0) {
+		var c = _n0.a;
+		return author$project$Compositron$Compositron(
+			_Utils_update(
+				c,
+				{
+					live: fu(c.live)
+				}));
 	});
 var elm$core$Basics$always = F2(
 	function (a, _n0) {
 		return a;
 	});
-var elm$core$Basics$composeL = F3(
-	function (g, f, x) {
-		return g(
-			f(x));
+var author$project$Compositron$set_live = A2(elm$core$Basics$composeR, elm$core$Basics$always, author$project$Compositron$map_live);
+var author$project$Compositron$Item$Assume = function (a) {
+	return {$: 'Assume', a: a};
+};
+var author$project$Compositron$Item$Body = F2(
+	function (a, b) {
+		return {$: 'Body', a: a, b: b};
 	});
-var elm$core$Basics$not = _Basics_not;
+var author$project$Compositron$Item$Err = function (a) {
+	return {$: 'Err', a: a};
+};
+var author$project$Compositron$Item$Info = function (a) {
+	return {$: 'Info', a: a};
+};
+var author$project$Compositron$Item$P = function (a) {
+	return {$: 'P', a: a};
+};
+var author$project$Compositron$Item$T = function (a) {
+	return {$: 'T', a: a};
+};
+var author$project$Compositron$Item$U = function (a) {
+	return {$: 'U', a: a};
+};
+var author$project$Compositron$Item$V = function (a) {
+	return {$: 'V', a: a};
+};
+var author$project$Compositron$Item$Y = function (a) {
+	return {$: 'Y', a: a};
+};
+var author$project$Compositron$Item$accept = function (itm) {
+	switch (itm.$) {
+		case 'Info':
+			var str = itm.a;
+			return author$project$Compositron$Item$Info(str);
+		case 'Err':
+			var str = itm.a;
+			return author$project$Compositron$Item$Err(str);
+		case 'Assume':
+			var ambiguation = itm.a;
+			return author$project$Compositron$Item$Assume(ambiguation);
+		case 'Body':
+			var n = itm.a;
+			var f = itm.b;
+			return A2(author$project$Compositron$Item$Body, n, f);
+		case 'T':
+			var text = itm.a;
+			return author$project$Compositron$Item$T(text);
+		case 'P':
+			var picture = itm.a;
+			return author$project$Compositron$Item$P(picture);
+		case 'U':
+			var url = itm.a;
+			return author$project$Compositron$Item$U(url);
+		case 'Y':
+			var youtube = itm.a;
+			return author$project$Compositron$Item$Y(youtube);
+		default:
+			var vimeo = itm.a;
+			return author$project$Compositron$Item$V(vimeo);
+	}
+};
 var elm$core$Basics$False = {$: 'False'};
-var elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
+var author$project$Compositron$Manifestation$untarget = elm$core$Basics$always(
+	{target: false});
+var author$project$Compositron$Manifestation$passive = author$project$Compositron$Manifestation$untarget(_Utils_Tuple0);
+var author$project$Compositron$Signature$Signature = function (a) {
+	return {$: 'Signature', a: a};
+};
+var author$project$Compositron$Signature$accept = function (_n0) {
+	var primer = _n0.a;
+	return author$project$Compositron$Signature$Signature(
+		{creator: primer.creator, scalar: primer.scalar});
+};
+var author$project$Compositron$Node$accept = F2(
+	function (tmp, prm) {
+		return {
+			item: author$project$Compositron$Item$accept(tmp.item),
+			manifestation: author$project$Compositron$Manifestation$passive,
+			prototype: tmp.prototype,
+			signature: author$project$Compositron$Signature$accept(prm.signature)
+		};
+	});
+var author$project$Compositron$Item$equal = F2(
+	function (live_itm, temp_itm) {
+		return _Utils_eq(
+			live_itm,
+			author$project$Compositron$Item$accept(temp_itm));
+	});
+var author$project$Compositron$Node$equal_items = F2(
+	function (node, conode) {
+		return A2(author$project$Compositron$Item$equal, node.item, conode.item);
+	});
+var author$project$Compositron$Node$map_signature = function (fu) {
+	return function (_this) {
+		return _Utils_update(
+			_this,
+			{
+				signature: fu(_this.signature)
+			});
+	};
+};
+var author$project$Compositron$Signature$map_scalar = function (fu) {
+	return function (_n0) {
+		var sig = _n0.a;
+		return author$project$Compositron$Signature$Signature(
+			_Utils_update(
+				sig,
+				{
+					scalar: fu(sig.scalar)
+				}));
+	};
+};
+var author$project$Compositron$Signature$inc = author$project$Compositron$Signature$map_scalar(
+	elm$core$Basics$add(1));
+var author$project$Compositron$Node$inc = author$project$Compositron$Node$map_signature(author$project$Compositron$Signature$inc);
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var author$project$Compositron$Signature$prime = function (cre) {
+	return author$project$Compositron$Signature$Signature(
+		{creator: cre, scalar: -1});
+};
+var author$project$Compositron$Node$primer = function (creator) {
+	return {
+		item: author$project$Compositron$Item$Err('primer'),
+		manifestation: author$project$Compositron$Manifestation$passive,
+		prototype: author$project$Compositron$Signature$prime(creator),
+		signature: author$project$Compositron$Signature$prime(creator)
+	};
+};
+var author$project$Compositron$Item$Self = {$: 'Self'};
+var author$project$Helpers$Of = function (a) {
+	return {$: 'Of', a: a};
+};
+var author$project$Compositron$Item$is_self_assumption = function (itm) {
+	return _Utils_eq(
+		itm,
+		author$project$Compositron$Item$Assume(
+			author$project$Helpers$Of(author$project$Compositron$Item$Self)));
+};
+var author$project$Compositron$Node$self_reference = function (nod) {
+	return author$project$Compositron$Item$is_self_assumption(nod.item) ? elm$core$Maybe$Just(nod.prototype) : elm$core$Maybe$Nothing;
+};
+var author$project$Helpers$both = F2(
+	function (_n0, a) {
+		var f = _n0.a;
+		var g = _n0.b;
+		return _Utils_Tuple2(
+			f(a),
+			g(a));
+	});
+var zwilias$elm_rosetree$Tree$mapAccumulateHelp = F4(
+	function (f, state, acc, stack) {
+		mapAccumulateHelp:
 		while (true) {
-			if (!list.b) {
-				return false;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
+			var _n0 = acc.todo;
+			if (!_n0.b) {
+				var node = A2(
+					zwilias$elm_rosetree$Tree$Tree,
+					acc.label,
+					elm$core$List$reverse(acc.done));
+				if (!stack.b) {
+					return _Utils_Tuple2(state, node);
 				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
+					var top = stack.a;
+					var rest = stack.b;
+					var $temp$f = f,
+						$temp$state = state,
+						$temp$acc = _Utils_update(
+						top,
+						{
+							done: A2(elm$core$List$cons, node, top.done)
+						}),
+						$temp$stack = rest;
+					f = $temp$f;
+					state = $temp$state;
+					acc = $temp$acc;
+					stack = $temp$stack;
+					continue mapAccumulateHelp;
+				}
+			} else {
+				if (!_n0.a.b.b) {
+					var _n2 = _n0.a;
+					var d = _n2.a;
+					var rest = _n0.b;
+					var _n3 = A2(f, state, d);
+					var state_ = _n3.a;
+					var label_ = _n3.b;
+					var $temp$f = f,
+						$temp$state = state_,
+						$temp$acc = _Utils_update(
+						acc,
+						{
+							done: A2(
+								elm$core$List$cons,
+								A2(zwilias$elm_rosetree$Tree$Tree, label_, _List_Nil),
+								acc.done),
+							todo: rest
+						}),
+						$temp$stack = stack;
+					f = $temp$f;
+					state = $temp$state;
+					acc = $temp$acc;
+					stack = $temp$stack;
+					continue mapAccumulateHelp;
+				} else {
+					var _n4 = _n0.a;
+					var d = _n4.a;
+					var cs = _n4.b;
+					var rest = _n0.b;
+					var _n5 = A2(f, state, d);
+					var state_ = _n5.a;
+					var label_ = _n5.b;
+					var $temp$f = f,
+						$temp$state = state_,
+						$temp$acc = {done: _List_Nil, label: label_, todo: cs},
+						$temp$stack = A2(
+						elm$core$List$cons,
+						_Utils_update(
+							acc,
+							{todo: rest}),
+						stack);
+					f = $temp$f;
+					state = $temp$state;
+					acc = $temp$acc;
+					stack = $temp$stack;
+					continue mapAccumulateHelp;
 				}
 			}
 		}
 	});
-var elm$core$List$all = F2(
-	function (isOkay, list) {
-		return !A2(
-			elm$core$List$any,
-			A2(elm$core$Basics$composeL, elm$core$Basics$not, isOkay),
-			list);
+var zwilias$elm_rosetree$Tree$mapAccumulate = F3(
+	function (f, s, _n0) {
+		var d = _n0.a;
+		var cs = _n0.b;
+		var _n1 = A2(f, s, d);
+		var s_ = _n1.a;
+		var d_ = _n1.b;
+		return A4(
+			zwilias$elm_rosetree$Tree$mapAccumulateHelp,
+			f,
+			s_,
+			{done: _List_Nil, label: d_, todo: cs},
+			_List_Nil);
 	});
-var zwilias$elm_rosetree$Tree$Zipper$children = function (zipper) {
-	return zwilias$elm_rosetree$Tree$children(
-		zwilias$elm_rosetree$Tree$Zipper$tree(zipper));
+var author$project$Compositron$Structure$EagerZipperTree$accept_branch = F3(
+	function (inc_primer, accept_node, _n0) {
+		var primer = _n0.a;
+		var template_branch = _n0.b;
+		var next = F2(
+			function (pre, nod) {
+				return A2(
+					author$project$Helpers$both,
+					_Utils_Tuple2(
+						inc_primer,
+						accept_node(nod)),
+					pre);
+			});
+		return A3(zwilias$elm_rosetree$Tree$mapAccumulate, next, primer, template_branch);
+	});
+var author$project$Helpers$perhaps = F2(
+	function (fu, parameter) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			parameter,
+			fu(parameter));
+	});
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
 };
-var author$project$Compositron$is_empty = function (z) {
-	return A2(
-		author$project$Compositron$Item$is_empty,
-		elm$core$Basics$always(
-			author$project$Compositron$cyclic$are_children_empty()(z)),
-		author$project$Compositron$item(z));
-};
-function author$project$Compositron$cyclic$are_children_empty() {
-	return A2(
-		elm$core$Basics$composeR,
-		zwilias$elm_rosetree$Tree$Zipper$children,
-		elm$core$List$all(
-			A2(elm$core$Basics$composeR, zwilias$elm_rosetree$Tree$Zipper$fromTree, author$project$Compositron$is_empty)));
-}
-try {
-	var author$project$Compositron$are_children_empty = author$project$Compositron$cyclic$are_children_empty();
-	author$project$Compositron$cyclic$are_children_empty = function () {
-		return author$project$Compositron$are_children_empty;
-	};
-} catch ($) {
-throw 'Some top-level definitions from `Compositron` are causing infinite recursion:\n\n  ┌─────┐\n  │    are_children_empty\n  │     ↓\n  │    is_empty\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.0/halting-problem to learn how to fix it!';}
 var elm$core$Maybe$map = F2(
 	function (f, maybe) {
 		if (maybe.$ === 'Just') {
@@ -4867,52 +5309,237 @@ var elm$core$Maybe$map = F2(
 			return elm$core$Maybe$Nothing;
 		}
 	});
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
+var zwilias$elm_rosetree$Tree$mapChildren = F2(
+	function (f, _n0) {
+		var v = _n0.a;
+		var cs = _n0.b;
+		return A2(
+			zwilias$elm_rosetree$Tree$Tree,
+			v,
+			f(cs));
 	});
-var zwilias$elm_rosetree$Tree$Zipper$find = F3(
-	function (predicate, move, zipper) {
-		find:
-		while (true) {
-			var _n0 = move(zipper);
-			if (_n0.$ === 'Just') {
-				var next = _n0.a;
-				if (predicate(
-					zwilias$elm_rosetree$Tree$Zipper$label(next))) {
-					return elm$core$Maybe$Just(next);
-				} else {
-					var $temp$predicate = predicate,
-						$temp$move = move,
-						$temp$zipper = next;
-					predicate = $temp$predicate;
-					move = $temp$move;
-					zipper = $temp$zipper;
-					continue find;
+var author$project$Compositron$Structure$EagerZipperTree$map_group = F2(
+	function (fu, struct) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			A2(
+				elm$core$Maybe$withDefault,
+				struct,
+				A2(
+					elm$core$Maybe$map,
+					zwilias$elm_rosetree$Tree$Zipper$fromTree,
+					elm$core$List$head(
+						fu(
+							_List_fromArray(
+								[
+									author$project$Compositron$Structure$EagerZipperTree$branch(struct)
+								]))))),
+			A2(
+				elm$core$Maybe$map,
+				A2(
+					elm$core$Basics$composeR,
+					zwilias$elm_rosetree$Tree$Zipper$tree,
+					A2(
+						elm$core$Basics$composeR,
+						zwilias$elm_rosetree$Tree$mapChildren(fu),
+						A2(
+							elm$core$Basics$composeR,
+							zwilias$elm_rosetree$Tree$Zipper$fromTree,
+							author$project$Helpers$perhaps(
+								zwilias$elm_rosetree$Tree$Zipper$findNext(
+									elm$core$Basics$eq(
+										author$project$Compositron$Structure$EagerZipperTree$node(struct))))))),
+				zwilias$elm_rosetree$Tree$Zipper$parent(struct)));
+	});
+var author$project$Helpers$each = F2(
+	function (f, _n0) {
+		var a = _n0.a;
+		var b = _n0.b;
+		return _Utils_Tuple2(
+			f(a),
+			f(b));
+	});
+var elm$core$List$singleton = function (value) {
+	return _List_fromArray(
+		[value]);
+};
+var elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(xs);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var elm$core$Tuple$mapSecond = F2(
+	function (func, _n0) {
+		var x = _n0.a;
+		var y = _n0.b;
+		return _Utils_Tuple2(
+			x,
+			func(y));
+	});
+var zwilias$elm_rosetree$Tree$Zipper$siblingsAfterFocus = function (_n0) {
+	var after = _n0.a.after;
+	return after;
+};
+var zwilias$elm_rosetree$Tree$Zipper$siblingsBeforeFocus = function (_n0) {
+	var before = _n0.a.before;
+	return elm$core$List$reverse(before);
+};
+var author$project$Compositron$Structure$EagerZipperTree$accept_template = F3(
+	function (match, template, _n0) {
+		var primer = _n0.a;
+		var structure = _n0.b;
+		var forward = F2(
+			function (remainder, _n1) {
+				forward:
+				while (true) {
+					var pre = _n1.a;
+					var acc = _n1.b;
+					if (remainder.b.b) {
+						var live = remainder.a;
+						var _n3 = remainder.b;
+						var t = _n3.a;
+						var emp = _n3.b;
+						var _n4 = A2(
+							author$project$Helpers$both,
+							_Utils_Tuple2(elm$core$List$head, elm$core$List$tail),
+							live);
+						var maybe_l = _n4.a;
+						var maybe_ive = _n4.b;
+						var _n5 = A2(
+							author$project$Helpers$each,
+							elm$core$Maybe$withDefault(_List_Nil),
+							_Utils_Tuple2(
+								A2(elm$core$Maybe$map, elm$core$List$singleton, maybe_l),
+								maybe_ive));
+						var l = _n5.a;
+						var ive = _n5.b;
+						var _n6 = A2(match, maybe_l, t);
+						switch (_n6.$) {
+							case 'Skip':
+								var $temp$remainder = _Utils_Tuple2(
+									ive,
+									A2(elm$core$List$cons, t, emp)),
+									$temp$_n1 = _Utils_Tuple2(
+									pre,
+									_Utils_ap(acc, l));
+								remainder = $temp$remainder;
+								_n1 = $temp$_n1;
+								continue forward;
+							case 'Pursue':
+								var $temp$remainder = _Utils_Tuple2(ive, emp),
+									$temp$_n1 = _Utils_Tuple2(
+									pre,
+									_Utils_ap(acc, l));
+								remainder = $temp$remainder;
+								_n1 = $temp$_n1;
+								continue forward;
+							default:
+								var accept_template_branch = _n6.a;
+								var _n7 = accept_template_branch(
+									_Utils_Tuple2(pre, t));
+								var end = _n7.a;
+								var accepted_branch = _n7.b;
+								var $temp$remainder = _Utils_Tuple2(live, emp),
+									$temp$_n1 = _Utils_Tuple2(
+									end,
+									_Utils_ap(
+										acc,
+										_List_fromArray(
+											[accepted_branch])));
+								remainder = $temp$remainder;
+								_n1 = $temp$_n1;
+								continue forward;
+						}
+					} else {
+						var live = remainder.a;
+						return _Utils_Tuple2(
+							pre,
+							_Utils_ap(acc, live));
+					}
 				}
-			} else {
-				return elm$core$Maybe$Nothing;
-			}
-		}
+			});
+		var backward = F2(
+			function (_n12, _n13) {
+				var l = _n12.a;
+				var t = _n12.b;
+				var pre = _n13.a;
+				var acc = _n13.b;
+				return A2(
+					elm$core$Tuple$mapSecond,
+					elm$core$List$reverse,
+					A2(
+						forward,
+						_Utils_Tuple2(
+							elm$core$List$reverse(l),
+							elm$core$List$reverse(t)),
+						_Utils_Tuple2(pre, acc)));
+			});
+		var _n8 = A2(
+			author$project$Helpers$both,
+			_Utils_Tuple2(zwilias$elm_rosetree$Tree$Zipper$siblingsBeforeFocus, zwilias$elm_rosetree$Tree$Zipper$siblingsAfterFocus),
+			structure);
+		var live_before = _n8.a;
+		var live_after = _n8.b;
+		var _n9 = A2(
+			backward,
+			_Utils_Tuple2(live_before, template.before),
+			_Utils_Tuple2(primer, _List_Nil));
+		var follower = _n9.a;
+		var back_branches = _n9.b;
+		var _n10 = A2(
+			forward,
+			_Utils_Tuple2(live_after, template.after),
+			_Utils_Tuple2(follower, _List_Nil));
+		var ender = _n10.a;
+		var forth_branches = _n10.b;
+		return _Utils_Tuple2(
+			ender,
+			A2(
+				author$project$Compositron$Structure$EagerZipperTree$map_group,
+				function (_n11) {
+					return _Utils_ap(
+						back_branches,
+						_Utils_ap(
+							_List_fromArray(
+								[
+									author$project$Compositron$Structure$EagerZipperTree$branch(structure)
+								]),
+							forth_branches));
+				},
+				structure));
 	});
-var zwilias$elm_rosetree$Tree$Zipper$firstChild = function (_n0) {
+var author$project$Helpers$while_just = F3(
+	function (fu, may_succ, variable) {
+		return _Utils_eq(
+			may_succ(variable),
+			elm$core$Maybe$Nothing) ? fu(variable) : A3(
+			author$project$Helpers$while_just,
+			fu,
+			may_succ,
+			A2(
+				elm$core$Maybe$withDefault,
+				fu(variable),
+				may_succ(
+					fu(variable))));
+	});
+var zwilias$elm_rosetree$Tree$Zipper$lastChild = function (_n0) {
 	var zipper = _n0.a;
-	var _n1 = zwilias$elm_rosetree$Tree$children(zipper.focus);
+	var _n1 = elm$core$List$reverse(
+		zwilias$elm_rosetree$Tree$children(zipper.focus));
 	if (!_n1.b) {
 		return elm$core$Maybe$Nothing;
 	} else {
 		var c = _n1.a;
-		var cs = _n1.b;
+		var rest = _n1.b;
 		return elm$core$Maybe$Just(
 			zwilias$elm_rosetree$Tree$Zipper$Zipper(
 				{
-					after: cs,
-					before: _List_Nil,
+					after: _List_Nil,
+					before: rest,
 					crumbs: A2(
 						elm$core$List$cons,
 						{
@@ -4925,457 +5552,294 @@ var zwilias$elm_rosetree$Tree$Zipper$firstChild = function (_n0) {
 				}));
 	}
 };
-var zwilias$elm_rosetree$Tree$Zipper$firstOf = F2(
-	function (options, v) {
-		firstOf:
-		while (true) {
-			if (!options.b) {
-				return elm$core$Maybe$Nothing;
-			} else {
-				var option = options.a;
-				var rest = options.b;
-				var _n1 = option(v);
-				if (_n1.$ === 'Just') {
-					var r = _n1.a;
-					return elm$core$Maybe$Just(r);
-				} else {
-					var $temp$options = rest,
-						$temp$v = v;
-					options = $temp$options;
-					v = $temp$v;
-					continue firstOf;
-				}
-			}
-		}
-	});
-var zwilias$elm_rosetree$Tree$Zipper$nextSibling = function (_n0) {
-	var zipper = _n0.a;
-	var _n1 = zipper.after;
-	if (!_n1.b) {
-		return elm$core$Maybe$Nothing;
-	} else {
-		var next = _n1.a;
-		var rest = _n1.b;
-		return elm$core$Maybe$Just(
-			zwilias$elm_rosetree$Tree$Zipper$Zipper(
-				{
-					after: rest,
-					before: A2(elm$core$List$cons, zipper.focus, zipper.before),
-					crumbs: zipper.crumbs,
-					focus: next
-				}));
-	}
-};
-var zwilias$elm_rosetree$Tree$tree = zwilias$elm_rosetree$Tree$Tree;
-var zwilias$elm_rosetree$Tree$Zipper$reconstruct = F4(
-	function (focus, before, after, l) {
-		return A2(
-			zwilias$elm_rosetree$Tree$tree,
-			l,
-			_Utils_ap(
-				elm$core$List$reverse(before),
-				_Utils_ap(
-					_List_fromArray(
-						[focus]),
-					after)));
-	});
-var zwilias$elm_rosetree$Tree$Zipper$parent = function (_n0) {
-	var zipper = _n0.a;
-	var _n1 = zipper.crumbs;
-	if (!_n1.b) {
-		return elm$core$Maybe$Nothing;
-	} else {
-		var crumb = _n1.a;
-		var rest = _n1.b;
-		return elm$core$Maybe$Just(
-			zwilias$elm_rosetree$Tree$Zipper$Zipper(
-				{
-					after: crumb.after,
-					before: crumb.before,
-					crumbs: rest,
-					focus: A4(zwilias$elm_rosetree$Tree$Zipper$reconstruct, zipper.focus, zipper.before, zipper.after, crumb.label)
-				}));
-	}
-};
-var zwilias$elm_rosetree$Tree$Zipper$nextSiblingOfAncestor = function (zipper) {
-	nextSiblingOfAncestor:
+var zwilias$elm_rosetree$Tree$Zipper$lastDescendant = function (zipper) {
+	lastDescendant:
 	while (true) {
-		var _n0 = zwilias$elm_rosetree$Tree$Zipper$parent(zipper);
-		if (_n0.$ === 'Nothing') {
-			return elm$core$Maybe$Nothing;
-		} else {
-			var parent_ = _n0.a;
-			var _n1 = zwilias$elm_rosetree$Tree$Zipper$nextSibling(parent_);
-			if (_n1.$ === 'Nothing') {
-				var $temp$zipper = parent_;
-				zipper = $temp$zipper;
-				continue nextSiblingOfAncestor;
-			} else {
-				var s = _n1.a;
-				return elm$core$Maybe$Just(s);
-			}
-		}
-	}
-};
-var zwilias$elm_rosetree$Tree$Zipper$forward = function (zipper) {
-	return A2(
-		zwilias$elm_rosetree$Tree$Zipper$firstOf,
-		_List_fromArray(
-			[zwilias$elm_rosetree$Tree$Zipper$firstChild, zwilias$elm_rosetree$Tree$Zipper$nextSibling, zwilias$elm_rosetree$Tree$Zipper$nextSiblingOfAncestor]),
-		zipper);
-};
-var zwilias$elm_rosetree$Tree$Zipper$findNext = F2(
-	function (f, zipper) {
-		return A3(zwilias$elm_rosetree$Tree$Zipper$find, f, zwilias$elm_rosetree$Tree$Zipper$forward, zipper);
-	});
-var author$project$Compositron$map_parent = F2(
-	function (fu, z) {
-		return A2(
-			elm$core$Maybe$withDefault,
-			z,
-			A2(
-				elm$core$Maybe$map,
-				A2(
-					elm$core$Basics$composeR,
-					fu,
-					A2(
-						elm$core$Basics$composeR,
-						zwilias$elm_rosetree$Tree$Zipper$findNext(
-							elm$core$Basics$eq(
-								author$project$Compositron$node(z))),
-						elm$core$Maybe$withDefault(z))),
-				zwilias$elm_rosetree$Tree$Zipper$parent(z)));
-	});
-var elm$core$Debug$log = _Debug_log;
-var author$project$Compositron$consolize = F2(
-	function (depth, c) {
-		var indent = A2(elm$core$String$repeat, 1 + depth, '·  ');
-		var children = A2(
-			elm$core$List$map,
-			zwilias$elm_rosetree$Tree$Zipper$fromTree,
-			zwilias$elm_rosetree$Tree$children(
-				zwilias$elm_rosetree$Tree$Zipper$tree(c)));
-		var consolize_children = A2(
-			elm$core$List$map,
-			author$project$Compositron$consolize(depth + 1),
-			children);
-		return A2(
-			elm$core$Basics$always,
-			c,
-			A2(
-				elm$core$Basics$always,
-				A2(
-					elm$core$Debug$log,
-					indent,
-					author$project$Compositron$Node$serialize(
-						author$project$Compositron$node(c))),
-				consolize_children));
-	});
-var zwilias$elm_rosetree$Tree$Zipper$previousSibling = function (_n0) {
-	var zipper = _n0.a;
-	var _n1 = zipper.before;
-	if (!_n1.b) {
-		return elm$core$Maybe$Nothing;
-	} else {
-		var previous = _n1.a;
-		var rest = _n1.b;
-		return elm$core$Maybe$Just(
-			zwilias$elm_rosetree$Tree$Zipper$Zipper(
-				{
-					after: A2(elm$core$List$cons, zipper.focus, zipper.after),
-					before: rest,
-					crumbs: zipper.crumbs,
-					focus: previous
-				}));
-	}
-};
-var zwilias$elm_rosetree$Tree$Zipper$firstSibling = function (zipper) {
-	firstSibling:
-	while (true) {
-		var _n0 = zwilias$elm_rosetree$Tree$Zipper$previousSibling(zipper);
+		var _n0 = zwilias$elm_rosetree$Tree$Zipper$lastChild(zipper);
 		if (_n0.$ === 'Nothing') {
 			return zipper;
 		} else {
-			var z = _n0.a;
-			var $temp$zipper = z;
+			var child = _n0.a;
+			var $temp$zipper = child;
 			zipper = $temp$zipper;
-			continue firstSibling;
+			continue lastDescendant;
 		}
 	}
 };
-var zwilias$elm_rosetree$Tree$Zipper$root = function (zipper) {
-	root:
-	while (true) {
-		var _n0 = zwilias$elm_rosetree$Tree$Zipper$parent(zipper);
-		if (_n0.$ === 'Nothing') {
-			return zwilias$elm_rosetree$Tree$Zipper$firstSibling(zipper);
-		} else {
-			var z = _n0.a;
-			var $temp$zipper = z;
-			zipper = $temp$zipper;
-			continue root;
-		}
-	}
+var zwilias$elm_rosetree$Tree$Zipper$backward = function (zipper) {
+	return A2(
+		zwilias$elm_rosetree$Tree$Zipper$firstOf,
+		_List_fromArray(
+			[
+				A2(
+				elm$core$Basics$composeR,
+				zwilias$elm_rosetree$Tree$Zipper$previousSibling,
+				elm$core$Maybe$map(zwilias$elm_rosetree$Tree$Zipper$lastDescendant)),
+				zwilias$elm_rosetree$Tree$Zipper$parent
+			]),
+		zipper);
 };
-var author$project$Compositron$trace = F2(
-	function (mess, z) {
-		var heading = function (fu) {
-			return A2(
-				elm$core$Basics$always,
+var zwilias$elm_rosetree$Tree$Zipper$findPrevious = F2(
+	function (f, zipper) {
+		return A3(zwilias$elm_rosetree$Tree$Zipper$find, f, zwilias$elm_rosetree$Tree$Zipper$backward, zipper);
+	});
+var author$project$Compositron$Structure$EagerZipperTree$each_in_group = F2(
+	function (fu, _n0) {
+		var primer = _n0.a;
+		var struct = _n0.b;
+		var pivot = author$project$Compositron$Structure$EagerZipperTree$node(struct);
+		var maybe_next = function (_n2) {
+			var x = _n2.a;
+			var s = _n2.b;
+			var _n1 = zwilias$elm_rosetree$Tree$Zipper$nextSibling(s);
+			if (_n1.$ === 'Nothing') {
+				return elm$core$Maybe$Nothing;
+			} else {
+				var ns = _n1.a;
+				return elm$core$Maybe$Just(
+					_Utils_Tuple2(x, ns));
+			}
+		};
+		var first_sibling = A2(
+			author$project$Helpers$perhaps,
+			A2(
+				elm$core$Basics$composeR,
+				zwilias$elm_rosetree$Tree$Zipper$parent,
+				elm$core$Maybe$map(
+					author$project$Helpers$perhaps(zwilias$elm_rosetree$Tree$Zipper$firstChild))),
+			struct);
+		return A2(
+			elm$core$Tuple$mapSecond,
+			author$project$Helpers$perhaps(
+				zwilias$elm_rosetree$Tree$Zipper$findPrevious(
+					elm$core$Basics$eq(pivot))),
+			A3(
+				author$project$Helpers$while_just,
 				fu,
-				A2(elm$core$Debug$log, mess, _Utils_Tuple0));
+				maybe_next,
+				_Utils_Tuple2(primer, first_sibling)));
+	});
+var author$project$Compositron$Structure$EagerZipperTree$bode = zwilias$elm_rosetree$Tree$label;
+var elm$core$Basics$and = _Basics_and;
+var elm$core$List$map2 = _List_map2;
+var author$project$Compositron$Structure$EagerZipperTree$equal_branches = F3(
+	function (eq, ba, bt) {
+		return A2(
+			eq,
+			author$project$Compositron$Structure$EagerZipperTree$bode(ba),
+			author$project$Compositron$Structure$EagerZipperTree$bode(bt)) && A3(
+			elm$core$List$foldl,
+			elm$core$Basics$and,
+			true,
+			A3(
+				elm$core$List$map2,
+				author$project$Compositron$Structure$EagerZipperTree$equal_branches(eq),
+				zwilias$elm_rosetree$Tree$children(ba),
+				zwilias$elm_rosetree$Tree$children(bt)));
+	});
+var elm$core$Basics$or = _Basics_or;
+var author$project$Compositron$Structure$EagerZipperTree$group_branches = function (struct) {
+	return (_Utils_eq(
+		zwilias$elm_rosetree$Tree$Zipper$parent(struct),
+		elm$core$Maybe$Just(
+			zwilias$elm_rosetree$Tree$Zipper$root(struct))) || _Utils_eq(
+		zwilias$elm_rosetree$Tree$Zipper$parent(struct),
+		elm$core$Maybe$Nothing)) ? {
+		after: _List_Nil,
+		before: _List_Nil,
+		focus: author$project$Compositron$Structure$EagerZipperTree$branch(struct)
+	} : function (_n0) {
+		var b = _n0.a;
+		var a = _n0.b;
+		return {
+			after: a,
+			before: b,
+			focus: author$project$Compositron$Structure$EagerZipperTree$branch(struct)
+		};
+	}(
+		A2(
+			author$project$Helpers$both,
+			_Utils_Tuple2(zwilias$elm_rosetree$Tree$Zipper$siblingsBeforeFocus, zwilias$elm_rosetree$Tree$Zipper$siblingsAfterFocus),
+			struct));
+};
+var author$project$Compositron$Structure$EagerZipperTree$up_the_ancestry = F2(
+	function (fu, _n0) {
+		var primer = _n0.a;
+		var struct = _n0.b;
+		var pivot = author$project$Compositron$Structure$EagerZipperTree$node(struct);
+		var maybe_next = function (_n2) {
+			var x = _n2.a;
+			var cur = _n2.b;
+			var _n1 = zwilias$elm_rosetree$Tree$Zipper$parent(cur);
+			if (_n1.$ === 'Nothing') {
+				return elm$core$Maybe$Nothing;
+			} else {
+				var ancestor = _n1.a;
+				return elm$core$Maybe$Just(
+					_Utils_Tuple2(x, ancestor));
+			}
 		};
 		return A2(
-			elm$core$Basics$always,
-			z,
-			A2(
-				author$project$Compositron$consolize,
-				0,
-				heading(
-					zwilias$elm_rosetree$Tree$Zipper$root(z))));
+			elm$core$Tuple$mapSecond,
+			author$project$Helpers$perhaps(
+				zwilias$elm_rosetree$Tree$Zipper$findNext(
+					elm$core$Basics$eq(pivot))),
+			A3(
+				author$project$Helpers$while_just,
+				fu,
+				maybe_next,
+				_Utils_Tuple2(primer, struct)));
 	});
-var zwilias$elm_rosetree$Tree$mapChildren = F2(
+var author$project$Helpers$Fix = function (a) {
+	return {$: 'Fix', a: a};
+};
+var author$project$Helpers$Pursue = {$: 'Pursue'};
+var author$project$Helpers$maybe = F2(
+	function (fu, may) {
+		if (may.$ === 'Just') {
+			var base = may.a;
+			return fu(base);
+		} else {
+			return elm$core$Basics$identity;
+		}
+	});
+var author$project$Helpers$nonempty_to_lzipper = function (_n0) {
+	var head = _n0.a;
+	var tail = _n0.b;
+	return {after: tail, before: _List_Nil, focus: head};
+};
+var author$project$Helpers$with = F3(
+	function (base, fu, parameter) {
+		return A2(fu, parameter, base);
+	});
+var elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Tuple$second = function (_n0) {
+	var y = _n0.b;
+	return y;
+};
+var author$project$Compositron$manifest = F3(
+	function (new_cre, new_branches, compositron) {
+		var match_template_replacement = F2(
+			function (may_live, tmp) {
+				if (may_live.$ === 'Nothing') {
+					return author$project$Helpers$Fix(
+						A2(author$project$Compositron$Structure$EagerZipperTree$accept_branch, author$project$Compositron$Node$inc, author$project$Compositron$Node$accept));
+				} else {
+					var liv = may_live.a;
+					return A3(author$project$Compositron$Structure$EagerZipperTree$equal_branches, author$project$Compositron$Node$equal_items, liv, tmp) ? author$project$Helpers$Pursue : author$project$Helpers$Fix(
+						A2(author$project$Compositron$Structure$EagerZipperTree$accept_branch, author$project$Compositron$Node$inc, author$project$Compositron$Node$accept));
+				}
+			});
+		var accept_branches = author$project$Helpers$maybe(
+			author$project$Compositron$Structure$EagerZipperTree$accept_template(match_template_replacement));
+		var satisfy = function (_n0) {
+			var pre = _n0.a;
+			var structure = _n0.b;
+			var templates = A2(
+				elm$core$Basics$composeR,
+				author$project$Compositron$Structure$EagerZipperTree$node,
+				A2(
+					elm$core$Basics$composeR,
+					author$project$Compositron$Node$self_reference,
+					A2(
+						elm$core$Basics$composeR,
+						elm$core$Maybe$andThen(
+							author$project$Compositron$dereference(compositron)),
+						elm$core$Maybe$map(author$project$Compositron$Structure$EagerZipperTree$group_branches))));
+			return A2(
+				accept_branches,
+				templates(structure),
+				_Utils_Tuple2(pre, structure));
+		};
+		return A3(
+			author$project$Helpers$with,
+			compositron,
+			author$project$Compositron$set_live,
+			A2(
+				author$project$Compositron$Structure$EagerZipperTree$up_the_ancestry,
+				author$project$Compositron$Structure$EagerZipperTree$each_in_group(satisfy),
+				A2(
+					accept_branches,
+					A2(elm$core$Maybe$map, author$project$Helpers$nonempty_to_lzipper, new_branches),
+					_Utils_Tuple2(
+						author$project$Compositron$Node$primer(new_cre),
+						author$project$Compositron$live(compositron)))).b);
+	});
+var author$project$Helpers$may_cons = F2(
+	function (may, acc) {
+		var _n0 = _Utils_Tuple2(may, acc);
+		if (_n0.a.$ === 'Just') {
+			var x = _n0.a.a;
+			var xs = _n0.b;
+			return A2(elm$core$List$cons, x, xs);
+		} else {
+			var _n1 = _n0.a;
+			var xs = _n0.b;
+			return xs;
+		}
+	});
+var author$project$Helpers$filter_just = A2(elm$core$List$foldl, author$project$Helpers$may_cons, _List_Nil);
+var author$project$Helpers$to_nonempty = function (list) {
+	if (list.b) {
+		var l = list.a;
+		var ist = list.b;
+		return elm$core$Maybe$Just(
+			_Utils_Tuple2(l, ist));
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Compositron$choose = F3(
+	function (cre, new_signatures, compositron) {
+		return function (new_branches) {
+			return A3(author$project$Compositron$manifest, cre, new_branches, compositron);
+		}(
+			author$project$Helpers$to_nonempty(
+				A2(
+					elm$core$List$map,
+					author$project$Compositron$Structure$EagerZipperTree$branch,
+					author$project$Helpers$filter_just(
+						A2(
+							elm$core$List$map,
+							author$project$Compositron$dereference(compositron),
+							new_signatures)))));
+	});
+var zwilias$elm_rosetree$Tree$mapLabel = F2(
 	function (f, _n0) {
 		var v = _n0.a;
 		var cs = _n0.b;
 		return A2(
 			zwilias$elm_rosetree$Tree$Tree,
-			v,
-			f(cs));
+			f(v),
+			cs);
 	});
-var author$project$Compositron$map_children = function (fu) {
-	var over_tree = A2(
-		elm$core$Basics$composeR,
-		elm$core$List$map(zwilias$elm_rosetree$Tree$Zipper$fromTree),
-		A2(
-			elm$core$Basics$composeR,
-			fu,
-			elm$core$List$map(zwilias$elm_rosetree$Tree$Zipper$tree)));
-	return A2(
-		elm$core$Basics$composeR,
-		author$project$Compositron$trace('map_children before'),
-		A2(
-			elm$core$Basics$composeR,
-			zwilias$elm_rosetree$Tree$Zipper$tree,
-			A2(
-				elm$core$Basics$composeR,
-				zwilias$elm_rosetree$Tree$mapChildren(over_tree),
-				A2(
-					elm$core$Basics$composeR,
-					zwilias$elm_rosetree$Tree$Zipper$fromTree,
-					author$project$Compositron$trace('map_children after')))));
-};
-var elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
+var zwilias$elm_rosetree$Tree$Zipper$mapTree = F2(
+	function (f, _n0) {
+		var zipper = _n0.a;
+		return zwilias$elm_rosetree$Tree$Zipper$Zipper(
+			_Utils_update(
+				zipper,
+				{
+					focus: f(zipper.focus)
+				}));
 	});
-var author$project$Compositron$filter_siblings = A2(elm$core$Basics$composeR, elm$core$List$filter, author$project$Compositron$map_children);
-var author$project$Compositron$signature = A2(
-	elm$core$Basics$composeR,
-	author$project$Compositron$node,
-	function ($) {
-		return $.signature;
-	});
-var elm$core$Basics$neq = _Utils_notEqual;
-var author$project$Compositron$prepare_empty = function (sig) {
-	return author$project$Compositron$filter_siblings(
-		A2(
-			elm$core$Basics$composeR,
-			author$project$Compositron$signature,
-			elm$core$Basics$neq(sig)));
-};
-var author$project$Compositron$Node$map_signature = function (fu) {
-	return function (_this) {
-		return _Utils_update(
-			_this,
-			{
-				signature: fu(_this.signature)
-			});
-	};
-};
-var author$project$Compositron$map_signature = A2(elm$core$Basics$composeR, author$project$Compositron$Node$map_signature, author$project$Compositron$map_node);
-var author$project$Compositron$Signature$map_scalar = function (fu) {
-	return function (sig) {
-		return _Utils_update(
-			sig,
-			{
-				scalar: fu(sig.scalar)
-			});
-	};
-};
-var author$project$Compositron$Signature$inc = author$project$Compositron$Signature$map_scalar(
-	elm$core$Basics$add(1));
-var author$project$Compositron$inc = author$project$Compositron$map_signature(author$project$Compositron$Signature$inc);
-var author$project$Compositron$map_siblings = A2(elm$core$Basics$composeR, author$project$Compositron$map_children, author$project$Compositron$map_parent);
-var elm$core$Tuple$first = function (_n0) {
-	var x = _n0.a;
-	return x;
-};
-var author$project$Compositron$copy_as_sibling_where = function (predicate) {
-	var step = F2(
-		function (sib, _n0) {
-			var list = _n0.a;
-			var instance = _n0.b;
-			return predicate(sib) ? _Utils_Tuple2(
-				A2(
-					elm$core$List$cons,
-					author$project$Compositron$inc(instance),
-					A2(elm$core$List$cons, sib, list)),
-				author$project$Compositron$inc(instance)) : _Utils_Tuple2(
-				A2(elm$core$List$cons, sib, list),
-				instance);
-		});
-	var add_copies_of = function (template) {
+var zwilias$elm_rosetree$Tree$Zipper$mapLabel = F2(
+	function (f, zipper) {
 		return A2(
-			elm$core$Basics$composeR,
-			A2(
-				elm$core$List$foldr,
-				step,
-				_Utils_Tuple2(_List_Nil, template)),
-			elm$core$Tuple$first);
-	};
-	return function (z) {
-		return A2(
-			author$project$Compositron$map_siblings,
-			add_copies_of(z),
-			z);
-	};
-};
-var author$project$Compositron$Item$is_assume_self = function (i) {
-	if (i.$ === 'Assume') {
-		var _n1 = i.a;
-		return true;
-	} else {
-		return false;
-	}
-};
-var author$project$Compositron$prepare_full = function (sig) {
-	return author$project$Compositron$copy_as_sibling_where(
-		A2(elm$core$Basics$composeR, author$project$Compositron$item, author$project$Compositron$Item$is_assume_self));
-};
-var author$project$Helpers$when = F3(
-	function (predicate, fu, probe) {
-		return predicate(probe) ? fu(probe) : probe;
+			zwilias$elm_rosetree$Tree$Zipper$mapTree,
+			zwilias$elm_rosetree$Tree$mapLabel(f),
+			zipper);
 	});
-var author$project$Compositron$prepare_emptiness = F2(
-	function (sig, will_empty) {
-		return A2(
-			author$project$Helpers$when,
-			A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$is_empty,
-				elm$core$Basics$neq(will_empty)),
-			A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$map_parent(
-					A2(author$project$Compositron$prepare_emptiness, sig, will_empty)),
-				will_empty ? author$project$Compositron$prepare_empty(sig) : author$project$Compositron$prepare_full(sig)));
-	});
-var author$project$Compositron$branch = function (sigmap) {
-	return A2(
-		elm$core$Basics$composeR,
-		zwilias$elm_rosetree$Tree$Zipper$tree,
-		A2(
-			elm$core$Basics$composeR,
-			zwilias$elm_rosetree$Tree$Zipper$fromTree,
-			author$project$Compositron$map_signature(sigmap)));
-};
-var author$project$Compositron$Signature$scale = A2(elm$core$Basics$composeR, elm$core$Basics$always, author$project$Compositron$Signature$map_scalar);
-var author$project$Compositron$set_index = function (i) {
-	return author$project$Compositron$map_signature(
-		author$project$Compositron$Signature$scale(i));
-};
-var author$project$Compositron$set_item = A2(elm$core$Basics$composeR, elm$core$Basics$always, author$project$Compositron$map_item);
-var author$project$Compositron$Item$children = function (i) {
-	if (i.$ === 'Field') {
-		var name = i.a;
-		var flow = i.b;
-		var kids = i.c;
-		return kids;
-	} else {
-		return _List_Nil;
-	}
-};
-var elm$core$Basics$sub = _Basics_sub;
-var elm$core$List$map2 = _List_map2;
-var elm$core$List$rangeHelp = F3(
-	function (lo, hi, list) {
-		rangeHelp:
-		while (true) {
-			if (_Utils_cmp(lo, hi) < 1) {
-				var $temp$lo = lo,
-					$temp$hi = hi - 1,
-					$temp$list = A2(elm$core$List$cons, hi, list);
-				lo = $temp$lo;
-				hi = $temp$hi;
-				list = $temp$list;
-				continue rangeHelp;
-			} else {
-				return list;
-			}
-		}
-	});
-var elm$core$List$range = F2(
-	function (lo, hi) {
-		return A3(elm$core$List$rangeHelp, lo, hi, _List_Nil);
-	});
-var elm$core$List$indexedMap = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$map2,
-			f,
-			A2(
-				elm$core$List$range,
-				0,
-				elm$core$List$length(xs) - 1),
-			xs);
-	});
-var author$project$Compositron$unfold = function (z) {
-	var item_to_compositron = function (itm) {
-		return A2(
-			author$project$Compositron$set_item,
-			itm,
-			A2(author$project$Compositron$branch, author$project$Compositron$Signature$inc, z));
-	};
-	var chitems = author$project$Compositron$Item$children(
-		author$project$Compositron$item(z));
-	var new_children = A2(
-		elm$core$List$map,
-		author$project$Compositron$unfold,
-		A2(
-			elm$core$List$indexedMap,
-			author$project$Compositron$set_index,
-			A2(elm$core$List$map, item_to_compositron, chitems)));
-	return A2(
-		author$project$Compositron$map_children,
-		elm$core$Basics$append(new_children),
-		z);
-};
-var author$project$Compositron$choose = F2(
-	function (sig, future_item) {
-		return A2(
-			elm$core$Basics$composeR,
-			A2(
-				author$project$Compositron$prepare_emptiness,
-				sig,
-				author$project$Compositron$Data$is_empty(
-					author$project$Compositron$Item$data(future_item))),
-			A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$map_item(
-					elm$core$Basics$always(future_item)),
-				author$project$Compositron$unfold));
-	});
-var author$project$Compositron$Item$T = function (a) {
-	return {$: 'T', a: a};
-};
+var author$project$Compositron$Structure$EagerZipperTree$mark = zwilias$elm_rosetree$Tree$Zipper$mapLabel;
+var author$project$Compositron$mark = A2(elm$core$Basics$composeR, author$project$Compositron$Structure$EagerZipperTree$mark, author$project$Compositron$map_live);
 var author$project$Compositron$Item$Text = F2(
 	function (a, b) {
 		return {$: 'Text', a: a, b: b};
@@ -5392,21 +5856,25 @@ var author$project$Compositron$Item$freeze = function (i) {
 		return x;
 	}
 };
-var author$project$Compositron$freeze = author$project$Compositron$map_item(author$project$Compositron$Item$freeze);
-var author$project$Compositron$Item$U = function (a) {
-	return {$: 'U', a: a};
+var author$project$Compositron$Node$map_item = function (fu) {
+	return function (_this) {
+		return _Utils_update(
+			_this,
+			{
+				item: fu(_this.item)
+			});
+	};
+};
+var author$project$Compositron$freeze = author$project$Compositron$mark(
+	author$project$Compositron$Node$map_item(author$project$Compositron$Item$freeze));
+var author$project$Compositron$Item$Picture = function (a) {
+	return {$: 'Picture', a: a};
 };
 var author$project$Compositron$Item$Url = function (a) {
 	return {$: 'Url', a: a};
 };
-var author$project$Compositron$Item$V = function (a) {
-	return {$: 'V', a: a};
-};
 var author$project$Compositron$Item$Vimeo = function (a) {
 	return {$: 'Vimeo', a: a};
-};
-var author$project$Compositron$Item$Y = function (a) {
-	return {$: 'Y', a: a};
 };
 var author$project$Compositron$Item$Youtube = function (a) {
 	return {$: 'Youtube', a: a};
@@ -5420,6 +5888,9 @@ var author$project$Compositron$Item$set_data = F2(
 				var frozen = _n1.b;
 				return author$project$Compositron$Item$T(
 					A2(author$project$Compositron$Item$Text, dat, frozen));
+			case 'P':
+				return author$project$Compositron$Item$P(
+					author$project$Compositron$Item$Picture(dat));
 			case 'Y':
 				return author$project$Compositron$Item$Y(
 					author$project$Compositron$Item$Youtube(dat));
@@ -5434,350 +5905,50 @@ var author$project$Compositron$Item$set_data = F2(
 				return x;
 		}
 	});
-var author$project$Compositron$modify = F2(
-	function (sig, dat) {
-		return A2(
-			elm$core$Basics$composeR,
+var author$project$Compositron$modify = F3(
+	function (cre, new_dat, compositron) {
+		return A3(
+			author$project$Compositron$manifest,
+			cre,
+			elm$core$Maybe$Nothing,
 			A2(
-				author$project$Compositron$prepare_emptiness,
-				sig,
-				author$project$Compositron$Data$is_empty(dat)),
-			author$project$Compositron$map_item(
-				author$project$Compositron$Item$set_data(dat)));
+				author$project$Compositron$mark,
+				author$project$Compositron$Node$map_item(
+					author$project$Compositron$Item$set_data(new_dat)),
+				compositron));
 	});
-var author$project$Compositron$Signature$map_creator = function (fu) {
-	return function (sig) {
+var author$project$Compositron$revert = F3(
+	function (cre, proto_ref, comp) {
+		return comp;
+	});
+var author$project$Compositron$Manifestation$target = elm$core$Basics$always(
+	{target: true});
+var author$project$Compositron$Manifestation$active = author$project$Compositron$Manifestation$target(_Utils_Tuple0);
+var author$project$Compositron$Node$map_manifestation = function (fu) {
+	return function (_this) {
 		return _Utils_update(
-			sig,
+			_this,
 			{
-				creator: fu(sig.creator)
+				manifestation: fu(_this.manifestation)
 			});
 	};
 };
-var author$project$Compositron$map_creator = function (c) {
-	return author$project$Compositron$map_signature(
-		author$project$Compositron$Signature$map_creator(c));
-};
-var author$project$Helpers$while_just = F3(
-	function (fu, may_succ, variable) {
-		return _Utils_eq(
-			may_succ(variable),
-			elm$core$Maybe$Nothing) ? fu(variable) : A3(
-			author$project$Helpers$while_just,
-			fu,
-			may_succ,
-			A2(
-				elm$core$Maybe$withDefault,
-				fu(variable),
-				may_succ(
-					fu(variable))));
-	});
-var author$project$Compositron$map_each_child = F2(
-	function (fu, z) {
-		return A2(
-			elm$core$Maybe$withDefault,
-			z,
-			A2(
-				elm$core$Maybe$map,
-				A2(
-					elm$core$Basics$composeR,
-					A2(author$project$Helpers$while_just, fu, zwilias$elm_rosetree$Tree$Zipper$nextSibling),
-					A2(
-						elm$core$Basics$composeR,
-						zwilias$elm_rosetree$Tree$Zipper$parent,
-						elm$core$Maybe$withDefault(z))),
-				zwilias$elm_rosetree$Tree$Zipper$firstChild(z)));
-	});
-var zwilias$elm_rosetree$Tree$singleton = function (v) {
-	return A2(zwilias$elm_rosetree$Tree$Tree, v, _List_Nil);
-};
-var author$project$Compositron$singleton = function (nod) {
-	return zwilias$elm_rosetree$Tree$Zipper$fromTree(
-		zwilias$elm_rosetree$Tree$singleton(nod));
-};
-var author$project$Compositron$Item$Ambiguous = F2(
-	function (a, b) {
-		return {$: 'Ambiguous', a: a, b: b};
-	});
-var author$project$Compositron$Item$Assume = function (a) {
-	return {$: 'Assume', a: a};
-};
-var author$project$Compositron$Item$Field = F3(
-	function (a, b, c) {
-		return {$: 'Field', a: a, b: b, c: c};
-	});
-var author$project$Compositron$Item$Figcaption = {$: 'Figcaption'};
-var author$project$Compositron$Item$Figure = {$: 'Figure'};
-var author$project$Compositron$Item$I = function (a) {
-	return {$: 'I', a: a};
-};
-var author$project$Compositron$Item$Image = function (a) {
-	return {$: 'Image', a: a};
-};
-var author$project$Compositron$Item$Paragraph = {$: 'Paragraph'};
-var author$project$Compositron$Item$Self = {$: 'Self'};
-var author$project$Compositron$Item$Heading = {$: 'Heading'};
-var author$project$Compositron$Item$Info = function (a) {
-	return {$: 'Info', a: a};
-};
-var author$project$Compositron$Item$Meta = {$: 'Meta'};
-var author$project$Compositron$Item$Stacked = {$: 'Stacked'};
-var author$project$Compositron$Item$layout = function () {
-	var style = function (s) {
-		return A3(
-			author$project$Compositron$Item$Field,
-			s,
-			author$project$Compositron$Item$Stacked,
-			_List_fromArray(
-				[
-					author$project$Compositron$Item$Info(s)
-				]));
-	};
-	return A3(
-		author$project$Compositron$Item$Field,
-		'layout',
-		author$project$Compositron$Item$Meta,
-		_List_fromArray(
-			[
-				author$project$Compositron$Item$Assume(author$project$Compositron$Item$Self),
-				A2(
-				author$project$Compositron$Item$Ambiguous,
-				'+',
-				function (_n0) {
-					return _List_fromArray(
-						[
-							style('align right'),
-							style('align centered'),
-							style('shaded green')
-						]);
-				})
-			]));
-}();
-var author$project$Compositron$Item$Inside = {$: 'Inside'};
-var author$project$Compositron$Item$link = F2(
-	function (t, u) {
-		return A3(
-			author$project$Compositron$Item$Field,
-			'link',
-			author$project$Compositron$Item$Inside,
-			_List_fromArray(
-				[
-					A3(
-					author$project$Compositron$Item$Field,
-					'destination',
-					author$project$Compositron$Item$Meta,
-					_List_fromArray(
-						[
-							author$project$Compositron$Item$U(
-							author$project$Compositron$Item$Url(u))
-						])),
-					author$project$Compositron$Item$text(t),
-					author$project$Compositron$Item$layout
-				]));
-	});
-var author$project$Compositron$Item$text = function (t) {
-	return A3(
-		author$project$Compositron$Item$Field,
-		'text',
-		author$project$Compositron$Item$Inside,
-		_List_fromArray(
-			[
-				author$project$Compositron$Item$Assume(author$project$Compositron$Item$Self),
-				author$project$Compositron$Item$cyclic$spans(),
-				author$project$Compositron$Item$T(
-				A2(author$project$Compositron$Item$Text, t, t)),
-				author$project$Compositron$Item$layout
-			]));
-};
-function author$project$Compositron$Item$cyclic$spans() {
-	return A2(
-		author$project$Compositron$Item$Ambiguous,
-		'in line...',
-		function (_n0) {
-			return _List_fromArray(
-				[
-					author$project$Compositron$Item$text(elm$core$Maybe$Nothing),
-					A2(author$project$Compositron$Item$link, elm$core$Maybe$Nothing, elm$core$Maybe$Nothing)
-				]);
-		});
-}
-try {
-	var author$project$Compositron$Item$spans = author$project$Compositron$Item$cyclic$spans();
-	author$project$Compositron$Item$cyclic$spans = function () {
-		return author$project$Compositron$Item$spans;
-	};
-} catch ($) {
-throw 'Some top-level definitions from `Compositron.Item` are causing infinite recursion:\n\n  ┌─────┐\n  │    link\n  │     ↓\n  │    spans\n  │     ↓\n  │    text\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.0/halting-problem to learn how to fix it!';}
-var author$project$Compositron$Item$heading = A3(
-	author$project$Compositron$Item$Field,
-	'heading',
-	author$project$Compositron$Item$Heading,
-	_List_fromArray(
-		[
-			author$project$Compositron$Item$Assume(author$project$Compositron$Item$Self),
-			author$project$Compositron$Item$spans,
-			author$project$Compositron$Item$layout
-		]));
-function author$project$Compositron$Item$cyclic$blocks() {
-	return A2(
-		author$project$Compositron$Item$Ambiguous,
-		'block...',
-		function (_n3) {
-			return _List_fromArray(
-				[
-					author$project$Compositron$Item$cyclic$paragraph(),
-					author$project$Compositron$Item$heading,
-					author$project$Compositron$Item$cyclic$figure()
-				]);
-		});
-}
-function author$project$Compositron$Item$cyclic$figure() {
-	return A3(
-		author$project$Compositron$Item$Field,
-		'figure',
-		author$project$Compositron$Item$Figure,
-		_List_fromArray(
-			[
-				A2(
-				author$project$Compositron$Item$Ambiguous,
-				'figure media',
-				function (_n1) {
-					return _List_fromArray(
-						[
-							author$project$Compositron$Item$I(
-							author$project$Compositron$Item$Image(elm$core$Maybe$Nothing)),
-							author$project$Compositron$Item$Y(
-							author$project$Compositron$Item$Youtube(elm$core$Maybe$Nothing)),
-							author$project$Compositron$Item$V(
-							author$project$Compositron$Item$Vimeo(elm$core$Maybe$Nothing)),
-							author$project$Compositron$Item$cyclic$blocks()
-						]);
-				}),
-				A3(
-				author$project$Compositron$Item$Field,
-				'caption',
-				author$project$Compositron$Item$Figcaption,
-				_List_fromArray(
-					[
-						A2(
-						author$project$Compositron$Item$Ambiguous,
-						'caption',
-						function (_n2) {
-							return _List_fromArray(
-								[
-									author$project$Compositron$Item$cyclic$blocks(),
-									author$project$Compositron$Item$spans
-								]);
-						})
-					])),
-				author$project$Compositron$Item$layout
-			]));
-}
-function author$project$Compositron$Item$cyclic$paragraph() {
-	return A3(
-		author$project$Compositron$Item$Field,
-		'paragraph',
-		author$project$Compositron$Item$Paragraph,
-		_List_fromArray(
-			[
-				author$project$Compositron$Item$Assume(author$project$Compositron$Item$Self),
-				A2(
-				author$project$Compositron$Item$Ambiguous,
-				'+',
-				function (_n0) {
-					return _List_fromArray(
-						[
-							author$project$Compositron$Item$cyclic$blocks(),
-							author$project$Compositron$Item$spans
-						]);
-				}),
-				author$project$Compositron$Item$layout
-			]));
-}
-try {
-	var author$project$Compositron$Item$blocks = author$project$Compositron$Item$cyclic$blocks();
-	author$project$Compositron$Item$cyclic$blocks = function () {
-		return author$project$Compositron$Item$blocks;
-	};
-	var author$project$Compositron$Item$figure = author$project$Compositron$Item$cyclic$figure();
-	author$project$Compositron$Item$cyclic$figure = function () {
-		return author$project$Compositron$Item$figure;
-	};
-	var author$project$Compositron$Item$paragraph = author$project$Compositron$Item$cyclic$paragraph();
-	author$project$Compositron$Item$cyclic$paragraph = function () {
-		return author$project$Compositron$Item$paragraph;
-	};
-} catch ($) {
-throw 'Some top-level definitions from `Compositron.Item` are causing infinite recursion:\n\n  ┌─────┐\n  │    blocks\n  │     ↓\n  │    figure\n  │     ↓\n  │    paragraph\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.0/halting-problem to learn how to fix it!';}
-var author$project$Compositron$Manifestation$untarget = elm$core$Basics$always(
-	{target: false});
-var author$project$Compositron$Manifestation$passive = author$project$Compositron$Manifestation$untarget(_Utils_Tuple0);
-var author$project$Compositron$Signature$root = {creator: 'upsiflu', scalar: 0};
-var author$project$Compositron$Node$trivial = {
-	item: author$project$Compositron$Item$Info('ROOT'),
-	manifestation: author$project$Compositron$Manifestation$passive,
-	signature: author$project$Compositron$Signature$root
-};
-var elm$core$List$repeatHelp = F3(
-	function (result, n, value) {
-		repeatHelp:
-		while (true) {
-			if (n <= 0) {
-				return result;
-			} else {
-				var $temp$result = A2(elm$core$List$cons, value, result),
-					$temp$n = n - 1,
-					$temp$value = value;
-				result = $temp$result;
-				n = $temp$n;
-				value = $temp$value;
-				continue repeatHelp;
-			}
-		}
-	});
-var elm$core$List$repeat = F2(
-	function (n, value) {
-		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
-	});
-var author$project$Compositron$trivial = A2(
-	author$project$Compositron$map_each_child,
-	author$project$Compositron$unfold,
-	A2(
-		author$project$Compositron$map_each_child,
-		author$project$Compositron$map_creator(
-			elm$core$Basics$always('child')),
-		A2(
-			author$project$Compositron$map_each_child,
-			author$project$Compositron$set_item(author$project$Compositron$Item$paragraph),
-			A2(
-				author$project$Compositron$map_children,
-				elm$core$List$indexedMap(
-					F2(
-						function (n, c) {
-							return A2(author$project$Compositron$set_index, n, c);
-						})),
-				A2(
-					author$project$Compositron$map_children,
-					elm$core$Basics$always(
-						A2(
-							elm$core$List$repeat,
-							5,
-							author$project$Compositron$singleton(author$project$Compositron$Node$trivial))),
-					author$project$Compositron$singleton(author$project$Compositron$Node$trivial))))));
-var zwilias$elm_rosetree$Tree$Zipper$findFromRoot = F2(
-	function (f, zipper) {
-		var r = zwilias$elm_rosetree$Tree$Zipper$root(zipper);
-		return f(
-			zwilias$elm_rosetree$Tree$Zipper$label(r)) ? elm$core$Maybe$Just(r) : A2(zwilias$elm_rosetree$Tree$Zipper$findNext, f, r);
-	});
+var author$project$Compositron$Node$set_manifestation = A2(elm$core$Basics$composeR, elm$core$Basics$always, author$project$Compositron$Node$map_manifestation);
+var author$project$Compositron$Node$activate = author$project$Compositron$Node$set_manifestation(author$project$Compositron$Manifestation$active);
+var author$project$Compositron$Node$passivate = author$project$Compositron$Node$set_manifestation(author$project$Compositron$Manifestation$passive);
 var author$project$Compositron$target = function (sig) {
 	return A2(
 		elm$core$Basics$composeR,
-		zwilias$elm_rosetree$Tree$Zipper$findFromRoot(
-			function (_this) {
-				return _Utils_eq(_this.signature, sig);
-			}),
-		elm$core$Maybe$withDefault(author$project$Compositron$trivial));
+		author$project$Compositron$mark(author$project$Compositron$Node$passivate),
+		A2(
+			elm$core$Basics$composeR,
+			author$project$Compositron$map_live(
+				author$project$Helpers$perhaps(
+					author$project$Compositron$Structure$EagerZipperTree$find(
+						function (_this) {
+							return _Utils_eq(_this.signature, sig);
+						}))),
+			author$project$Compositron$mark(author$project$Compositron$Node$activate)));
 };
 var author$project$Compositron$Item$unfreeze = function (i) {
 	if (i.$ === 'T') {
@@ -5791,27 +5962,38 @@ var author$project$Compositron$Item$unfreeze = function (i) {
 		return x;
 	}
 };
-var author$project$Compositron$unfreeze = author$project$Compositron$map_item(author$project$Compositron$Item$unfreeze);
-var author$project$Compositron$Data$enstring = elm$core$Maybe$withDefault('');
-var author$project$Compositron$Item$verbalize = function (i) {
+var author$project$Compositron$unfreeze = author$project$Compositron$mark(
+	author$project$Compositron$Node$map_item(author$project$Compositron$Item$unfreeze));
+var author$project$Compositron$Item$data = function (i) {
 	switch (i.$) {
-		case 'Field':
-			var n = i.a;
-			return n;
-		case 'Ambiguous':
-			var n = i.a;
-			return 'Ambiguous ' + n;
+		case 'T':
+			var _n1 = i.a;
+			var fluid = _n1.a;
+			var frozen = _n1.b;
+			return elm$core$Maybe$Just(fluid);
+		case 'P':
+			var dat = i.a.a;
+			return elm$core$Maybe$Just(dat);
+		case 'U':
+			var dat = i.a.a;
+			return elm$core$Maybe$Just(dat);
+		case 'Y':
+			var dat = i.a.a;
+			return elm$core$Maybe$Just(dat);
+		case 'V':
+			var dat = i.a.a;
+			return elm$core$Maybe$Just(dat);
 		default:
-			return '?';
+			return elm$core$Maybe$Nothing;
 	}
 };
 var author$project$Compositron$create_intent = F3(
-	function (new_signature, _this, edit) {
+	function (new_creator, _this, edit) {
 		switch (edit.$) {
 			case 'Target':
-				var sig = edit.a;
+				var new_signature = edit.a;
 				return {
-					_function: author$project$Compositron$target(sig),
+					_function: author$project$Compositron$target(new_signature),
 					inverse: author$project$Compositron$target(_this.signature),
 					serial: A2(
 						elm$core$String$join,
@@ -5819,40 +6001,42 @@ var author$project$Compositron$create_intent = F3(
 						_List_fromArray(
 							[
 								'🞋',
-								author$project$Compositron$Signature$serialize(sig)
+								author$project$Compositron$Signature$serialize(new_signature)
 							]))
 				};
 			case 'Choose':
-				var sig = edit.a;
-				var itm = edit.b;
+				var cre = edit.a;
+				var new_refs = edit.b;
 				return {
-					_function: A2(author$project$Compositron$choose, new_signature, itm),
-					inverse: A2(author$project$Compositron$choose, sig, _this.item),
+					_function: A2(author$project$Compositron$choose, new_creator, new_refs),
+					inverse: A2(author$project$Compositron$revert, cre, _this.prototype),
 					serial: A2(
 						elm$core$String$join,
 						' ',
 						_List_fromArray(
-							[
-								'!',
-								author$project$Compositron$Item$verbalize(itm)
-							]))
+							['!', 'some new references']))
 				};
 			case 'Modify':
-				var sig = edit.a;
-				var dat = edit.b;
+				var cre = edit.a;
+				var new_data = edit.b;
 				return {
-					_function: A2(author$project$Compositron$modify, new_signature, dat),
-					inverse: A2(
-						author$project$Compositron$modify,
-						sig,
-						author$project$Compositron$Item$data(_this.item)),
+					_function: A2(author$project$Compositron$modify, new_creator, new_data),
+					inverse: function () {
+						var _n1 = author$project$Compositron$Item$data(_this.item);
+						if (_n1.$ === 'Nothing') {
+							return elm$core$Basics$identity;
+						} else {
+							var old_data = _n1.a;
+							return A2(author$project$Compositron$modify, cre, old_data);
+						}
+					}(),
 					serial: A2(
 						elm$core$String$join,
 						' ',
 						_List_fromArray(
 							[
 								'~',
-								author$project$Compositron$Data$enstring(dat)
+								author$project$Compositron$Data$enstring(new_data)
 							]))
 				};
 			default:
@@ -5863,11 +6047,7 @@ var author$project$Compositron$create_intent = F3(
 						elm$core$String$join,
 						' ',
 						_List_fromArray(
-							[
-								'=',
-								author$project$Compositron$Data$enstring(
-								author$project$Compositron$Item$data(_this.item))
-							]))
+							['=', 'current data']))
 				};
 		}
 	});
@@ -5879,27 +6059,16 @@ var author$project$Compositron$Data$destring = function (string) {
 		return elm$core$Maybe$Just(st);
 	}
 };
-var author$project$Compositron$Item$proxy = function (itm) {
-	return A3(
-		author$project$Compositron$Item$Field,
-		'proxy',
-		author$project$Compositron$Item$Stacked,
-		_List_fromArray(
-			[itm]));
+var author$project$Compositron$Item$alternatives = function (itm) {
+	if (itm.$ === 'Assume') {
+		var a = itm.a;
+		return author$project$Helpers$ambiguation_to_list(a);
+	} else {
+		return _List_Nil;
+	}
 };
-var author$project$Compositron$Signature$irrelevant = function (n) {
-	return {creator: '', scalar: n};
-};
-var author$project$Compositron$View$Blur_span = {$: 'Blur_span'};
-var author$project$Compositron$View$Choose_this = function (a) {
-	return {$: 'Choose_this', a: a};
-};
-var author$project$Compositron$View$Contenteditable = {$: 'Contenteditable'};
-var author$project$Compositron$View$Input_span = function (a) {
-	return {$: 'Input_span', a: a};
-};
-var author$project$Compositron$View$Targeted = function (a) {
-	return {$: 'Targeted', a: a};
+var author$project$Compositron$View$Choose_these = function (a) {
+	return {$: 'Choose_these', a: a};
 };
 var author$project$Compositron$View$actions = function (fu) {
 	return function (v) {
@@ -5966,6 +6135,10 @@ var elm$core$Array$compressNodes = F2(
 			}
 		}
 	});
+var elm$core$Tuple$first = function (_n0) {
+	var x = _n0.a;
+	return x;
+};
 var elm$core$Array$treeFromBuilder = F2(
 	function (nodeList, nodeListSize) {
 		treeFromBuilder:
@@ -5988,6 +6161,7 @@ var elm$core$Basics$max = F2(
 		return (_Utils_cmp(x, y) > 0) ? x : y;
 	});
 var elm$core$Basics$mul = _Basics_mul;
+var elm$core$Basics$sub = _Basics_sub;
 var elm$core$Elm$JsArray$length = _JsArray_length;
 var elm$core$Array$builderToArray = F2(
 	function (reverseNodeList, builder) {
@@ -6081,8 +6255,6 @@ var elm$json$Json$Decode$Index = F2(
 var elm$json$Json$Decode$OneOf = function (a) {
 	return {$: 'OneOf', a: a};
 };
-var elm$core$Basics$and = _Basics_and;
-var elm$core$Basics$or = _Basics_or;
 var elm$core$Char$toCode = _Char_toCode;
 var elm$core$Char$isLower = function (_char) {
 	var code = elm$core$Char$toCode(_char);
@@ -6102,6 +6274,48 @@ var elm$core$Char$isDigit = function (_char) {
 var elm$core$Char$isAlphaNum = function (_char) {
 	return elm$core$Char$isLower(_char) || (elm$core$Char$isUpper(_char) || elm$core$Char$isDigit(_char));
 };
+var elm$core$List$length = function (xs) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (_n0, i) {
+				return i + 1;
+			}),
+		0,
+		xs);
+};
+var elm$core$List$rangeHelp = F3(
+	function (lo, hi, list) {
+		rangeHelp:
+		while (true) {
+			if (_Utils_cmp(lo, hi) < 1) {
+				var $temp$lo = lo,
+					$temp$hi = hi - 1,
+					$temp$list = A2(elm$core$List$cons, hi, list);
+				lo = $temp$lo;
+				hi = $temp$hi;
+				list = $temp$list;
+				continue rangeHelp;
+			} else {
+				return list;
+			}
+		}
+	});
+var elm$core$List$range = F2(
+	function (lo, hi) {
+		return A3(elm$core$List$rangeHelp, lo, hi, _List_Nil);
+	});
+var elm$core$List$indexedMap = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$map2,
+			f,
+			A2(
+				elm$core$List$range,
+				0,
+				elm$core$List$length(xs) - 1),
+			xs);
+	});
 var elm$core$String$all = _String_all;
 var elm$core$String$uncons = _String_uncons;
 var elm$core$String$split = F2(
@@ -6247,22 +6461,6 @@ var author$project$Compositron$View$add_class = A2(elm$core$Basics$composeR, elm
 var author$project$Compositron$View$Children = function (a) {
 	return {$: 'Children', a: a};
 };
-var elm$html$Html$span = _VirtualDom_node('span');
-var author$project$Compositron$View$basic = F3(
-	function (descriptor, sig, inner) {
-		return {
-			actions: _List_Nil,
-			attributes: _List_fromArray(
-				[
-					elm$html$Html$Attributes$class(descriptor)
-				]),
-			children: author$project$Compositron$View$Children(inner),
-			descriptor: descriptor,
-			element: elm$html$Html$span,
-			signature: sig,
-			text: ''
-		};
-	});
 var author$project$Compositron$View$force_children = function (v) {
 	var _n0 = v.children;
 	var force_list = _n0.a;
@@ -6279,6 +6477,70 @@ var author$project$Compositron$View$children = function (fu) {
 							author$project$Compositron$View$force_children(v))))
 			});
 	};
+};
+var author$project$Compositron$Item$view_cogroup = F3(
+	function (prototype, make_child, cog) {
+		var connect = F2(
+			function (references, child_views) {
+				return A2(
+					elm$core$Basics$composeR,
+					author$project$Compositron$View$children(
+						elm$core$Basics$append(child_views)),
+					author$project$Compositron$View$add_action(
+						author$project$Compositron$View$Choose_these(references)));
+			});
+		if (cog.$ === 'Referral') {
+			if (cog.a.$ === 'Open') {
+				var _n1 = cog.a.a;
+				var ref = _n1.a;
+				var refs = _n1.b;
+				return A2(
+					connect,
+					A2(elm$core$List$cons, ref, refs),
+					A2(
+						elm$core$List$map,
+						A2(
+							elm$core$Basics$composeR,
+							make_child,
+							author$project$Compositron$View$add_class('Referral')),
+						A2(elm$core$List$cons, ref, refs)));
+			} else {
+				var ref = cog.a.a;
+				return A2(
+					connect,
+					_List_fromArray(
+						[ref]),
+					_List_fromArray(
+						[
+							A3(
+							elm$core$Basics$composeR,
+							make_child,
+							author$project$Compositron$View$add_class('Insatiable'),
+							ref)
+						]));
+			}
+		} else {
+			return A2(
+				connect,
+				_List_fromArray(
+					[prototype]),
+				_List_fromArray(
+					[
+						A3(
+						elm$core$Basics$composeR,
+						make_child,
+						author$project$Compositron$View$add_class('Self'),
+						prototype)
+					]));
+		}
+	});
+var author$project$Compositron$View$Blur_span = {$: 'Blur_span'};
+var author$project$Compositron$View$Contenteditable = {$: 'Contenteditable'};
+var author$project$Compositron$View$Input_span = function (a) {
+	return {$: 'Input_span', a: a};
+};
+var author$project$Compositron$View$Targeted = function (a) {
+	return {$: 'Targeted', a: a};
 };
 var author$project$Compositron$View$element = function (fu) {
 	return function (v) {
@@ -6304,6 +6566,7 @@ var elm$html$Html$img = _VirtualDom_node('img');
 var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$p = _VirtualDom_node('p');
 var elm$html$Html$section = _VirtualDom_node('section');
+var elm$html$Html$span = _VirtualDom_node('span');
 var elm$html$Html$Attributes$src = function (url) {
 	return A2(
 		elm$html$Html$Attributes$stringProperty,
@@ -6311,111 +6574,126 @@ var elm$html$Html$Attributes$src = function (url) {
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
 var author$project$Compositron$Item$view = function (itm) {
-	switch (itm.$) {
-		case 'Assume':
-			return author$project$Compositron$View$add_class('Assume');
-		case 'Field':
-			var name = itm.a;
-			var flow = itm.b;
-			var items = itm.c;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class(name),
-				A2(
-					elm$core$Basics$composeR,
-					author$project$Compositron$View$add_class('Field'),
-					author$project$Compositron$Item$cyclic$add_view().flow(flow)));
-		case 'Ambiguous':
-			var name = itm.a;
-			var create_items = itm.b;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class(name),
-				A2(
-					elm$core$Basics$composeR,
-					author$project$Compositron$View$add_class('Ambiguous'),
-					A2(
+	view:
+	while (true) {
+		switch (itm.$) {
+			case 'Assume':
+				if (itm.a.$ === 'Of') {
+					if (itm.a.a.$ === 'Self') {
+						var _n1 = itm.a.a;
+						return A2(
+							elm$core$Basics$composeR,
+							author$project$Compositron$View$add_class('Assume'),
+							author$project$Compositron$View$add_class('self'));
+					} else {
+						if (itm.a.a.a.$ === 'Insatiable') {
+							var ref = itm.a.a.a.a;
+							return A2(
+								elm$core$Basics$composeR,
+								author$project$Compositron$View$add_class('Assume'),
+								A2(
+									elm$core$Basics$composeR,
+									author$project$Compositron$View$add_class('insatiable'),
+									author$project$Compositron$View$set_text('Insatiable.')));
+						} else {
+							var $temp$itm = author$project$Compositron$Item$Err('open referral in this assumption');
+							itm = $temp$itm;
+							continue view;
+						}
+					}
+				} else {
+					var _n2 = itm.a;
+					var head = _n2.a;
+					var more = _n2.b;
+					return A2(
 						elm$core$Basics$composeR,
-						author$project$Compositron$Item$cyclic$add_view().flow(author$project$Compositron$Item$Meta),
+						author$project$Compositron$View$add_class('Assume'),
 						A2(
 							elm$core$Basics$composeR,
-							author$project$Compositron$View$set_text(name),
-							author$project$Compositron$View$children(
-								elm$core$Basics$append(
-									A2(
-										elm$core$List$indexedMap,
-										author$project$Compositron$Item$cyclic$add_view().option,
-										create_items(_Utils_Tuple0))))))));
-		case 'Info':
-			var string = itm.a;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class('info'),
-				author$project$Compositron$View$set_text(string));
-		case 'T':
-			var _n1 = itm.a;
-			var fluid = _n1.a;
-			var frozen = _n1.b;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class('input'),
-				A2(
+							author$project$Compositron$View$add_class('options'),
+							author$project$Compositron$View$set_text('...')));
+				}
+			case 'Body':
+				var name = itm.a;
+				var flow = itm.b;
+				return A2(
 					elm$core$Basics$composeR,
-					author$project$Compositron$View$add_class('T'),
+					author$project$Compositron$View$add_class(name),
 					A2(
 						elm$core$Basics$composeR,
-						author$project$Compositron$View$add_action(
-							author$project$Compositron$View$Targeted(author$project$Compositron$View$Contenteditable)),
+						author$project$Compositron$View$add_class('Body'),
+						author$project$Compositron$Item$cyclic$add_view().flow(flow)));
+			case 'Info':
+				var string = itm.a;
+				return A2(
+					elm$core$Basics$composeR,
+					author$project$Compositron$View$add_class('info'),
+					author$project$Compositron$View$set_text(string));
+			case 'T':
+				var _n3 = itm.a;
+				var fluid = _n3.a;
+				var frozen = _n3.b;
+				return A2(
+					elm$core$Basics$composeR,
+					author$project$Compositron$View$add_class('input'),
+					A2(
+						elm$core$Basics$composeR,
+						author$project$Compositron$View$add_class('T'),
 						A2(
 							elm$core$Basics$composeR,
 							author$project$Compositron$View$add_action(
-								author$project$Compositron$View$Targeted(
-									author$project$Compositron$View$Input_span(frozen))),
+								author$project$Compositron$View$Targeted(author$project$Compositron$View$Contenteditable)),
 							A2(
 								elm$core$Basics$composeR,
 								author$project$Compositron$View$add_action(
-									author$project$Compositron$View$Targeted(author$project$Compositron$View$Blur_span)),
-								function () {
-									if (frozen.$ === 'Nothing') {
-										return elm$core$Basics$identity;
-									} else {
-										var frozen_string = frozen.a;
-										return author$project$Compositron$View$set_text(frozen_string);
-									}
-								}())))));
-		case 'I':
-			var source = itm.a.a;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class('image'),
-				A2(
+									author$project$Compositron$View$Targeted(
+										author$project$Compositron$View$Input_span(frozen))),
+								A2(
+									elm$core$Basics$composeR,
+									author$project$Compositron$View$add_action(
+										author$project$Compositron$View$Targeted(author$project$Compositron$View$Blur_span)),
+									function () {
+										if (frozen.$ === 'Nothing') {
+											return elm$core$Basics$identity;
+										} else {
+											var frozen_string = frozen.a;
+											return author$project$Compositron$View$set_text(frozen_string);
+										}
+									}())))));
+			case 'P':
+				var source = itm.a.a;
+				return A2(
 					elm$core$Basics$composeR,
-					author$project$Compositron$View$add_class('I'),
+					author$project$Compositron$View$add_class('picture'),
 					A2(
 						elm$core$Basics$composeR,
-						author$project$Compositron$View$element(
-							elm$core$Basics$always(elm$html$Html$img)),
-						author$project$Compositron$View$add_attribute(
-							elm$html$Html$Attributes$src(
-								author$project$Compositron$Data$enstring(source))))));
-		case 'U':
-			var url = itm.a;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class('url'),
-				A2(
+						author$project$Compositron$View$add_class('P'),
+						A2(
+							elm$core$Basics$composeR,
+							author$project$Compositron$View$element(
+								elm$core$Basics$always(elm$html$Html$img)),
+							author$project$Compositron$View$add_attribute(
+								elm$html$Html$Attributes$src(
+									author$project$Compositron$Data$enstring(source))))));
+			case 'U':
+				var url = itm.a;
+				return A2(
 					elm$core$Basics$composeR,
-					author$project$Compositron$View$add_class('U'),
-					author$project$Compositron$View$element(
-						elm$core$Basics$always(elm$html$Html$input))));
-		case 'Err':
-			var string = itm.a;
-			return A2(
-				elm$core$Basics$composeR,
-				author$project$Compositron$View$add_class(string),
-				author$project$Compositron$View$add_class('Err'));
-		default:
-			return author$project$Compositron$View$add_class('Todo');
+					author$project$Compositron$View$add_class('url'),
+					A2(
+						elm$core$Basics$composeR,
+						author$project$Compositron$View$add_class('U'),
+						author$project$Compositron$View$element(
+							elm$core$Basics$always(elm$html$Html$input))));
+			case 'Err':
+				var string = itm.a;
+				return A2(
+					elm$core$Basics$composeR,
+					author$project$Compositron$View$add_class(string),
+					author$project$Compositron$View$add_class('Err'));
+			default:
+				return author$project$Compositron$View$add_class('Todo');
+		}
 	}
 };
 function author$project$Compositron$Item$cyclic$add_view() {
@@ -6442,58 +6720,9 @@ function author$project$Compositron$Item$cyclic$add_view() {
 						}
 					}()));
 			var insert_class = author$project$Compositron$View$add_class(
-				function () {
-					switch (f.$) {
-						case 'Meta':
-							return 'meta';
-						case 'Inaccessible':
-							return 'inaccessible';
-						case 'Stacked':
-							return 'stacked';
-						default:
-							return '';
-					}
-				}());
+				author$project$Compositron$Item$serialize_flow(f));
 			return A2(elm$core$Basics$composeR, insert_class, set_element);
 		},
-		info: function (itm) {
-			switch (itm.$) {
-				case 'Assume':
-					return author$project$Compositron$Item$Info('<');
-				case 'Field':
-					var name = itm.a;
-					return author$project$Compositron$Item$Info(name);
-				case 'Ambiguous':
-					var name = itm.a;
-					return author$project$Compositron$Item$Info(name + '...');
-				case 'Info':
-					var name = itm.a;
-					return author$project$Compositron$Item$Info(name);
-				case 'Err':
-					var string = itm.a;
-					return author$project$Compositron$Item$Info(string);
-				default:
-					var other = itm;
-					return author$project$Compositron$Item$proxy(other);
-			}
-		},
-		option: F2(
-			function (n, itm) {
-				return A2(
-					author$project$Compositron$View$element,
-					elm$core$Basics$always(elm$html$Html$button),
-					A2(
-						author$project$Compositron$View$add_action,
-						author$project$Compositron$View$Choose_this(itm),
-						A2(
-							author$project$Compositron$Item$view,
-							author$project$Compositron$Item$cyclic$add_view().info(itm),
-							A3(
-								author$project$Compositron$View$basic,
-								elm$core$String$fromInt(n),
-								author$project$Compositron$Signature$irrelevant(n),
-								elm$core$Basics$always(_List_Nil)))));
-			}),
 		proxy: author$project$Compositron$Item$view
 	};
 }
@@ -6527,19 +6756,64 @@ var author$project$Compositron$Node$view = function (node) {
 			author$project$Compositron$Item$view(node.item),
 			author$project$Compositron$Manifestation$view(node.manifestation)));
 };
+var author$project$Compositron$Signature$ephemeral = function (n) {
+	return author$project$Compositron$Signature$Signature(
+		{creator: 'ephemeral', scalar: n});
+};
+var author$project$Compositron$Structure$EagerZipperTree$bildren = zwilias$elm_rosetree$Tree$children;
+var author$project$Compositron$View$clear_actions = author$project$Compositron$View$actions(
+	elm$core$Basics$always(_List_Nil));
 var author$project$Compositron$View$activate = F2(
 	function (act, v) {
-		return A2(
-			author$project$Compositron$View$actions,
-			elm$core$Basics$always(_List_Nil),
-			A2(
-				author$project$Compositron$View$attributes,
-				elm$core$Basics$append(
-					A2(
-						elm$core$List$map,
-						act(v.signature),
-						v.actions)),
-				v));
+		var _n0 = v.signature;
+		if (_n0.$ === 'Nothing') {
+			return v;
+		} else {
+			var sig = _n0.a;
+			return author$project$Compositron$View$clear_actions(
+				A2(
+					author$project$Compositron$View$attributes,
+					elm$core$Basics$append(
+						A2(
+							elm$core$List$map,
+							act(sig),
+							v.actions)),
+					v));
+		}
+	});
+var author$project$Compositron$View$static = function (descriptor) {
+	return {
+		actions: _List_Nil,
+		attributes: _List_fromArray(
+			[
+				elm$html$Html$Attributes$class(descriptor)
+			]),
+		children: author$project$Compositron$View$Children(
+			elm$core$Basics$always(_List_Nil)),
+		descriptor: descriptor,
+		element: elm$html$Html$span,
+		signature: elm$core$Maybe$Nothing,
+		text: ''
+	};
+};
+var author$project$Compositron$View$active = F3(
+	function (descriptor, sig, inner) {
+		return function (v) {
+			return _Utils_update(
+				v,
+				{
+					children: author$project$Compositron$View$Children(inner)
+				});
+		}(
+			author$project$Compositron$View$static(descriptor));
+	});
+var author$project$Compositron$View$ephemeral = F2(
+	function (descriptor, sig) {
+		return A3(
+			author$project$Compositron$View$active,
+			descriptor,
+			sig,
+			elm$core$Basics$always(_List_Nil));
 	});
 var elm$virtual_dom$VirtualDom$Custom = function (a) {
 	return {$: 'Custom', a: a};
@@ -6786,6 +7060,11 @@ var elm$url$Url$fromString = function (str) {
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
 var elm$browser$Browser$Dom$focus = _Browser_call('focus');
+var elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
 var elm$core$Task$onError = _Scheduler_onError;
 var elm$core$Task$attempt = F2(
 	function (resultToMessage, task) {
@@ -6863,12 +7142,12 @@ var elm$html$Html$Events$onInput = function (tagger) {
 			elm$html$Html$Events$alwaysStop,
 			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
 };
-var author$project$Compositron$view = F3(
-	function (new_sig, message, compositree) {
-		var _this = zwilias$elm_rosetree$Tree$label(compositree);
+var author$project$Compositron$view_live_branch = F4(
+	function (new_creator, message, view_template_branch, branch) {
+		var _this = author$project$Compositron$Structure$EagerZipperTree$bode(branch);
 		var to_message = A2(
 			elm$core$Basics$composeR,
-			A2(author$project$Compositron$create_intent, new_sig, _this),
+			A2(author$project$Compositron$create_intent, new_creator, _this),
 			message.from_intent);
 		var is_targeted = author$project$Compositron$Manifestation$targeted(_this.manifestation);
 		var to_attribute = F2(
@@ -6892,13 +7171,13 @@ var author$project$Compositron$view = F3(
 										},
 										elm$browser$Browser$Dom$focus(
 											author$project$Compositron$Signature$serialize(sig)))));
-						case 'Choose_this':
-							var itm = act.a;
+						case 'Choose_these':
+							var refs = act.a;
 							return A3(
 								elm$core$Basics$composeR,
 								to_message,
 								author$project$Helpers$onClickNoBubble,
-								A2(author$project$Compositron$Choose, new_sig, itm));
+								A2(author$project$Compositron$Choose, new_creator, refs));
 						case 'Input_url':
 							var old = act.a;
 							return elm$html$Html$Events$onInput(
@@ -6907,7 +7186,7 @@ var author$project$Compositron$view = F3(
 									author$project$Compositron$Data$destring,
 									A2(
 										elm$core$Basics$composeR,
-										author$project$Compositron$Modify(new_sig),
+										author$project$Compositron$Modify(new_creator),
 										to_message)));
 						case 'Input_span':
 							var old = act.a;
@@ -6921,7 +7200,7 @@ var author$project$Compositron$view = F3(
 										author$project$Compositron$Data$destring,
 										A2(
 											elm$core$Basics$composeR,
-											author$project$Compositron$Modify(new_sig),
+											author$project$Compositron$Modify(new_creator),
 											to_message)),
 									A2(
 										elm$json$Json$Decode$at,
@@ -6947,10 +7226,28 @@ var author$project$Compositron$view = F3(
 				}
 			});
 		var inner = function (_n2) {
-			return A2(
+			var alternative_cogroup_views = A2(
 				elm$core$List$map,
-				A2(author$project$Compositron$view, new_sig, message),
-				zwilias$elm_rosetree$Tree$children(compositree));
+				function (cog) {
+					return A2(
+						author$project$Compositron$View$activate,
+						to_attribute,
+						A2(
+							author$project$Compositron$View$element,
+							elm$core$Basics$always(elm$html$Html$button),
+							cog(
+								A2(author$project$Compositron$View$ephemeral, 'Option', author$project$Compositron$Signature$ephemeral))));
+				},
+				A2(
+					elm$core$List$map,
+					A2(author$project$Compositron$Item$view_cogroup, _this.prototype, view_template_branch),
+					is_targeted ? author$project$Compositron$Item$alternatives(_this.item) : _List_Nil));
+			return _Utils_ap(
+				alternative_cogroup_views,
+				A2(
+					elm$core$List$map,
+					A3(author$project$Compositron$view_live_branch, new_creator, message, view_template_branch),
+					author$project$Compositron$Structure$EagerZipperTree$bildren(branch)));
 		};
 		return A2(
 			author$project$Compositron$View$activate,
@@ -6958,13 +7255,9 @@ var author$project$Compositron$view = F3(
 			A2(
 				author$project$Compositron$Node$view,
 				_this,
-				A3(author$project$Compositron$View$basic, 'compositron', _this.signature, inner)));
+				A3(author$project$Compositron$View$active, 'Compositron', _this.signature, inner)));
 	});
-var author$project$Compositron$Manifestation$target = elm$core$Basics$always(
-	{target: true});
-var author$project$Compositron$Signature$create = function (cre) {
-	return {creator: cre, scalar: 0};
-};
+var author$project$Compositron$Structure$EagerZipperTree$tree = A2(elm$core$Basics$composeR, zwilias$elm_rosetree$Tree$Zipper$root, zwilias$elm_rosetree$Tree$Zipper$tree);
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var elm$virtual_dom$VirtualDom$lazy2 = _VirtualDom_lazy2;
@@ -6980,13 +7273,16 @@ var author$project$Compositron$View$preview = function (v) {
 	return A3(elm$html$Html$Lazy$lazy2, v.element, v.attributes, html_children);
 };
 var author$project$Compositron$View$present = author$project$Compositron$View$preview;
+var author$project$Helpers$apply = F2(
+	function (parameter, fu) {
+		return fu(parameter);
+	});
+var author$project$Helpers$over = author$project$Helpers$apply;
+var elm$html$Html$br = _VirtualDom_node('br');
 var elm$html$Html$h2 = _VirtualDom_node('h2');
 var elm$html$Html$pre = _VirtualDom_node('pre');
 var author$project$Compositron$preview = F3(
-	function (new_transformation, message, compositron) {
-		var targeted_compositron = zwilias$elm_rosetree$Tree$Zipper$root(
-			A2(author$project$Compositron$map_manifestation, author$project$Compositron$Manifestation$target, compositron));
-		var new_sig = author$project$Compositron$Signature$create(new_transformation);
+	function (new_creator, message, compositron) {
 		var incipit = A2(
 			elm$html$Html$section,
 			_List_Nil,
@@ -7001,8 +7297,7 @@ var author$project$Compositron$preview = F3(
 						]),
 					_List_fromArray(
 						[
-							elm$html$Html$text(
-							author$project$Compositron$Signature$serialize(new_sig))
+							elm$html$Html$text(new_creator)
 						])),
 					A2(
 					elm$html$Html$pre,
@@ -7010,17 +7305,44 @@ var author$project$Compositron$preview = F3(
 					_List_fromArray(
 						[
 							elm$html$Html$text(
-							A2(author$project$Compositron$serialize, 0, targeted_compositron))
+							author$project$Compositron$serialize(compositron).live),
+							A2(elm$html$Html$br, _List_Nil, _List_Nil),
+							elm$html$Html$text(
+							author$project$Compositron$serialize(compositron).template)
 						]))
 				]));
-		var comp = author$project$Compositron$View$present(
-			A3(
-				author$project$Compositron$view,
-				new_sig,
-				message,
-				zwilias$elm_rosetree$Tree$Zipper$tree(targeted_compositron)));
+		var composition = function () {
+			var view_template_branch = A2(
+				elm$core$Basics$composeR,
+				author$project$Compositron$dereference(compositron),
+				A2(
+					elm$core$Basics$composeR,
+					elm$core$Maybe$map(author$project$Compositron$Structure$EagerZipperTree$node),
+					A2(
+						elm$core$Basics$composeR,
+						elm$core$Maybe$map(
+							A2(
+								elm$core$Basics$composeR,
+								function ($) {
+									return $.item;
+								},
+								A2(elm$core$Basics$composeR, author$project$Compositron$Item$accept, author$project$Compositron$Item$view))),
+						A2(
+							elm$core$Basics$composeR,
+							elm$core$Maybe$withDefault(elm$core$Basics$identity),
+							author$project$Helpers$over(
+								author$project$Compositron$View$static('Template'))))));
+			return author$project$Compositron$View$present(
+				A4(
+					author$project$Compositron$view_live_branch,
+					new_creator,
+					message,
+					view_template_branch,
+					author$project$Compositron$Structure$EagerZipperTree$tree(
+						author$project$Compositron$live(compositron))));
+		}();
 		return _List_fromArray(
-			[incipit, comp]);
+			[incipit, composition]);
 	});
 var author$project$Helpers$last = function (l) {
 	last:
@@ -7041,14 +7363,6 @@ var author$project$Helpers$last = function (l) {
 		}
 	}
 };
-var author$project$Helpers$both = F2(
-	function (_n0, a) {
-		var f = _n0.a;
-		var g = _n0.b;
-		return _Utils_Tuple2(
-			f(a),
-			g(a));
-	});
 var author$project$History$future = function (_n0) {
 	var h = _n0.a;
 	return h.future;
@@ -7224,6 +7538,467 @@ var author$project$Main$Transform = function (a) {
 var author$project$Main$UrlChanged = function (a) {
 	return {$: 'UrlChanged', a: a};
 };
+var author$project$Compositron$Node$adopt_domain = function (_this) {
+	return {
+		item: author$project$Compositron$Item$accept(_this.item),
+		manifestation: _this.manifestation,
+		prototype: _this.prototype,
+		signature: author$project$Compositron$Signature$accept(_this.signature)
+	};
+};
+var author$project$Compositron$Data$deserialize = author$project$Compositron$Data$destring;
+var author$project$Compositron$Item$Insatiable = function (a) {
+	return {$: 'Insatiable', a: a};
+};
+var author$project$Compositron$Item$Open = function (a) {
+	return {$: 'Open', a: a};
+};
+var author$project$Compositron$Item$Referral = function (a) {
+	return {$: 'Referral', a: a};
+};
+var author$project$Compositron$Item$Ambi = {$: 'Ambi'};
+var author$project$Compositron$Item$Figcaption = {$: 'Figcaption'};
+var author$project$Compositron$Item$Figure = {$: 'Figure'};
+var author$project$Compositron$Item$Heading = {$: 'Heading'};
+var author$project$Compositron$Item$Inaccessible = {$: 'Inaccessible'};
+var author$project$Compositron$Item$Inside = {$: 'Inside'};
+var author$project$Compositron$Item$Meta = {$: 'Meta'};
+var author$project$Compositron$Item$Paragraph = {$: 'Paragraph'};
+var author$project$Compositron$Item$Sectioning = {$: 'Sectioning'};
+var author$project$Compositron$Item$Stacked = {$: 'Stacked'};
+var author$project$Compositron$Item$deserialize_flow = function (s) {
+	switch (s) {
+		case '⍚':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Meta);
+		case '⌻':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Inside);
+		case '⍰':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Ambi);
+		case '⌺':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Stacked);
+		case '⌸':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Sectioning);
+		case '⍞':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Heading);
+		case '¶':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Paragraph);
+		case '⌹':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Figure);
+		case '⌯':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Figcaption);
+		case '⌧':
+			return elm$core$Maybe$Just(author$project$Compositron$Item$Inaccessible);
+		default:
+			return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Helpers$Or = F2(
+	function (a, b) {
+		return {$: 'Or', a: a, b: b};
+	});
+var author$project$Helpers$ambiguation_from_nonempty = function (n) {
+	if (!n.b.b) {
+		var head = n.a;
+		return author$project$Helpers$Of(head);
+	} else {
+		if (!n.b.b.b) {
+			var head = n.a;
+			var _n1 = n.b;
+			var tail = _n1.a;
+			return A2(
+				author$project$Helpers$Or,
+				head,
+				author$project$Helpers$Of(tail));
+		} else {
+			var head = n.a;
+			var _n2 = n.b;
+			var t = _n2.a;
+			var ail = _n2.b;
+			return A2(
+				author$project$Helpers$Or,
+				head,
+				author$project$Helpers$ambiguation_from_nonempty(
+					_Utils_Tuple2(t, ail)));
+		}
+	}
+};
+var author$project$Helpers$must_cons = F2(
+	function (may, acc) {
+		var _n0 = _Utils_Tuple2(may, acc);
+		if ((_n0.a.$ === 'Just') && (_n0.b.$ === 'Just')) {
+			var x = _n0.a.a;
+			var xs = _n0.b.a;
+			return elm$core$Maybe$Just(
+				A2(elm$core$List$cons, x, xs));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var author$project$Helpers$fold_must = A2(
+	elm$core$List$foldl,
+	author$project$Helpers$must_cons,
+	elm$core$Maybe$Just(_List_Nil));
+var author$project$Helpers$list_to_tuple = function (a) {
+	if ((a.b && a.b.b) && (!a.b.b.b)) {
+		var x = a.a;
+		var _n1 = a.b;
+		var y = _n1.a;
+		return elm$core$Maybe$Just(
+			_Utils_Tuple2(x, y));
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var elm$core$String$words = _String_words;
+var author$project$Compositron$Item$deserialize = F3(
+	function (to_l, to_t, str) {
+		var deserialize_cogroup = function (s) {
+			if (s === '') {
+				return elm$core$Maybe$Just(author$project$Compositron$Item$Self);
+			} else {
+				if (A2(elm$core$String$startsWith, ' ∞ ', s)) {
+					var _n3 = to_t(
+						A2(elm$core$String$dropLeft, 3, s));
+					if (_n3.$ === 'Just') {
+						var t = _n3.a;
+						return A3(
+							elm$core$Basics$composeR,
+							author$project$Compositron$Item$Insatiable,
+							A2(elm$core$Basics$composeR, author$project$Compositron$Item$Referral, elm$core$Maybe$Just),
+							t);
+					} else {
+						return elm$core$Maybe$Nothing;
+					}
+				} else {
+					var _n4 = author$project$Helpers$fold_must(
+						A2(
+							elm$core$List$map,
+							to_t,
+							A2(elm$core$String$split, ', ', s)));
+					if (_n4.$ === 'Just') {
+						var ts = _n4.a;
+						return A2(
+							elm$core$Maybe$map,
+							A2(elm$core$Basics$composeR, author$project$Compositron$Item$Open, author$project$Compositron$Item$Referral),
+							author$project$Helpers$to_nonempty(ts));
+					} else {
+						return elm$core$Maybe$Nothing;
+					}
+				}
+			}
+		};
+		var _n0 = A2(
+			author$project$Helpers$both,
+			_Utils_Tuple2(
+				A2(
+					elm$core$Basics$composeR,
+					elm$core$List$head,
+					elm$core$Maybe$withDefault('')),
+				A2(
+					elm$core$Basics$composeR,
+					elm$core$List$tail,
+					A2(
+						elm$core$Basics$composeR,
+						elm$core$Maybe$withDefault(
+							_List_fromArray(
+								[''])),
+						elm$core$String$join(' ')))),
+			elm$core$String$words(str));
+		switch (_n0.a) {
+			case '<':
+				var rest = _n0.b;
+				return author$project$Compositron$Item$Assume(
+					author$project$Helpers$ambiguation_from_nonempty(
+						A2(
+							elm$core$Maybe$withDefault,
+							_Utils_Tuple2(author$project$Compositron$Item$Self, _List_Nil),
+							author$project$Helpers$to_nonempty(
+								A2(
+									elm$core$List$map,
+									A2(
+										elm$core$Basics$composeR,
+										deserialize_cogroup,
+										elm$core$Maybe$withDefault(author$project$Compositron$Item$Self)),
+									A2(elm$core$String$split, ' | ', rest))))));
+			case '🛈':
+				var rest = _n0.b;
+				return author$project$Compositron$Item$Info(rest);
+			case '⚠':
+				var rest = _n0.b;
+				return author$project$Compositron$Item$Err(rest);
+			case 'Text':
+				var rest = _n0.b;
+				return A2(
+					elm$core$Maybe$withDefault,
+					author$project$Compositron$Item$Err('Failed to compose a T Text item from ' + rest),
+					A2(
+						elm$core$Maybe$map,
+						A2(
+							elm$core$Basics$composeR,
+							author$project$Helpers$each(author$project$Compositron$Data$deserialize),
+							function (_n1) {
+								var te = _n1.a;
+								var xt = _n1.b;
+								return author$project$Compositron$Item$T(
+									A2(author$project$Compositron$Item$Text, te, xt));
+							}),
+						author$project$Helpers$list_to_tuple(
+							A2(elm$core$String$split, ' | ', rest))));
+			case 'Picture':
+				var dat = _n0.b;
+				return A3(
+					elm$core$Basics$composeR,
+					author$project$Compositron$Item$Picture,
+					author$project$Compositron$Item$P,
+					author$project$Compositron$Data$deserialize(dat));
+			case 'Url':
+				var dat = _n0.b;
+				return A3(
+					elm$core$Basics$composeR,
+					author$project$Compositron$Item$Url,
+					author$project$Compositron$Item$U,
+					author$project$Compositron$Data$deserialize(dat));
+			case 'Youtube':
+				var dat = _n0.b;
+				return A3(
+					elm$core$Basics$composeR,
+					author$project$Compositron$Item$Youtube,
+					author$project$Compositron$Item$Y,
+					author$project$Compositron$Data$deserialize(dat));
+			case 'Vimeo':
+				var dat = _n0.b;
+				return A3(
+					elm$core$Basics$composeR,
+					author$project$Compositron$Item$Vimeo,
+					author$project$Compositron$Item$V,
+					author$project$Compositron$Data$deserialize(dat));
+			default:
+				var _n2 = A2(
+					author$project$Helpers$both,
+					_Utils_Tuple2(
+						elm$core$List$head,
+						A2(
+							elm$core$Basics$composeR,
+							elm$core$List$tail,
+							elm$core$Maybe$map(
+								A2(
+									elm$core$Basics$composeR,
+									elm$core$String$join(' | '),
+									author$project$Compositron$Item$deserialize_flow)))),
+					A2(elm$core$String$split, ' | ', str));
+				if (((_n2.a.$ === 'Just') && (_n2.b.$ === 'Just')) && (_n2.b.a.$ === 'Just')) {
+					var name = _n2.a.a;
+					var flow = _n2.b.a.a;
+					return A2(author$project$Compositron$Item$Body, name, flow);
+				} else {
+					return author$project$Compositron$Item$Err('Unable to deserialize ' + (str + ' to item'));
+				}
+		}
+	});
+var author$project$Compositron$Manifestation$deserialize = function (str) {
+	switch (str) {
+		case '▶':
+			return elm$core$Maybe$Just(author$project$Compositron$Manifestation$active);
+		case ' ':
+			return elm$core$Maybe$Just(author$project$Compositron$Manifestation$passive);
+		default:
+			return elm$core$Maybe$Nothing;
+	}
+};
+var elm$core$Debug$log = _Debug_log;
+var author$project$Helpers$trace = function (text) {
+	return function (x) {
+		return A2(
+			elm$core$Basics$always,
+			x,
+			A2(elm$core$Debug$log, '▦', text));
+	};
+};
+var author$project$Compositron$Signature$deserialize = function (str) {
+	var _n0 = elm$core$List$reverse(
+		A2(elm$core$String$split, '/', str));
+	if (_n0.b) {
+		var x = _n0.a;
+		var xs = _n0.b;
+		var _n1 = _Utils_Tuple2(
+			elm$core$String$toInt(x),
+			A2(elm$core$String$join, '/', xs));
+		if (_n1.a.$ === 'Just') {
+			var sca = _n1.a.a;
+			var cre = _n1.b;
+			return elm$core$Maybe$Just(
+				author$project$Compositron$Signature$Signature(
+					{creator: cre, scalar: sca}));
+		} else {
+			return A2(author$project$Helpers$trace, 'Parts of signature \'' + (str + '\' could not be parsed.'), elm$core$Maybe$Nothing);
+		}
+	} else {
+		return A2(author$project$Helpers$trace, 'An empty string failed to parse as signature.', elm$core$Maybe$Nothing);
+	}
+};
+var author$project$Compositron$Node$deserialize = function (str) {
+	var _n0 = A2(elm$core$String$split, '): ', str);
+	if (_n0.b) {
+		var x = _n0.a;
+		var xs = _n0.b;
+		var incipit = A2(
+			elm$core$Tuple$mapSecond,
+			elm$core$Maybe$map(author$project$Compositron$Signature$accept),
+			A2(
+				author$project$Helpers$each,
+				elm$core$Maybe$andThen(author$project$Compositron$Signature$deserialize),
+				A2(
+					author$project$Helpers$both,
+					_Utils_Tuple2(
+						elm$core$List$head,
+						A2(
+							elm$core$Basics$composeR,
+							elm$core$List$tail,
+							elm$core$Maybe$map(
+								elm$core$String$join(' (')))),
+					A2(elm$core$String$split, ' (', x))));
+		var _n1 = _Utils_Tuple3(
+			incipit,
+			A3(
+				author$project$Compositron$Item$deserialize,
+				author$project$Compositron$Signature$deserialize,
+				author$project$Compositron$Signature$deserialize,
+				A2(elm$core$String$join, '): ', xs)),
+			author$project$Compositron$Manifestation$deserialize(
+				A2(elm$core$String$left, 1, x)));
+		if (((_n1.a.a.$ === 'Just') && (_n1.a.b.$ === 'Just')) && (_n1.c.$ === 'Just')) {
+			var _n2 = _n1.a;
+			var s = _n2.a.a;
+			var p = _n2.b.a;
+			var i = _n1.b;
+			var m = _n1.c.a;
+			return elm$core$Maybe$Just(
+				{item: i, manifestation: m, prototype: p, signature: s});
+		} else {
+			return A2(author$project$Helpers$trace, 'Parts of the node (' + (str + ') could not be parsed.'), elm$core$Maybe$Nothing);
+		}
+	} else {
+		return A2(author$project$Helpers$trace, 'Empty String parsed as Node.', elm$core$Maybe$Nothing);
+	}
+};
+var author$project$Compositron$Signature$root = author$project$Compositron$Signature$inc(
+	author$project$Compositron$Signature$prime('upsiflu'));
+var author$project$Compositron$Node$trivial = {
+	item: author$project$Compositron$Item$Info('trivial'),
+	manifestation: author$project$Compositron$Manifestation$active,
+	prototype: author$project$Compositron$Signature$root,
+	signature: author$project$Compositron$Signature$root
+};
+var author$project$Helpers$segment_at = function (predicate) {
+	return A2(
+		elm$core$Basics$composeR,
+		A2(
+			elm$core$List$foldl,
+			F2(
+				function (itm, segments) {
+					var _n0 = _Utils_Tuple2(
+						segments,
+						predicate(itm));
+					if (_n0.b) {
+						return A2(
+							elm$core$List$cons,
+							_List_fromArray(
+								[itm]),
+							segments);
+					} else {
+						if (_n0.a.b) {
+							var _n1 = _n0.a;
+							var seg = _n1.a;
+							var nts = _n1.b;
+							return A2(
+								elm$core$List$cons,
+								A2(elm$core$List$cons, itm, seg),
+								nts);
+						} else {
+							return _List_Nil;
+						}
+					}
+				}),
+			_List_Nil),
+		A2(
+			elm$core$Basics$composeR,
+			elm$core$List$map(elm$core$List$reverse),
+			elm$core$List$reverse));
+};
+var elm$core$Basics$not = _Basics_not;
+var elm$core$String$lines = _String_lines;
+var zwilias$elm_rosetree$Tree$map = F2(
+	function (f, t) {
+		return A3(
+			zwilias$elm_rosetree$Tree$mapAccumulate,
+			F2(
+				function (_n0, e) {
+					return _Utils_Tuple2(
+						_Utils_Tuple0,
+						f(e));
+				}),
+			_Utils_Tuple0,
+			t).b;
+	});
+var author$project$Compositron$Structure$EagerZipperTree$deserialize = F2(
+	function (_default, to_node) {
+		var children = function (lines) {
+			return A2(
+				author$project$Helpers$segment_at,
+				A2(
+					elm$core$Basics$composeR,
+					elm$core$String$startsWith('  '),
+					elm$core$Basics$not),
+				A2(
+					elm$core$List$map,
+					elm$core$String$dropLeft(2),
+					A2(
+						elm$core$Maybe$withDefault,
+						_List_Nil,
+						elm$core$List$tail(lines))));
+		};
+		var unfold = function (lines) {
+			return A2(
+				zwilias$elm_rosetree$Tree$tree,
+				to_node(
+					A2(
+						elm$core$Maybe$withDefault,
+						'',
+						elm$core$List$head(lines))),
+				function () {
+					if (!lines.b) {
+						return _List_Nil;
+					} else {
+						var li = lines;
+						return A2(
+							elm$core$List$map,
+							unfold,
+							children(li));
+					}
+				}());
+		};
+		return A2(
+			elm$core$Basics$composeR,
+			elm$core$String$lines,
+			A2(
+				elm$core$Basics$composeR,
+				unfold,
+				A2(
+					elm$core$Basics$composeR,
+					zwilias$elm_rosetree$Tree$map(
+						elm$core$Maybe$withDefault(_default)),
+					zwilias$elm_rosetree$Tree$Zipper$fromTree)));
+	});
+var zwilias$elm_rosetree$Tree$singleton = function (v) {
+	return A2(zwilias$elm_rosetree$Tree$Tree, v, _List_Nil);
+};
+var author$project$Compositron$Structure$EagerZipperTree$singleton = A2(elm$core$Basics$composeR, zwilias$elm_rosetree$Tree$singleton, zwilias$elm_rosetree$Tree$Zipper$fromTree);
+var author$project$Compositron$trivial = author$project$Compositron$Compositron(
+	{
+		live: author$project$Compositron$Structure$EagerZipperTree$singleton(
+			author$project$Compositron$Node$adopt_domain(author$project$Compositron$Node$trivial)),
+		template: A3(author$project$Compositron$Structure$EagerZipperTree$deserialize, author$project$Compositron$Node$trivial, author$project$Compositron$Node$deserialize, '\n▶template/0: Field: proxy: ⚠ former root\n   template/1: Field: proxy: 🛈 Hoppla\n     dupsel/0: ⚠ primer\n')
+	});
 var author$project$History$History = function (a) {
 	return {$: 'History', a: a};
 };
@@ -7548,18 +8323,21 @@ var author$project$Ui$icons = {
 				_List_Nil)
 			]))
 };
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var elm$html$Html$br = _VirtualDom_node('br');
 var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$header = _VirtualDom_node('header');
 var elm$html$Html$label = _VirtualDom_node('label');
 var elm$html$Html$main_ = _VirtualDom_node('main');
-var elm$core$Tuple$second = function (_n0) {
-	var y = _n0.b;
-	return y;
-};
+var elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
 var elm$html$Html$Attributes$classList = function (classes) {
 	return elm$html$Html$Attributes$class(
 		A2(

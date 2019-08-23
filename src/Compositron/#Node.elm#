@@ -62,7 +62,7 @@ accept tmp prm =
 equal_items :
     Node ( Signature d ) ( Signature c ) ->
     Node ( Signature c ) ( Signature c ) ->
-        Bool
+    Bool
 equal_items node conode =
     Item.equal node.item conode.item
         
@@ -76,7 +76,7 @@ self_reference nod =
 
 adopt_domain :
     Node ( Signature c ) ( Signature c ) ->
-        Node ( Signature d1 ) ( Signature c )
+    Node ( Signature d1 ) ( Signature c )
 adopt_domain =
     \this -> { signature = Signature.accept this.signature
              , prototype = this.prototype

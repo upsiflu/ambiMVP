@@ -7,13 +7,12 @@ module Compositron.Structure.EagerZipperTree exposing
         
     -- read
     , node
-    , kid_nodes
     , branch
     , group_branches
     , bode
     , bildren
     , tree
-    , equal_branches
+    , compare_branches
         
     -- navigate
     , find
@@ -45,16 +44,58 @@ module Compositron.Structure.EagerZipperTree exposing
 --}
     )
 
+{-| Eagerly evaluated tree with zipper.
+
+# Definition
+@docs Structure
+@docs Branch
+
+# Create                                                                             
+@docs singleton
+
+# Read                                                                               
+@docs branch
+@docs node
+@docs bode
+@docs bildren
+@docs tree
+@docs group_branches
+@docs compare_branches
+
+# Navigate                                                                           
+@docs find
+@docs mark
+
+# Map (with a primer)                                                                
+@docs accept_branch
+@docs accept_template
+
+# Map a Map                                                                          
+@docs each_in_group
+@docs up_the_ancestry
+
+# Serial form                                                                        
+@docs serialize
+@docs deserialize
+@docs log
+
+ -}
+
+
+        
 import String.Extra
 
 import Tree.Zipper as Zipper exposing ( Zipper )
 import Tree exposing ( Tree )
 
 import Helpers exposing (..)
+import Helpers.LZipper as LZipper exposing ( LZipper )
 
+{-| Tree with Zipper of nodes *a* -}
 type alias Structure a =
     Zipper a
 
+{-| Tree of nodes _a_ -}
 type alias Branch a =
     Tree a
 
@@ -63,6 +104,10 @@ type alias Branch a =
 -- create
 
 
+{-| Create a Structure from a single node.
+
+    singleton 1 |> serialize String.fromInt == "1"
+ -}
 singleton : a -> Structure a
 singleton = Tree.singleton >> Zipper.fromTree
 
@@ -71,15 +116,98 @@ singleton = Tree.singleton >> Zipper.fromTree
 -- read
 
 
+{-| The subset of the tree, beginnning with the focus. 
+
+    "a\n  b\n  c"
+        |> deserialize "" Just
+        |> perhaps ( find ( (==) "c") )
+        |> branch
+        |> bode
+    --> "c"
+-}
+branch : Structure a -> Branch a
+branch = Zipper.tree
+
+
+{-| The whole tree, from root onwards. 
+
+    "a\n  b\n  c"
+        |> deserialize "" Just
+        |> perhaps ( find ( (==) "c") )
+        |> tree
+        |> bode
+    --> "a"
+-}
+tree : Structure a -> Branch a
+tree =
+    Zipper.root >> branch
+
+         
+bringleton = Tree.singleton
+
+
+{-| The node in focus. 
+
+    singleton 1 |> node == 1                                              
+-}
 node : Structure a -> a
 node = branch >> Tree.label
 
+             
+{-| Node at the root of the given branch.
+
+    singleton 1 |> branch >> bode == 1
+-}
+bode : Branch a -> a
+bode = Tree.label
+
+       
+
+       
+{-| Subbranches (descendants) of the given branch. 
+
+    "a\n  b\n  c"
+        |> deserialize "" Just
+        |> branch
+        |> bildren
+        |> List.map bode
+    --> ["b", "c"]
+-}
+bildren : Branch a -> List ( Branch a )
+bildren = Tree.children
+
+          
+
+       
+{-| Collect all branches in the group around the focus into an LZipper. If in root or one level below, exclude siblings.
+
+**🅁 Template Spaces:** Toplevel template branches are not mutual neighbours.
+
+    singleton "a" 
+        |> group_branches
+        |> LZipper.map bode 
+        --> { before = []
+        --> , focus  = "a"
+        --> , after  = [] 
+        --> }
+
+    "a\n  b\n    c\n    d\n    e" 
+        |> deserialize "" Just 
+        |> perhaps ( find ( (==) "d" ) ) 
+        |> group_branches
+        |> LZipper.map bode
+        --> { before = ["c"]
+        --> , focus  =  "d"
+        --> , after  = ["e"] 
+        --> }
+-}
 group_branches : Structure a -> LZipper ( Tree a )
 group_branches struct =
-    
-  --🅁 Template Spaces: Toplevel template branches are not mutual neighbours.
-    if Zipper.parent struct == Just ( Zipper.root struct ) || Zipper.parent struct == Nothing
-    then { before = [], focus = branch struct, after = [] }
+    if
+        Zipper.parent struct == Just ( Zipper.root struct )
+        || Zipper.parent struct == Nothing
+    then
+        { before = [], focus = branch struct, after = [] }
     else
         struct |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
                |> \( b, a ) -> { before = b, focus = branch struct, after = a }
@@ -88,27 +216,33 @@ kid_nodes : Structure a -> List a
 kid_nodes =
     branch >> bildren >> List.map bode
 
-branch : Structure a -> Branch a
-branch = Zipper.tree
-
-bringleton = Tree.singleton
-
-bode = Tree.label
-
-bildren = Tree.children
-
-tree : Structure a -> Branch a
-tree =
-    Zipper.root >> Zipper.tree
-
+        
         
            
 -- navigate
 
 
+{-| If possible, switch focus to the first node, beginning at root, 
+that satisfies a predicate. 
+
+    let find_in_structure fu =
+        "a\n  b"
+            |> deserialize "" Just
+            |> find fu
+            |> Maybe.map node
+    in
+        (==) "b"    |> find_in_structure --> Just "b"
+        (\_-> True) |> find_in_structure --> Just "a"
+        (==) "c"    |> find_in_structure --> Nothing
+-}
 find : ( a -> Bool ) -> Structure a -> Maybe ( Structure a )
 find = Zipper.findFromRoot
 
+
+{-| Map the focused node without affecting the structure. 
+
+    "a" |> singleton >> mark String.toUpper >> node == "A"
+-}
 mark : Map a -> Map ( Structure a )
 mark = Zipper.mapLabel       
 
@@ -117,10 +251,11 @@ mark = Zipper.mapLabel
 -- modify (with a primer)
 
 
+{-| Map a branch while counting with a primer. -}
 accept_branch :
     ( p -> p ) ->
     ( t -> p -> a ) ->
-        ( p, Branch t ) -> ( p, Branch a )
+    ( p, Branch t ) -> ( p, Branch a )
 accept_branch inc_primer accept_node ( primer, template_branch ) =
     let
         next pre nod =
@@ -129,11 +264,28 @@ accept_branch inc_primer accept_node ( primer, template_branch ) =
     in Tree.mapAccumulate next primer template_branch
 
                 
+
+{-| Map a structure by superimposing a bunch of branches. 
+
+    let match may_a tmp = 
+            ( \(p, t) -> 
+                ( ( bode p )+1 |> singleton |> branch
+                , bode t
+                  ++ bode ( may_a |> Maybe.withDefault t )
+                  ++ String.fromInt ( bode p ) |> singleton |> branch 
+                ) 
+            ) |> Fix 
+    in
+        ( singleton 0 |> branch, singleton "a" ) 
+            |> accept_template match ( LZipper.singleton ( singleton "q" |> branch ) )
+
+**TODO:** this does not yet work. 
+-}
 accept_template :
-    LZipper ( Branch t ) ->
     ( Maybe ( Branch a ) -> Branch t -> Match ( p, Branch t ) ( p, Branch a ) ) ->
-        Map ( p, Structure a )
-accept_template template match ( primer, structure ) =
+    LZipper ( Branch t ) ->
+    Map ( p, Structure a )
+accept_template match template ( primer, structure ) =
     let         
         forward :
             ( List ( Branch a ), List ( Branch t ) ) ->
@@ -186,6 +338,32 @@ accept_template template match ( primer, structure ) =
         )
 
 
+
+{-| Given a comparison function between their nodes,
+compare two branches of different domains. Will return True only
+if the structure is identical and all nodes compare favorably.
+
+    compare_branches 
+        (==) 
+        ( "a\n  2" |> deserialize "" Just |> branch ) 
+        ( "a\n  2" |> deserialize "" Just |> branch ) 
+        --> True
+
+    compare_branches 
+        (<) 
+        ( singleton 0 |> branch ) 
+        ( singleton 1 |> branch )
+        --> True
+ -}
+compare_branches :
+    ( a -> t -> Bool ) -> Branch a -> Branch t -> Bool
+compare_branches eq ba bt =
+    (&&) ( eq ( bode ba ) ( bode bt ) )
+        <| List.foldl (&&) True
+            ( List.map2 ( compare_branches eq ) ( Tree.children ba ) ( Tree.children bt ) )
+
+        
+
 -- helpers
 map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
 map_group fu struct =
@@ -202,21 +380,14 @@ map_group fu struct =
                  |> Maybe.map Zipper.fromTree
                  |> Maybe.withDefault struct
            )
-        
 
-equal_branches :
-    ( a -> t -> Bool ) -> Branch a -> Branch t -> Bool
-equal_branches eq ba bt =
-    (&&) ( eq ( bode ba ) ( bode bt ) )
-        <| List.foldl (&&) True
-            ( List.map2 ( equal_branches eq ) ( Tree.children ba ) ( Tree.children bt ) )
-
-        
+         
 
         
 -- map a Map
 
 
+{-| Apply a Map to each branch in the group, including the focused one. -}
 each_in_group : Map ( Map ( p, Structure a ) )
 each_in_group fu ( primer, struct ) =
     let
@@ -236,6 +407,8 @@ each_in_group fu ( primer, struct ) =
             |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
 
 
+
+{-| Apply a Map to each focus that traces up to root. -}
 up_the_ancestry : Map ( Map ( p, Structure a ) )
 up_the_ancestry fu ( primer, struct ) =
     let
@@ -251,32 +424,15 @@ up_the_ancestry fu ( primer, struct ) =
             |> while_just ( fu ) maybe_next
             |> Tuple.mapSecond ( perhaps <| Zipper.findNext ( (==) pivot ) )
 
-               
-each_child : Map ( Map ( p, Structure a ) )
-each_child fu ( primer, struct ) =
-    let
-        pivot =
-            node struct
-                
-        first_child : Map ( Structure a )
-        first_child =
-            perhaps Zipper.firstChild
-
-        maybe_next ( x, s ) =
-            case Zipper.nextSibling s of
-                Nothing -> Nothing
-                Just ns -> Just ( x, ns )
-    in
-        ( primer, first_child struct )
-            |> while_just ( fu ) maybe_next
-            |> Tuple.mapSecond ( perhaps <| Zipper.findPrevious ( (==) pivot ) )
-
-
 
                       
 -- serial form
 
 
+{-| A unique linear representation. 
+
+    singleton "a" |> serialize identity == "a" 
+-}
 serialize : ( a -> String ) -> Structure a -> String
 serialize from_node =
     let
@@ -292,7 +448,12 @@ serialize from_node =
         >> serialize_at 0
 
 
-            
+{-| Parse back from a linear representation. 
+
+    "a" |> deserialize "default" Just == singleton "a"
+    "a" |> deserialize "default" Nothing == singleton "default" 
+    "a" |> deserialize "default" Just >> serialize identity == "a"
+-}            
 deserialize : a -> ( String -> Maybe a ) -> String -> Structure a
 deserialize default to_node =
     let
@@ -314,7 +475,10 @@ deserialize default to_node =
             >> Zipper.fromTree
 
 
-
+{-| log to the console.
+-}
+log : ( a->String ) ->     Structure a -> Structure a
+      
 log from_node =
     let
         trace_lines ll =

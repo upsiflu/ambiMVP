@@ -14,7 +14,35 @@ module Compositron exposing
     -- testing
     , choose
     , target
+    , modify
     )
+
+{-| Compositron is a tree-shaped composition. It is comprised of a template and a live tree.
+To edit the live tree, you can modify, choose, ... each node.
+
+# Definition
+@docs State
+
+# Create
+@docs trivial
+
+# View and Interact
+@docs preview
+
+# Edit
+@docs choose
+@docs target
+@docs modify
+
+#Serial Form
+@docs log
+@docs serialize
+@docs deserialize
+-}
+
+
+
+
 
 import Browser.Dom as Dom
 import Html exposing ( Html )
@@ -28,7 +56,7 @@ import Task
 import History.Intent exposing ( Intent )
 
 import Helpers exposing ( .. )
-
+import Helpers.LZipper as LZipper exposing ( LZipper )
 
 import Compositron.Structure.EagerZipperTree as Structure
 
@@ -47,8 +75,11 @@ import Compositron.View as View exposing ( View, Action (..) )
 -- Compositron
 
 
+{-| Comprises a live structure and a template structure. Use Edits to modify. 
+-}
 type alias State = Compositron
-    
+
+
 type Compositron =
     Compositron { live : LiveStructure, template : TempStructure }
 
@@ -78,11 +109,12 @@ type alias TempItem = Item.Item TempSignature TempSignature
     
 -- create
 
-   
+{-| A Compositron with a trivial live structure and an example program in template.
+-}
 trivial : Compositron
 trivial =
     Compositron
-        { live = Structure.singleton ( Node.trivial |> Node.map_domain )
+        { live = Structure.singleton ( Node.trivial |> Node.adopt_domain )
         , template =
             Structure.deserialize
                 Node.trivial
@@ -107,17 +139,6 @@ dereference comp sig =
 
 live ( Compositron c ) = c.live
 template ( Compositron c ) = c.template
-                         
-node = live >> Structure.node
-template_node = template >> Structure.node
-
-signature = node >> .signature
-
-item = node >> .item
-       
-manifestation =  node >> .manifestation
-
-data = item >> Item.data
 
             
 
@@ -149,12 +170,11 @@ map_template fu ( Compositron c ) = Compositron { c | template = fu c.template }
 
 manifest : Creator -> Maybe ( Nonempty TempBranch ) -> Map Compositron
 manifest new_cre new_branches compositron =
-
     let         
         match_template_replacement :
             Maybe LiveBranch ->
             TempBranch ->
-                Match ( PrimNode, TempBranch ) ( PrimNode, LiveBranch )
+            Match ( PrimNode, TempBranch ) ( PrimNode, LiveBranch )
         match_template_replacement may_live tmp =
             case may_live of
                     
@@ -163,54 +183,38 @@ manifest new_cre new_branches compositron =
                     Fix <| Structure.accept_branch Node.inc Node.accept
                                    
                 Just liv ->
-                    if Structure.equal_branches Node.equal_items liv tmp
-
-                    -- live matches. Discard the template branch here:
+                    if Structure.compare_branches Node.equal_items liv tmp
+                        -- live matches. Discard the template branch here:
                         then Pursue
-
-                    -- template differs. Accept the template branch here:
+                        -- template differs. Accept the template branch here:
                         else
                             Fix <| Structure.accept_branch Node.inc Node.accept
         
-        -- Given a primer and a Compositron, perhaps impose a template and manifest it here
-        satisfy : Map ( PrimNode, LiveStructure )
+        satisfy :
+            Map ( PrimNode, LiveStructure )
         satisfy ( pre, structure ) =
-
             let
-                this_template : Maybe ( LZipper TempBranch )
-                this_template =
-                    structure
-                        |> Structure.node
-                        |> Node.self_reference             -- Maybe ( LiveSignature )
-                        |> Maybe.andThen ( dereference compositron )-- Maybe ( TempStructure )
-                        |> Maybe.map Structure.group_branches -- ( [ TempB ], TempB, [ TempB ] )
-                                
+                templates : LiveStructure -> Maybe ( LZipper TempBranch )
+                templates =
+                    Structure.node
+                        >> Node.self_reference
+                        >> Maybe.andThen ( dereference compositron )
+                        >> Maybe.map Structure.group_branches
             in
-                case this_template of
-                    
-                    Nothing ->
-                        ( pre, structure )
-                            
-                    Just template_group ->
-                        ( pre, structure )
-                            |> Structure.accept_template
-                                   template_group
-                                   match_template_replacement
+                ( pre, structure )
+                    |> accept_branches ( templates structure )
 
-        accept_new_branches =
-            case new_branches of
-                Nothing ->
-                    identity
-                Just branches ->
-                    Structure.accept_template
-                        ( branches |> nonempty_to_lzipper )
-                        match_template_replacement
 
+        accept_branches : Maybe ( LZipper TempBranch ) -> Map ( PrimNode, LiveStructure ) 
+        accept_branches =
+            maybe ( Structure.accept_template match_template_replacement )
+
+                
     in
         ( Node.primer new_cre, live compositron )
 
         --(1) manifest new branches if there are any
-            |> accept_new_branches
+            |> accept_branches ( new_branches |> Maybe.map LZipper.from_nonempty )
                
         --(2) resatisfy assumptions in the group; repeat up to root.
             |> Structure.up_the_ancestry
@@ -234,13 +238,14 @@ type Edit
       
     | Freeze
 
-
+{-| mark some node active. -}
 target : LiveSignature -> Map Compositron
 target sig =
     mark Node.passivate
         >> map_live ( Structure.find ( \this -> this.signature == sig ) |> perhaps )
         >> mark Node.activate
 
+{-| disambiguate some node. -}
 choose : Creator -> ( List TempSignature ) -> Map Compositron
 choose cre new_signatures compositron =
     new_signatures
@@ -250,10 +255,12 @@ choose cre new_signatures compositron =
         |> to_nonempty
         |> \new_branches -> manifest cre new_branches compositron
        
+{-| (TODO) undo any change done by a given Creator. -}
 revert : Creator -> TempSignature -> Map Compositron
 revert cre proto_ref comp =
     comp
         
+{-| change data in a node. -}
 modify : Creator -> Data -> Map Compositron
 modify cre new_dat compositron =
     compositron
@@ -261,10 +268,13 @@ modify cre new_dat compositron =
         |> manifest cre Nothing
             
 
+{-| make a node frozen. 
+Nescessary to circumvent conflicts between HTML contenteditable property and the elm engine. -}
 freeze : Map Compositron
 freeze =
     mark ( Node.map_item Item.freeze )
 
+{-| before editing text, you need to taw data. -}
 unfreeze : Map Compositron
 unfreeze =
     mark ( Node.map_item Item.unfreeze )
@@ -316,12 +326,12 @@ type alias Message msg m =
         , noop : msg
     }
 
+{-| render an interactive tree. -}
 preview :
     Creator
         -> Message msg m
         -> Compositron
         -> List ( Html msg )
-           
 preview new_creator message compositron =
     let
         incipit =
@@ -451,21 +461,21 @@ view_live_branch new_creator message view_template_branch branch =
 -- serial form
                
 
+{-| make a node frozen. -}
 serialize : Compositron -> { live : String, template : String }
 serialize c =
     { live = live c |> Structure.serialize Node.serialize
     , template = template c |> Structure.serialize Node.serialize
     }
 
-deserialize : { live : String, template : String } ->
-              { live : LiveStructure
-              , template : TempStructure
-              }
+{-| make a node frozen. -}
+deserialize : { live : String, template : String } -> Compositron
 deserialize serial =
+    Compositron
     { live = serial.live
         |> Structure.deserialize
-              ( Node.trivial |> Node.map_domain )
-              ( Node.deserialize >> Maybe.map Node.map_domain)
+              ( Node.trivial |> Node.adopt_domain )
+              ( Node.deserialize >> Maybe.map Node.adopt_domain )
     , template = serial.template
         |> Structure.deserialize
               ( Node.trivial )
@@ -473,4 +483,6 @@ deserialize serial =
     }
            
             
+{-| make a node frozen. -}
+log : Compositron -> LiveStructure
 log = live >> Structure.log Node.serialize

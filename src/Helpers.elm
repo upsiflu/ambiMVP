@@ -3,7 +3,7 @@ module Helpers exposing
 
 import Html.Events exposing ( .. )
 import Json.Decode as Decode
-
+import Helpers.LZipper exposing (..)
 
 -- logging and debugging
 
@@ -48,34 +48,14 @@ type alias Nonempty a =
 map_nonempty fu ( head, tail ) =
     ( fu head, List.map fu tail )
 
-lzipper_singleton x = { before = [], focus = x, after = [] }
         
 from_nonempty ( head, tail ) = head::tail
-
-nonempty_to_lzipper ( head, tail ) = { before = [], focus = head, after = tail }
 
         
 to_nonempty list =
     case list of
         l::ist -> Just ( l, ist )
         _ -> Nothing
-
-to_lzipper list =
-    case list of
-        l::ist ->
-            Just { before = [], focus = l, after = ist }
-        _ ->
-            Nothing
-             
-type alias LZipper a =
-    { before : List a, focus: a, after: List a }
-
-map_lzipper : ( a -> b ) -> LZipper a -> LZipper b
-map_lzipper fu lza =
-    { before = List.map fu lza.before
-    , focus = fu lza.focus
-    , after = List.map fu lza.after
-    }
 
 list_to_tuple : List a -> Maybe ( a, a )
 list_to_tuple a =
@@ -117,7 +97,13 @@ perhaps fu parameter =
 attempt : ( b -> Maybe a ) -> ( a -> ( b -> a ) )
 attempt fu =
     \fallback -> fu >> Maybe.withDefault fallback
- 
+
+maybe : ( base -> Map a ) -> Maybe base -> Map a 
+maybe fu may =
+    case may of
+        Just base -> fu base
+        Nothing -> identity
+                 
                  
 -- conditional map
 

@@ -1,0 +1,8 @@
+{
+    "name": "upsiflu/ambi-mvp",
+    "summary": "collaborative web app editor",
+    "version": "0.0.1",
+    "exposed-modules": [
+	"Compositron"
+    ]
+}

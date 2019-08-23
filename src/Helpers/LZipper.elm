@@ -1,0 +1,23 @@
+module Helpers.LZipper exposing (..)
+
+from_list list =
+    case list of
+        l::ist ->
+            Just { before = [], focus = l, after = ist }
+        _ ->
+            Nothing
+                
+type alias LZipper a =
+    { before : List a, focus: a, after: List a }
+                        
+map : ( a -> b ) -> LZipper a -> LZipper b
+map fu lza =
+    { before = List.map fu lza.before
+    , focus = fu lza.focus
+    , after = List.map fu lza.after
+    }
+
+singleton x = { before = [], focus = x, after = [] }
+
+from_nonempty ( head, tail ) = { before = [], focus = head, after = tail }
+                                                                                              
