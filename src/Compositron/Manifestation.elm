@@ -31,12 +31,12 @@ view manifestation =
 serialize : Manifestation -> String
 serialize manifestation =
     case targeted manifestation of
-        True -> "▶"
-        False -> " "
+        True -> "*"
+        False -> ""
 
 deserialize : String -> Maybe Manifestation
 deserialize str =
     case str of
-        "▶" -> Just active
-        " " -> Just passive
+        "*" -> Just active
+        "" -> Just passive
         _ -> Nothing

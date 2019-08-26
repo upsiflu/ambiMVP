@@ -1,0 +1,4 @@
+{
+    "root": "../src",
+    "tests": ["Compositron.Structure.EagerZipperTree"]
+}

@@ -1,6 +1,68 @@
 module Compositron.Item exposing
-    (..)
+    ( Item (..)
+    , Flow
 
+    -- create
+    , default_symbol
+        
+    -- read
+    , data
+    , to_symbol
+        
+    , is_self_assumption
+    , equal
+        
+    , alternatives
+    , assumptions
+        
+    -- map
+    , accept
+    , set_data
+    , freeze
+    , unfreeze
+        
+    -- view
+    , view
+    , view_cogroup
+          
+    -- serial form
+    , deserialize
+    , serialize
+    )
+
+{-|
+# Definition
+@docs Item
+
+# create
+@docs default_symbol
+
+# Read
+@docs data
+@docs to_symbol
+        
+@docs is_self_assumption
+@docs equal
+        
+@docs alternatives
+@docs assumptions
+        
+# Map
+@docs accept
+@docs set_data
+@docs freeze
+@docs unfreeze
+        
+# view
+@docs view
+@docs view_cogroup
+@docs Flow
+          
+# serial form
+@docs deserialize
+@docs serialize
+-}
+        
 import Html exposing ( Html )
 import Html.Attributes as Attributes
 
@@ -13,7 +75,7 @@ import Compositron.View as View exposing ( View, Action (..) )
 
 
 
-
+{-|-}
 type Item l t
            
     = Info String | Err String
@@ -27,7 +89,29 @@ type Item l t
     | Y Youtube
     | V Vimeo
 
-      
+{-|
+`⍚`—Meta
+
+`⌻`—Inside
+
+`⍰`—Ambi
+
+`⌺`—Stacked
+
+`⌸`—Sectioning
+
+`⍞`—Heading
+
+`¶`—Paragraph
+
+`⌹`—Figure
+
+`⌯`—Figcaption
+
+`◆`—Symbolic
+
+`⌧`—Inaccessible
+-} 
 type Flow
     = Meta -- can be above, below, introducing, or trailing.
     | Inside
@@ -38,6 +122,7 @@ type Flow
     | Paragraph
     | Figure
     | Figcaption
+    | Symbolic
     | Inaccessible -- for bodies that are not (yet) realized.
 
 serialize_flow : Flow -> String
@@ -52,8 +137,9 @@ serialize_flow f =
         Paragraph -> "¶"
         Figure -> "⌹"
         Figcaption -> "⌯"
+        Symbolic -> "◆"
         Inaccessible -> "⌧"
-
+               
 deserialize_flow : String -> Maybe Flow
 deserialize_flow s =
     case s of
@@ -66,6 +152,7 @@ deserialize_flow s =
         "¶" -> Just Paragraph
         "⌹" -> Just Figure
         "⌯" -> Just Figcaption
+        "◆" -> Just Symbolic
         "⌧" -> Just Inaccessible
         _ -> Nothing
 
@@ -107,6 +194,10 @@ type Considering ref
       
 -- create
 
+{-| creates a generic symbol to represent choices where the intended group has no symbol.-}
+default_symbol : Item l t
+default_symbol = Body "*" Symbolic
+
 
 primer : Item l t
 primer = Err "primer"
@@ -116,6 +207,7 @@ initial : Item l t
 initial = Info "root"
 
           
+{-|-}     
 accept : Item t t -> Item l t
 accept itm =
     case itm of
@@ -131,15 +223,35 @@ accept itm =
 
           
          
-
 -- read
 
 
+{-|-}
+data : Item l t -> Maybe Data
+data i =
+    case i of
+        T ( Text fluid frozen ) -> Just fluid
+        P ( Picture dat ) -> Just dat
+        U ( Url dat ) -> Just dat
+        Y ( Youtube dat ) -> Just dat
+        V ( Vimeo dat ) -> Just dat
+        _ -> Nothing
+
+
+{-| shows the name of the symbol if flow is 'Symbolic'.-}
+to_symbol : Item l t -> Maybe ( Item l t )
+to_symbol itm =
+    case itm of
+        Body n f -> if f == Symbolic then Just itm else Nothing
+        _ -> Nothing
+
+{-|-}
 is_self_assumption : Item l t -> Bool
 is_self_assumption itm =
     itm == Assume ( Of Self )
 
-                
+        
+{-|-}
 alternatives : Item l t -> List ( Cogroup t )
 alternatives itm =
     case itm of
@@ -148,6 +260,7 @@ alternatives itm =
         _ -> []
 
 
+{-|-}
 assumptions : t -> Cogroup t -> List t
 assumptions prototype cog =
     case cog of
@@ -164,33 +277,20 @@ verbalize i =
     case i of
         Body n _ -> n
         _ -> "?"
+        
 
-data : Item l t -> Maybe Data
-data i =
-    case i of
-        T ( Text fluid frozen ) -> Just fluid
-        P ( Picture dat ) -> Just dat
-        U ( Url dat ) -> Just dat
-        Y ( Youtube dat ) -> Just dat
-        V ( Vimeo dat ) -> Just dat
-        _ -> Nothing
-
+{-|-}
 equal : Item l t -> Item t t -> Bool
 equal live_itm temp_itm =
     live_itm == accept temp_itm        
-
+        
              
--- map
-
-{--
-info : Map ( Item l t )
-info = serialize >> Info
---}
-
        
 -- set
 
 
+{-|-}
+set_data : Data -> Map ( Item l t )
 set_data dat i =
     case i of
         T ( Text fluid frozen ) -> T ( Text dat frozen )
@@ -200,11 +300,15 @@ set_data dat i =
         U _ -> U ( Url dat )
         x -> x
 
+{-|-}
+freeze : Map ( Item l t )
 freeze i =
     case i of
         T ( Text fluid frozen ) -> T ( Text fluid fluid )
         x -> x
 
+{-|-}
+unfreeze : Map ( Item l t )
 unfreeze i =
     case i of
         T ( Text fluid frozen ) -> T ( Text frozen frozen )
@@ -213,116 +317,8 @@ unfreeze i =
 
 
         
--- macros
-
-{--
-type Macro
-    = Macro_Paragraph
-    | Macro_Figure
-    | Macro_Text
 
 
-demacro : Macro -> Item ref      
-demacro m =
-    case m of
-        Macro_Paragraph ->
-               Body "paragraph" Paragraph
-                <| Of ( I <| Assume <| Self End
-                      , [ I <| Body "+" Ambi
-                              <| Of ( I blocks, [] )
-                              <| or ( I spans, [] )
-                                  End
-                        ]
-                      , I layout
-                      )
-                    End
-                        
-        Macro_Figure ->
-               Body "figure" Figure
-                <| Of ( Body "figure media" Ambi
-                            <| Of ( I <| P <| Picture ( Nothing ), [] )
-                            <| or ( I <| Y <| Youtube ( Nothing ), [] )
-                            <| or ( I <| V <| Vimeo ( Nothing ), [] )
-                            <| or ( I blocks, [] )
-                                End
-                      , [ Body "caption" Figcaption
-                              <| Of ( I <| Body "caption" Ambi
-                                          <| Of ( I blocks, [] )
-                                          <| or ( I spans, [] )
-                                              End
-                                    , [] )
-                                  End
-                        , I layout
-                        ]
-                      )
-                    End
-
-        Macro_Text ->
-               Body "text" Inside
-                <| Of ( I spans
-                      , [ I <| T <| Text Nothing Nothing
-                        , I <| Body "+" Ambi
-                            <| Of ( I link, [] )
-                            <| reset
-                                End
-                        , I layout
-                        ]
-                      )
-                    End
-
-
-style s =
-    Body s Stacked
-        <| Of ( I <| Info s, [] )
-            End
-                
-layout =
-    Body "layout" Meta
-        <| Of ( I <| Assume <| Self End
-              , [ I <| Body "+" Ambi
-                      <| Of ( I <| style "align right", [] )
-                      <| or ( I <| style "align centered", [] )
-                      <| or ( I <| style "shaded green", [] )
-                ]
-              )
-            End
-        
-blocks =
-    Body "block..." Ambi
-        <| Of ( M Macro_Paragraph, [] )
-        <| or ( M Macro_Figure, [] )
-        <| or ( I heading, [] )
-            End
-        
-spans =
-    Body "in line..." Ambi
-        <| Of ( M Macro_Text, [] )
-        <| reset
-            End
-
-
-heading =
-    Body "heading" Heading
-        <| Of ( I <| Assume <| Self End
-              , [ I spans, I layout ]
-              )
-            End
-        
-link t u =
-    Body "link" Inside
-        <| Of ( I <| Body "destination" Meta
-                    <| Of ( I <| U <| Url u, [] )
-                        End
-              , [ I <| T <| Text t t ]
-              )
-            End
-        
-proxy itm =
-    Body "proxy" Stacked
-        <| Of ( I itm, [] ) End
-        
---}
-            
 -- present
 
 
@@ -331,7 +327,7 @@ add_view =
     { proxy =
           view
           
-    , flow = \f->
+    , flow = \n f->
           let
               insert_class =
                   View.add_class <|
@@ -339,32 +335,38 @@ add_view =
               set_element =
                   View.element <| always <|
                       case f of
-                          Inside -> Html.span -- default
+                          Symbolic -> Html.label
+                          Inside -> Html.span
                           Paragraph -> Html.p
                           Sectioning -> Html.section
                           Heading -> Html.h1
                           Figure -> Html.figure
                           Figcaption -> Html.figcaption
                           _ -> Html.button
-          in insert_class >> set_element
+              set_text =
+                  case f of
+                      Symbolic -> View.set_text n
+                      _ -> identity
+                           
+          in insert_class >> set_element >> set_text
             
     }
 
 
 
+{-|-}
 view_cogroup :
     t ->
     ( t -> View msg l t Data ) ->
     Cogroup t ->
         Map (View msg l t Data )
 view_cogroup prototype make_child cog =
-
     let
         connect references child_views =
             View.children ( (++) child_views )
                 >> View.add_action ( Choose_these references )
-            
-    in case cog of
+    in
+        case cog of
            Referral ( Open ( ref, refs ) ) ->
                ( ref::refs ) |> List.map ( make_child >> View.add_class "Referral" )
                              |> connect ( ref::refs )
@@ -376,10 +378,8 @@ view_cogroup prototype make_child cog =
            Self ->
                [ prototype |> make_child >> View.add_class "Self" ]
                    |> connect [ prototype ]
-
-    
-
-    
+                
+{-|-}
 view :
     Item l t ->
         Map ( View msg l t Data )
@@ -406,7 +406,8 @@ view itm =
         Body name flow ->
             View.add_class name
                 >> View.add_class "Body"
-                >> add_view.flow flow
+                >> View.add_class name
+                >> add_view.flow name flow
                                             
 
         Info string ->
@@ -446,6 +447,7 @@ view itm =
             View.add_class "Todo"
 
 
+{-|-}
 serialize : ( l -> String ) -> ( t -> String ) -> Item l t -> String
 serialize from_l from_t itm =
     let
@@ -458,25 +460,27 @@ serialize from_l from_t itm =
                     "∞ "++( from_t t )
 
                 Referral ( Open ( t, tt ) ) ->
-                    ( t::tt ) |> List.map from_t |> String.join ", "
+                    ( t::tt )
+                        |> List.map from_t |> String.join ", " |> String.cons ' ' 
 
     in
         case itm of
             Assume a ->
-                "<" ++ ( ambiguation_to_list a |> List.map serialize_cogroup |> String.join " | " )
+                "<" ++ ( ambiguation_to_list a |> List.map serialize_cogroup |> String.join " |" ) ++ "\t "
         
             Body name flow ->
-                name ++ " | " ++ serialize_flow flow
+                name ++ "\t" ++ serialize_flow flow
                         
-            Info s -> "🛈 " ++ s
-            Err s -> "⚠ " ++ s
-            T ( Text tx t ) -> "Text " ++ Data.serialize tx ++ " | " ++ Data.serialize t
-            P ( Picture picture ) -> "Picture " ++ Data.serialize picture
-            U ( Url url ) -> "Url " ++ Data.serialize url
-            Y ( Youtube youtube ) -> "Youtube " ++ Data.serialize youtube
-            V ( Vimeo vimeo ) -> "Vimeo " ++ Data.serialize vimeo
+            Info s -> "🛈 " ++ s ++ "\t " 
+            Err s -> "⚠ " ++ s ++ "\t "
+            T ( Text tx t ) -> "T " ++ Data.serialize tx ++ " | " ++ Data.serialize t ++ "\t "
+            P ( Picture picture ) -> "P " ++ Data.serialize picture ++ "\t "
+            U ( Url url ) -> "U " ++ Data.serialize url ++ "\t "
+            Y ( Youtube youtube ) -> "Y " ++ Data.serialize youtube ++ "\t "
+            V ( Vimeo vimeo ) -> "V " ++ Data.serialize vimeo ++ "\t "
 
           
+{-|-}
 deserialize :
     ( String -> Maybe l ) ->
     ( String -> Maybe t ) ->
@@ -520,28 +524,29 @@ deserialize to_l to_t str =
                 Info rest
             ( "⚠", rest ) ->
                 Err rest
-            ( "Text", rest ) ->
+            ( "T", rest ) ->
                 rest |> String.split " | "
                      |> list_to_tuple
                      |> Maybe.map ( each Data.deserialize >> \( te, xt ) -> T ( Text te xt ) ) 
                      |> Maybe.withDefault
                         ( "Failed to compose a T Text item from " ++ rest |> Err )
-            ( "Picture", dat ) ->
+            ( "P", dat ) ->
                 Data.deserialize dat |> Picture >> P
-            ( "Url", dat ) ->
+            ( "U", dat ) ->
                 Data.deserialize dat |> Url >> U
-            ( "Youtube", dat ) ->
+            ( "Y", dat ) ->
                 Data.deserialize dat |> Youtube >> Y
-            ( "Vimeo", dat ) ->
+            ( "V", dat ) ->
                 Data.deserialize dat |> Vimeo >> V
             _ ->
-                case String.split " | " str
+                case String.split "\t" str
+                    |> List.reverse
                     |> both
-                       ( List.head
-                       , List.tail >> Maybe.map ( String.join " | " >> deserialize_flow )
+                       ( List.head >> Maybe.andThen deserialize_flow
+                       , List.tail >> Maybe.map ( List.reverse >> String.join "" )
                        )
                 of
-                    ( Just name, Just ( Just flow ) ) ->
+                    ( Just flow, Just name ) ->
                         Body name flow
                     _ -> "Unable to deserialize " ++ str ++ " to item" |> Err
 

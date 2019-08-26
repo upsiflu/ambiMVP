@@ -16,6 +16,9 @@
     padding: 0 1.3rem; border-bottom: .1rem solid rgb(200,10,60);
 }
 
-.editing figure>*:first-child { height:12rem;background:rgba(0,0,0,.8); color:yellow; width:100% }
+
+.editing figure>*:first-child { height:12rem;background:rgba(0,0,0,.8); color:yellow; width:100%;
+				position: relative;
+			        display: block;}
 .editing figure>*:first-child.targeted { background:rgba(0,0,0,1); }
 .editing figcaption { padding:.3rem; border-bottom: .07rem solid black; }

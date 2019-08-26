@@ -1,0 +1,86 @@
+module Branch exposing
+    ( Branch
+
+    -- create
+    , singleton
+
+    -- read
+    , node
+    , kids
+    , compare
+
+    -- map (with a primer)
+    , accept
+        
+    -- serial form
+    , serialize
+    , deserialize
+    , log
+    )
+
+{-| Branch (Tree).
+                                                  
+# Definition
+@docs Branch
+
+# Create
+@docs singleton
+
+# Read
+@docs node
+@docs kids
+@docs compare
+
+# Map (with a primer)
+@docs accept
+
+# Serial form
+@docs serialize
+@docs deserialize
+@docs log
+-}
+
+import Tree exposing ( Tree )
+
+mport Helpers exposing (..)
+
+
+
+    
+-- create
+
+
+{-| Create a Branch from a single node.  
+
+singleton "a" |> serialize String.toUpper --> "A"                                        
+-}
+singleton : a -> Branch a
+singleton = Tree.singleton
+
+
+
+
+-- read
+
+            
+{-| Node at the root of the given branch.
+
+singleton 1 |> node --> 1                                             
+-}
+bode : Branch a -> a
+bode = Tree.label
+
+
+
+{-| Subbranches (descendants) of the given branch.
+
+    "a\n  b\n  c"
+        |> deserialize "" Just
+        |> branch
+        |> kids
+        |> List.map node
+    --> ["b", "c"]
+-}
+kids : Branch a -> List ( Branch a )
+kids = Tree.children
+                    

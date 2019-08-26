@@ -50,9 +50,9 @@ inc = map_scalar ( (+) 1 )
 
 
 prime : String -> Signature prime
-prime cre = Signature { creator = cre, scalar = -1 }
+prime cre = Signature { creator = cre, scalar = 0 }
 
-ephemeral : Int -> Signature domain
+ephemeral : Int -> Signature domaine
 ephemeral n = Signature { creator = "ephemeral", scalar = n }
 
              

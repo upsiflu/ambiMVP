@@ -1,5 +1,16 @@
 module Ui exposing
-    ( view )
+    ( view
+    , Message )
+
+{-|# View
+
+@docs view
+
+# Messages
+
+@docs Message
+
+-}
         
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -14,33 +25,68 @@ import History.Intent exposing ( .. )
 import Svg exposing (svg) 
 import Svg.Attributes exposing ( viewBox, d, fill )
 
-{-  VIEW
-
-    message:
-       browse_history: how to browse inside the History.
-       toggle_layout: how to switch between the list view and the layouted view in the editor.
-       toggle_editor: how to exit or enter the editor. 
-       from_intent: how to add a Transformation Intention to the History.
-       from_command: how to execute any command (such as focus).
-    option:
-       the current Ui config.
-    history: just a History.
-    preview: how to turn a State within the History into Html.
-
+{-|- browse_history:
+  how to browse inside the History.
+- toggle_layout: 
+  how to switch between the list view and the layouted view in the editor.
+- toggle_editor: 
+  how to exit or enter the editor. 
+- from_intent: 
+  how to add a Transformation Intention to the History.
+- from_command: 
+  how to execute any command (such as focus).
 -}
+type alias Message state msg =
+    { browse_history : ( Maybe Int ) -> msg
+    , toggle_layout : msg
+    , toggle_review : msg
+    , from_intent : Intent state -> msg
+    , from_command : Cmd msg -> msg
+    , noop : msg
+    }
 
+{-|## [`message`](Ui#Message)
+
+    { browse_history = BrowseHistory                                         
+    , toggle_layout = ToggleLayout                                           
+    , toggle_review = ToggleReview                                           
+    , from_intent = History.do model.session >> Transform                    
+    , from_command = DoCommand                                               
+    , noop = NoOp                                                            
+    }                                                                        
+
+## `-> option`
+the current Ui config
+
+## `-> history`
+just a History.
+
+## `-> preview`
+how to turn a State within the History into Html.
+
+## `->`
+create a Ui with a title.
+-}
+view :
+    Message state msg ->
+    { layout : Bool --> if not layout, and if editor, then class .listing
+    , editor : Bool --> class .editing
+    , review : Bool --> class .reviewing
+    , browse_past : ( Maybe Int )
+    } ->
+    History state ->
+    ( Message state msg -> state -> List ( Html msg ) ) ->
+    { title : String, body : List ( Html msg ) }
 view message option history preview =
     let
         options_as_classes =
-            classList [ -- on small screens, you toggle the review-view:
-                        ( "reviewing", option.review )
-                        -- for each item, you can be either visiting or .editing:
+            classList [ ( "reviewing", option.review )
                       , ( "editing",   option.editor ) 
-                        -- when the layout is complex, switch to list view:
                       , ( "listing",   option.editor && ( not option.layout ) )
                       ]
         summary  =
             History.summary history
+                
         view_transformation ( sig, edit ) =
             button
                 [ class "transformation" ]

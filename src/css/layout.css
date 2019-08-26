@@ -17,7 +17,7 @@ main { overflow-x:hidden; }
     position:relative;
 }
 
-header { height:40vh; position:relative; width:100%;}
+header { height:4.3rem; position:relative; width:100%;}
 
 /* standard controls (base styles) */
 
@@ -41,6 +41,16 @@ h2 {
 }
 h3 {
     font-size: 1.5rem; margin-top:2rem; padding:0;
+}
+@import url(https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css);
+
+pre, code {
+    font-size:.7rem;
+    font-family: 'Fira Code';
+    tab-size:29;
+    line-height:1.2rem;
+    padding: .6rem;
+    margin-bottom:1.2rem;
 }
 
 button, .caption, label {

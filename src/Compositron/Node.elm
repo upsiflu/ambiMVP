@@ -30,9 +30,13 @@ trivial =
     { signature = Signature.root
     , prototype = Signature.root
     , item = Item.Info "trivial"
-    , manifestation = Manifestation.active
+    , manifestation = Manifestation.passive
     }
-             
+
+error : Node ( Signature codomain ) ( Signature codomain )
+error =
+    trivial |> map_item ( \_-> Item.Err "Error: Check the console for details." )
+    
 primer : Signature.Creator -> Node ( Signature prime ) ( Signature prime )
 primer creator =
     { signature = Signature.prime creator
@@ -45,14 +49,14 @@ inc : Map ( Node ( Signature prime ) ( Signature prime ) )
 inc = map_signature Signature.inc
 
 
-accept : Node ( Signature t ) ( Signature t ) ->
-         Node ( Signature p ) ( Signature p ) ->
+accept : Node ( Signature p ) ( Signature p ) ->
+         Node ( Signature t ) ( Signature t ) ->
          Node ( Signature l ) ( Signature t ) 
-accept tmp prm =
+accept prm tmp =
     { signature = Signature.accept prm.signature
     , prototype = tmp.prototype
     , item = Item.accept tmp.item
-    , manifestation = Manifestation.passive
+    , manifestation = prm.manifestation
     }
 
 
@@ -62,7 +66,7 @@ accept tmp prm =
 equal_items :
     Node ( Signature d ) ( Signature c ) ->
     Node ( Signature c ) ( Signature c ) ->
-        Bool
+    Bool
 equal_items node conode =
     Item.equal node.item conode.item
         
@@ -76,7 +80,7 @@ self_reference nod =
 
 adopt_domain :
     Node ( Signature c ) ( Signature c ) ->
-        Node ( Signature d1 ) ( Signature c )
+    Node ( Signature d1 ) ( Signature c )
 adopt_domain =
     \this -> { signature = Signature.accept this.signature
              , prototype = this.prototype
@@ -92,7 +96,6 @@ map_prototype : Map cosig -> Map ( Node sig cosig )
 map_prototype fu =
     \this -> { this | prototype = fu this.prototype }
 
-             
 map_item : Map ( Item sig cosig ) -> Map ( Node sig cosig )
 map_item fu =
     \this-> { this | item = fu this.item }   
@@ -104,8 +107,10 @@ map_manifestation fu =
             
 -- set
 
-
-set_item = always >> map_item
+set_item : Item sig cosig -> Map ( Node sig cosig )
+set_item itm =
+    \this-> { this | item = itm }
+             
 set_manifestation = always >> map_manifestation
 
 activate : Map ( Node sig cosig )
@@ -130,40 +135,47 @@ view node =
 
 serialize : Node ( Signature domain ) ( Signature codomain ) -> String
 serialize node =
-    ( Manifestation.serialize node.manifestation )
+        ( Item.serialize Signature.serialize Signature.serialize node.item )
+        ++ " :"
         ++ ( Signature.serialize node.signature )
-        ++ " ("
+        ++ "\t("
         ++ ( Signature.serialize node.prototype )
-        ++ "): "
-        ++ ( Item.serialize Signature.serialize Signature.serialize node.item )
+        ++ ")"
+        ++ Manifestation.serialize node.manifestation
 
+            
 deserialize :
     String ->
         Maybe ( Node ( Signature codomain ) ( Signature codomain ) )
 deserialize str =
-    case String.split ("): ") str of
+    let ( st, suffix ) =
+            case String.right 1 str of
+                ")" -> ( str, "" )
+                suf -> ( String.dropRight 1 str, suf )
+    in
+      case String.split (" :") st of
 
         x::xs ->
             let
-                incipit :
-                    ( Maybe ( Signature domain )
+                signatures :
+                    ( Maybe ( Signature codomain )
                     , Maybe ( Signature codomain )
                     )
-                incipit =
-                    String.split " (" x
+                signatures =
+                    xs  |> String.join " :"
+                        |> String.split "\t("
                         |> both ( List.head
                                 , List.tail
-                                    >> Maybe.map ( String.join " (" )
+                                    >> Maybe.map ( String.join "\t(" )
+                                    >> Maybe.map ( String.dropRight 1 )
                                 )
                         |> each ( Maybe.andThen ( Signature.deserialize ) )
-                        |> Tuple.mapSecond ( Maybe.map Signature.accept )
                     
             in case
-                ( incipit
-                , String.join "): " xs
-                    |> Item.deserialize
-                       Signature.deserialize Signature.deserialize
-                , String.left 1 x |> Manifestation.deserialize
+                ( signatures
+                , Item.deserialize
+                       Signature.deserialize Signature.deserialize x
+                , suffix |> Manifestation.deserialize
                 )
             of
                 ( ( Just s, Just p ), i, Just m ) ->
@@ -175,7 +187,7 @@ deserialize str =
                         }
                         
                 _ ->
-                    trace ( "Parts of the node ("++str++") could not be parsed." )
+                    trace ( "Parts of the node {"++str++"} could not be parsed." )
                         Nothing
             
         [] ->

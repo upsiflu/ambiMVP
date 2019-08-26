@@ -6,10 +6,15 @@
 /* Modeswitching */
 /*switching between edit and review mode (small to medium screen only)*/
 
-.options {width:100%; overflow:hidden; position:absolute; bottom:0; white-space:nowrap; 
-    padding-bottom:2rem;
+.options {
 }
 .options > button { color:white; transition:all .2s; display:inline-block; text-indent:0rem;}
+.Option {background:rgb(0,72,180); line-height:2.2rem;min-width:3.4rem; height:2.9rem}
+.Option:hover {background:rgb(0,42,130);}
+.Option+.Option {margin-left:1px;}
+.Option:first-of-type { padding-left:.6rem;} 
+.Option:last-of-type { padding-right:.6rem;} 
+.Option > label { font-size:1rem; }
 
 .layout_indicator { 
     min-width:5.1rem;

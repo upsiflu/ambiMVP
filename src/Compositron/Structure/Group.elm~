@@ -1,0 +1,29 @@
+module Compositron.Structure.Group exposing
+    ( Group
+
+    -- map
+    
+
+    -- navigate
+    , find
+
+    )
+
+{-| A Zipper of multiple Branches.
+
+# Definition
+@docs Group
+
+# Read
+@docs find
+
+# Map
+-}
+
+import Helpers.LZipper as LZipper exposing ( LZipper )
+import Tree exposing ( Tree )
+
+
+{-| LZipper of Trees of nodes _a_. A focused `Branch` with its siblings.-}
+type alias Group a =
+    LZipper ( Tree a )

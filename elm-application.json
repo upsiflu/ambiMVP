@@ -4,6 +4,13 @@
     "version": "0.0.1",
     "exposed-modules": [
 	"Compositron",
-	"Compositron.Structure.EagerZipperTree"
+	"Compositron.Item",
+	"Compositron.Structure.EagerZipperTree",
+	"Compositron.Structure.Branch",
+	"Compositron.Structure.Group",
+	"Helpers",
+	"History",
+	"History.Transformation",
+	"Ui"
     ]
 }

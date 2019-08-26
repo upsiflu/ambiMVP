@@ -1,6 +1,5 @@
 module Compositron.Structure.EagerZipperTree exposing
     ( Structure
-    , Branch
         
     -- create
     , singleton
@@ -8,47 +7,32 @@ module Compositron.Structure.EagerZipperTree exposing
     -- read
     , node
     , branch
-    , group_branches
-    , bode
-    , bildren
+    , group
+    , template_group
     , tree
-    , compare_branches
         
     -- navigate
     , find
     , mark
 
     -- map (with a primer)
-    , accept_branch
     , accept_template
 
     -- map a Map
-    , each_in_group
     , up_the_ancestry
+    , up_and_down
+    , each_in_group
         
     -- serial form
-    , serialize
-    , deserialize
+    , serialize, to_string
+    , deserialize, from_string
     , log
-
-        
-{-- -- testing to console
-    , example0
-    , test0
-    , example1
-    , test1
-    , test2
-    , test3
-    , test4
-    , test5
---}
     )
 
 {-| Eagerly evaluated tree with zipper.
 
 # Definition
 @docs Structure
-@docs Branch
 
 # Create                                                                             
 @docs singleton
@@ -56,30 +40,29 @@ module Compositron.Structure.EagerZipperTree exposing
 # Read                                                                               
 @docs branch
 @docs node
-@docs bode
-@docs bildren
 @docs tree
-@docs group_branches
-@docs compare_branches
+@docs group
+@docs template_group
 
 # Navigate                                                                           
 @docs find
 @docs mark
 
-# Map (with a primer)                                                                
-@docs accept_branch
+# Map (with a primer)             
 @docs accept_template
 
 # Map a Map                                                                          
 @docs each_in_group
 @docs up_the_ancestry
+@docs up_and_down
 
 # Serial form                                                                        
 @docs serialize
+@docs to_string
 @docs deserialize
+@docs from_string
 @docs log
-
- -}
+-}
 
 
         
@@ -89,15 +72,16 @@ import Tree.Zipper as Zipper exposing ( Zipper )
 import Tree exposing ( Tree )
 
 import Helpers exposing (..)
-import Helpers.LZipper as LZipper exposing ( LZipper )
 
-{-| Tree with Zipper of nodes *a* -}
+import Compositron.Structure.Group as Group exposing ( Group )
+import Compositron.Structure.Branch as Branch exposing ( Branch )
+
+{-| Tree with Zipper of nodes *a*.-}
 type alias Structure a =
     Zipper a
 
-{-| Tree of nodes _a_ -}
-type alias Branch a =
-    Tree a
+
+
 
 
         
@@ -109,7 +93,7 @@ type alias Branch a =
     singleton 1 |> serialize String.fromInt == "1"
  -}
 singleton : a -> Structure a
-singleton = Tree.singleton >> Zipper.fromTree
+singleton = Branch.singleton >> Zipper.fromTree
 
 
             
@@ -118,12 +102,13 @@ singleton = Tree.singleton >> Zipper.fromTree
 
 {-| The subset of the tree, beginnning with the focus. 
 
-    "a\n  b\n  c"
-        |> deserialize "" Just
+    import Compositron.Structure.Branch as Branch exposing  ( Branch )
+    import Helpers exposing (..)
+
+    from_string "a\n  b\n  c"
         |> perhaps ( find ( (==) "c") )
         |> branch
-        |> bode
-    --> "c"
+    --> Branch.singleton "c"
 -}
 branch : Structure a -> Branch a
 branch = Zipper.tree
@@ -131,19 +116,18 @@ branch = Zipper.tree
 
 {-| The whole tree, from root onwards. 
 
-    "a\n  b\n  c"
-        |> deserialize "" Just
+    import Compositron.Structure.Branch as Branch exposing  ( Branch )
+    import Helpers exposing (..)
+
+    from_string "a\n  b\n  c"
         |> perhaps ( find ( (==) "c") )
         |> tree
-        |> bode
+        |> Branch.node
     --> "a"
 -}
 tree : Structure a -> Branch a
 tree =
     Zipper.root >> branch
-
-         
-bringleton = Tree.singleton
 
 
 {-| The node in focus. 
@@ -151,89 +135,96 @@ bringleton = Tree.singleton
     singleton 1 |> node == 1                                              
 -}
 node : Structure a -> a
-node = branch >> Tree.label
+node = branch >> Branch.node
 
              
-{-| Node at the root of the given branch.
-
-    singleton 1 |> branch >> bode == 1
--}
-bode : Branch a -> a
-bode = Tree.label
-
-       
-
-       
-{-| Subbranches (descendants) of the given branch. 
-
-    "a\n  b\n  c"
-        |> deserialize "" Just
-        |> branch
-        |> bildren
-        |> List.map bode
-    --> ["b", "c"]
--}
-bildren : Branch a -> List ( Branch a )
-bildren = Tree.children
-
           
 
        
-{-| Collect all branches in the group around the focus into an LZipper. If in root or one level below, exclude siblings.
+{-|Collect all branches in the group around the focus into a Group.
 
-**🅁 Template Spaces:** Toplevel template branches are not mutual neighbours.
+    import Helpers.LZipper as LZipper exposing  ( LZipper )
+    import Helpers exposing (..)
+    import Compositron.Structure.Branch as Branch exposing ( Branch )
 
     singleton "a" 
-        |> group_branches
-        |> LZipper.map bode 
-        --> { before = []
-        --> , focus  = "a"
-        --> , after  = [] 
-        --> }
+        |> group
+        |> LZipper.map Branch.node 
+    --> { before = []
+    --> , focus  = "a"
+    --> , after  = [] 
+    --> }
 
-    "a\n  b\n    c\n    d\n    e" 
-        |> deserialize "" Just 
+    from_string "a\n  b\n    c\n  d\n    e" 
         |> perhaps ( find ( (==) "d" ) ) 
-        |> group_branches
-        |> LZipper.map bode
-        --> { before = ["c"]
-        --> , focus  =  "d"
-        --> , after  = ["e"] 
-        --> }
+        |> group
+        |> LZipper.map Branch.node
+    --> { before = ["b"]
+    --> , focus  =  "d"
+    --> , after  = [] 
+    --> }
 -}
-group_branches : Structure a -> LZipper ( Tree a )
-group_branches struct =
+group : Structure a -> Group a
+group =
+    all3 ( Zipper.siblingsBeforeFocus, branch, Zipper.siblingsAfterFocus )
+        >> \( b, f, a ) -> { before = b, focus = f, after = a }
+
+                           
+{-| **🅁 Template Subgroups.** Toplevel template branches are not mutual neighbours.
+
+Collect all branches in the group around the focus into a Group. If in root or one level below, exclude the siblings.
+
+    import Helpers.LZipper as LZipper exposing  ( LZipper )
+    import Helpers exposing (..)
+    import Compositron.Structure.Branch as Branch exposing ( Branch )
+
+    from_string "a\n  b\n    c\n  d\n    e" 
+        |> perhaps ( find ( (==) "d" ) )
+        |> template_group
+        |> LZipper.map Branch.node 
+    --> { before = []
+    --> , focus  = "d"
+    --> , after  = [] 
+    --> }
+
+    from_string "a\n  b\n    c\n    d\n    e" 
+        |> perhaps ( find ( (==) "d" ) )
+        |> template_group
+        |> LZipper.map Branch.node
+    --> { before = ["c"]
+    --> , focus  =  "d"
+    --> , after  = ["e"] 
+    --> }
+-}
+
+template_group : Structure a -> Group a
+template_group struct =
     if
         Zipper.parent struct == Just ( Zipper.root struct )
         || Zipper.parent struct == Nothing
     then
         { before = [], focus = branch struct, after = [] }
     else
-        struct |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-               |> \( b, a ) -> { before = b, focus = branch struct, after = a }
-
-kid_nodes : Structure a -> List a
-kid_nodes =
-    branch >> bildren >> List.map bode
-
+        group struct
         
-        
-           
+
+
+            
 -- navigate
 
 
 {-| If possible, switch focus to the first node, beginning at root, 
 that satisfies a predicate. 
 
-    let find_in_structure fu =
-        "a\n  b"
-            |> deserialize "" Just
+    find_in_structure : ( String -> Bool ) -> Maybe String
+    find_in_structure fu =
+        from_string "a\n  b"
             |> find fu
             |> Maybe.map node
-    in
-        (==) "b"    |> find_in_structure --> Just "b"
-        (\_-> True) |> find_in_structure --> Just "a"
-        (==) "c"    |> find_in_structure --> Nothing
+    
+    (==) "b"    |> find_in_structure --> Just "b"
+    (\_-> True) |> find_in_structure --> Just "a"
+    (==) "c"    |> find_in_structure --> Nothing
 -}
 find : ( a -> Bool ) -> Structure a -> Maybe ( Structure a )
 find = Zipper.findFromRoot
@@ -241,146 +232,171 @@ find = Zipper.findFromRoot
 
 {-| Map the focused node without affecting the structure. 
 
-    "a" |> singleton >> mark String.toUpper >> node == "A"
+    "a" |> singleton >> mark String.toUpper >> node
+    --> "A"
 -}
 mark : Map a -> Map ( Structure a )
 mark = Zipper.mapLabel       
 
 
-
--- modify (with a primer)
-
-
-{-| Map a branch while counting with a primer. -}
-accept_branch :
-    ( p -> p ) ->
-    ( t -> p -> a ) ->
-    ( p, Branch t ) -> ( p, Branch a )
-accept_branch inc_primer accept_node ( primer, template_branch ) =
-    let
-        next pre nod =
-            pre |> both ( inc_primer, accept_node nod ) 
-            
-    in Tree.mapAccumulate next primer template_branch
-
                 
 
-{-| Map a structure by superimposing a bunch of branches. 
+{-| Merge a structure with a group of template branches. The **match** ( see [`Match`](Helpers#Match) ) between a neighbour of the focus and its corresponding **template branch** will yield
 
-    let match may_a tmp = 
-            ( \(p, t) -> 
-                ( ( bode p )+1 |> singleton |> branch
-                , bode t
-                  ++ bode ( may_a |> Maybe.withDefault t )
-                  ++ String.fromInt ( bode p ) |> singleton |> branch 
-                ) 
-            ) |> Fix 
-    in
-        ( singleton 0 |> branch, singleton "a" ) 
-            |> accept_template match ( LZipper.singleton ( singleton "q" |> branch ) )
+- _Keep_: keep the existing branch and continue matching the stream, or
+- _Skip_: keep the existing branch but postpone the match
+- _Insert_: accept the template branch, thereby iterating a **primer**, and insert it.
 
-**TODO:** this does not yet work. 
+Excessive live branches are kept; errornous excessive template branches are discarded.
+
+The current node will be left unchanged!
+    
+    import Compositron.Structure.Branch as Branch exposing ( Branch )
+    import Helpers exposing (..)
+    import Helpers.LZipper as LZipper exposing ( LZipper )
+
+              
+    next : Int -> String -> ( Int, String )
+    next p t = ( p+1, t ++ "!" ) 
+
+    match : Branch String
+                -> Branch String 
+                -> Match
+    match lb tb =
+            if Branch.is (==) lb tb then
+                Keep
+            else
+                Insert
+
+    go : LZipper String -> ( Int, Structure String ) -> ( Int, String )
+    go tmp = accept_template
+                next
+                match
+                ( tmp |> LZipper.map Branch.from_string )
+            >> Tuple.mapSecond to_string
+
+    liv0 : Structure String
+    liv0 = from_string "a\n  b\n  c\n  d\n  e" |> perhaps ( find ( (==) "b" ) )
+
+    tmp0 : LZipper String
+    tmp0 = { before = [], focus = "b", after = [ "c", "d", "X", "Y" ] } 
+
+    go tmp0 ( 0, liv0 )
+    --> ( 2, "a\n  b\n  c\n  d\n  X!\n  Y!\n  e" )
+
+
+    liv1 : Structure String
+    liv1 = from_string "a\n  b\n    c\n" |> perhaps ( find ( (==) "c" ) )
+
+    tmp1 : LZipper String
+    tmp1 = { before = [ "<" ], focus = "b", after = [ ">" ] } 
+                   
+    go tmp1 ( 0, liv1 )
+    --> ( 2, "a\n  b\n    <!\n    c\n    >!" )
+
+
+    liv2 : Structure String
+    liv2 = from_string "a\n  b\n    c\n    *" |> perhaps ( find ( (==) "*" ) )
+
+    tmp2 : LZipper String
+    tmp2 = { before = [ "<", "c" ], focus = "d", after = [ ">" ] } 
+  
+    go tmp2 ( 0, liv2 )
+    --> ( 2, "a\n  b\n    <!\n    c\n    *\n    >!" )
+
+
+    liv3 : Structure String
+    liv3 = from_string "a\n  b"
+
+    tmp3 : LZipper String
+    tmp3 = { before = [ "<", "c" ], focus = "focus\n  new", after = [ ">" ] } 
+  
+    go tmp3 ( 0, liv3 )
+    --> ( 1, "a\n  new!" )
 -}
 accept_template :
-    ( Maybe ( Branch a ) -> Branch t -> Match ( p, Branch t ) ( p, Branch a ) ) ->
-    LZipper ( Branch t ) ->
+    ( p -> t -> ( p, a ) ) ->
+    ( Branch a -> Branch t -> Match ) ->
+    Group t ->
     Map ( p, Structure a )
-accept_template match template ( primer, structure ) =
+accept_template next match template ( primer0, structure ) =
     let         
         forward :
             ( List ( Branch a ), List ( Branch t ) ) ->
-                Map ( p, List ( Branch a ) )
+            Map ( p, List ( Branch a ) )
         forward remainder ( pre, acc ) =
             case remainder of
-                ( live, t::emp ) ->
-                    let ( maybe_l, maybe_ive ) =
-                            live |> both ( List.head, List.tail )
-                        ( l, ive ) =
-                            ( maybe_l |> Maybe.map List.singleton, maybe_ive )
-                                |> each ( Maybe.withDefault [] )
-                                
-                    in case match maybe_l t of
-                        Skip ->
-                        -- accept the live branch.
-                            forward ( ive, t::emp ) ( pre, acc++l )
-                                
-                        Pursue ->
-                        -- successful match, discard the template branch.
-                            forward ( ive, emp ) ( pre, acc++l )
-                                
-                        Fix accept_template_branch ->
-                        -- accept the template branch.
-                            let ( end, accepted_branch ) =
-                                    accept_template_branch ( pre, t ) 
-                            in
-                                forward ( live, emp ) ( end, acc++[accepted_branch] )
+                ( live, [] ) ->
+                    ( pre, acc++live )
 
-            -- extra live branches remain.
-                ( live, [] ) -> ( pre, acc++live )
+                ( [], t::emp ) ->
+                    Branch.accept next ( pre, t )
+                        |> Tuple.mapSecond ( \brn -> acc++[brn] )
+                        |> forward ( [], emp )
 
+                ( l::ive, t::emp ) ->
+                     case ( match l t ) of
+                         Keep ->
+                         -- successful match, ditch the template branch.
+                             forward ( ive, emp ) ( pre, acc++[l] )
+
+                         Skip ->
+                         -- postpone the same match to the next live branch.
+                             forward ( ive, t::emp ) ( pre, acc++[l] )
+                             
+                         Insert ->
+                         -- accept and insert the template branch.
+                             Branch.accept next ( pre, t ) 
+                                 |> Tuple.mapSecond ( \brn -> acc++[brn] )
+                                 |> forward ( l::ive, emp )
+                
         backward ( l, t ) ( pre, acc )=
             forward ( List.reverse l, List.reverse t ) ( pre, acc )
                 |> Tuple.mapSecond List.reverse
         
-        ( live_before, live_after ) =
-            structure |> both ( Zipper.siblingsBeforeFocus, Zipper.siblingsAfterFocus )
-       
-        -- let the primer churn back and forth.
-        ( follower, back_branches ) =
-            backward ( live_before, template.before ) ( primer, [] )
+        live_group =
+            group structure
+
+        not_root =
+            Zipper.parent structure /= Nothing
+                
+     -- let the primer churn back and forth.
+        ( primer1, back_branches ) =
+            ( primer0, [] )
+                |> map_if not_root ( backward ( live_group.before, template.before ))
+                   
+        ( primer2, kids ) =
+            ( primer1, [] )
+                |> forward ( [], Branch.kids template.focus )
+               
         ( ender, forth_branches ) =
-            forward ( live_after, template.after ) ( follower, [] )
+            ( primer2, [] )
+                |> map_if not_root ( forward ( live_group.after, template.after ) )
+               
     in
         ( ender
-        , map_group
-            ( \_-> back_branches ++ [ branch structure ] ++ forth_branches )
-            structure
+        , structure
+            |> set_group
+               { before = back_branches
+               , focus = Branch.create ( node structure ) kids
+               , after = forth_branches
+               }
         )
 
-
-
-{-| Given a comparison function between their nodes,
-compare two branches of different domains. Will return True only
-if the structure is identical and all nodes compare favorably.
-
-    compare_branches 
-        (==) 
-        ( "a\n  2" |> deserialize "" Just |> branch ) 
-        ( "a\n  2" |> deserialize "" Just |> branch ) 
-        --> True
-
-    compare_branches 
-        (<) 
-        ( singleton 0 |> branch ) 
-        ( singleton 1 |> branch )
-        --> True
- -}
-compare_branches :
-    ( a -> t -> Bool ) -> Branch a -> Branch t -> Bool
-compare_branches eq ba bt =
-    (&&) ( eq ( bode ba ) ( bode bt ) )
-        <| List.foldl (&&) True
-            ( List.map2 ( compare_branches eq ) ( Tree.children ba ) ( Tree.children bt ) )
-
         
-
--- helpers
-map_group : Map ( List ( Branch a ) ) -> Map ( Structure a )
-map_group fu struct =
-    Zipper.parent struct
-        |> Maybe.map
-           ( Zipper.tree
-                 >> Tree.mapChildren fu
-                 >> Zipper.fromTree
-                 >> perhaps ( Zipper.findNext ( (==) ( node struct ) ) )
-           )
-        |> Maybe.withDefault
-           ( fu [ branch struct ]
-                 |> List.head
-                 |> Maybe.map Zipper.fromTree
-                 |> Maybe.withDefault struct
-           )
-
+set_group : Group a -> Map ( Structure a )
+set_group grp structure =
+    case Zipper.parent structure of
+        Nothing ->
+            Zipper.fromTree grp.focus
+        Just p ->
+            let pivot = Branch.node ( grp.focus )
+                new_parent =
+                    Branch.create ( node p ) ( Group.to_list grp )
+            in
+                p   |> Zipper.replaceTree new_parent
+                    |> find ( (==) pivot )
+                    |> Maybe.withDefault structure
          
 
         
@@ -408,7 +424,7 @@ each_in_group fu ( primer, struct ) =
 
 
 
-{-| Apply a Map to each focus that traces up to root. -}
+{-| Apply a Map to each focus that traces up to root.-}
 up_the_ancestry : Map ( Map ( p, Structure a ) )
 up_the_ancestry fu ( primer, struct ) =
     let
@@ -424,6 +440,31 @@ up_the_ancestry fu ( primer, struct ) =
             |> while_just ( fu ) maybe_next
             |> Tuple.mapSecond ( perhaps <| Zipper.findNext ( (==) pivot ) )
 
+               
+{-| Apply a Map to each focus that traces up to root.-}
+down_the_branch : Map ( Map ( p, Structure a ) )
+down_the_branch fu ( primer, struct ) =
+    let
+        pivot =
+            Zipper.fromTree ( branch struct )
+
+        maybe_next ( x, cur ) =
+            case Zipper.forward cur of
+                Nothing -> Nothing
+                Just successor -> Just ( x, successor )
+    in
+        ( primer, pivot )
+            |> while_just ( fu ) maybe_next
+            |> Tuple.mapSecond
+               ( Zipper.root >> branch >> with struct ( Zipper.replaceTree ) ) 
+            
+
+               
+{-| Apply a Map to each focus that traces up to root as well as down each kid.-}
+up_and_down : Map ( Map ( p, Structure a ) )
+up_and_down fu =
+    down_the_branch fu >> up_the_ancestry fu
+
 
                       
 -- serial form
@@ -435,64 +476,43 @@ up_the_ancestry fu ( primer, struct ) =
 -}
 serialize : ( a -> String ) -> Structure a -> String
 serialize from_node =
-    let
-        serialize_at depth structure =
-            structure
-                |> branch >> Tree.children >> List.map Zipper.fromTree
-                |> List.map ( serialize_at ( depth+1 ) )
-                |> (::) ( from_node ( node structure ) )
-                |> String.join ( "\n" ++ ( String.repeat (1+depth) "  " ) )
-                
-    in
-        Zipper.root
-        >> serialize_at 0
+        Zipper.root >> branch >> Branch.serialize from_node
 
+{-| Special case of serialize.-}
+to_string : Structure String -> String
+to_string = serialize identity
+            
+{-| Parse back from a linear representation.
+Supply a node deserializer and a check whether a given node should be focused.-}       
+deserialize : ( String -> a ) -> ( a -> Bool ) -> String -> Structure a
+deserialize to_node focus =
+    Branch.deserialize to_node >> Zipper.fromTree >> perhaps ( find focus )
 
-{-| Parse back from a linear representation. 
-
-    "a" |> deserialize "default" Just == singleton "a"
-    "a" |> deserialize "default" Nothing == singleton "default" 
-    "a" |> deserialize "default" Just >> serialize identity == "a"
--}            
-deserialize : a -> ( String -> Maybe a ) -> String -> Structure a
-deserialize default to_node =
-    let
-        children lines =
-            List.tail lines
-                |> Maybe.withDefault []
-                |> List.map ( String.dropLeft 2 )
-                |> segment_at ( String.startsWith "  " >> not )
-        unfold lines =
-            Tree.tree
-                ( List.head lines |> Maybe.withDefault "" |> to_node )
-                ( case lines of
-                      [] -> []
-                      li -> li |> children |> List.map unfold )
-    in
-        String.lines
-            >> unfold
-            >> Tree.map ( Maybe.withDefault default )
-            >> Zipper.fromTree
-
+{-| Special case of deserialize.-}
+from_string : String -> Structure String
+from_string = deserialize identity ( always True )
 
 {-| log to the console.
 -}
-log : ( a->String ) ->     Structure a -> Structure a
-      
+log : ( a -> String ) -> Map ( Structure a )
 log from_node =
     let
         trace_lines ll =
             case ll of
-                l::ines -> multitrace l l |> always ( trace_lines ines )
-                _ -> ()
-
-    in \str ->
-        str
-            |> serialize from_node
-            |> String.lines >> List.reverse >> trace_lines
-            |> always str
-
-            
+                l::ines ->
+                    multitrace l l |> always ( trace_lines ines )
+                _ ->
+                    ()
+    in
+        \brn -> brn
+             |> serialize from_node
+             |> String.lines >> List.reverse >> trace_lines
+             |> always brn
+                          
+                          
+                          
+                          
+  
 -- tests
 
            {--
