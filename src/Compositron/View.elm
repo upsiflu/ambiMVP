@@ -114,7 +114,7 @@ static descriptor =
     , signature = Nothing
     , element = Html.span
     , text = ""
-    , actions = [Navigate_here]
+    , actions = []
     , attributes = [ Attributes.class descriptor ]
     , children = Children ( always [] )
     }    

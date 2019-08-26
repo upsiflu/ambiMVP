@@ -364,7 +364,8 @@ view_cogroup prototype make_child cog =
     let
         connect references child_views =
             View.children ( (++) child_views )
-                >> View.add_action ( Choose_these references )
+                >> View.add_action ( Choose_these ( Debug.log "refChoos" references ) )
+                >> View.add_class ( "Cogroup" )
     in
         case cog of
            Referral ( Open ( ref, refs ) ) ->

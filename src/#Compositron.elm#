@@ -474,8 +474,6 @@ view_live_branch new_creator message show_symbol branch =
         to_message =
             create_intent new_creator this
             >> message.from_intent
-            -->> Debug.log "message created"
-
     in
         View.active "State" this.signature inner
             |> Node.view this

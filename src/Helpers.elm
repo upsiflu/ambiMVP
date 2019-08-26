@@ -380,6 +380,6 @@ onClickNoBubble message =
             ( Decode.succeed
                  { message = message
                  , stopPropagation = True
-                 , preventDefault = True
+                 , preventDefault = False
                  }
             )

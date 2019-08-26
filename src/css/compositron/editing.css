@@ -1,6 +1,9 @@
 /* EDITING, think "layout view" */
 
 
+.editing .Assume.targeted { color:transparent; margin-left:-1em;}
+
+.editing .editor section pre {overflow-y:scroll; overflow-x:visible; height:25rem; }
 
 .editing .item.targeted {
     background:rgba(0,0,0,.1);
@@ -17,8 +20,18 @@
 }
 
 
-.editing figure>*:first-child { height:12rem;background:rgba(0,0,0,.8); color:yellow; width:100%;
+.editing figure>*:first-child { height:6rem;background:rgba(0,0,0,.8); color:yellow; width:100%;
 				position: relative;
-			        display: block;}
+			        display: block !important;}
 .editing figure>*:first-child.targeted { background:rgba(0,0,0,1); }
 .editing figcaption { padding:.3rem; border-bottom: .07rem solid black; }
+
+
+.editing figure { background:silver;}
+.editing label.◆ {display:none;}
+.editing .targeted label.◆ {display:block;}
+
+/*
+span.Assume {display:none;}
+
+.editing label.◆ {margin-bottom:-2rem;}*/

@@ -94,7 +94,7 @@ do h =
 {-| The transformation will be sorted according to `Transformation.isBelow`, `Transformation.isAbove`. The state will only be affected if the new transformation is _below_ the current transformation..-}
 insert : Transformation s -> History s -> History s
 insert t h =
-    let here =   mapFuture ( (::) t )
+    let here =   mapFuture ( (::) ( Debug.log "new transformation arrived in history" t ) )
         lower =  prev >> insert t >> next
         higher = next >> insert t >> prev
     in

@@ -72,11 +72,11 @@ TEMPLATE			⌧ :_/0	(_/0)
         ⌯			◆ :_/0	(_/0)
     <				  :f/4	(layout/1)
   Text				⌻ :t/0	(t/0)
+    𝑇				◆ :_/0	(_/0)
     <				  :text/1	(span/1)
     T ` | `			  :t/2	(t/2)
     <				  :t/4	(link/1)
-    <				  :t/5	(layout/1)
-      𝑇⌯"""
+    <				  :t/5	(layout/1)"""
  ++ --LAYOUT
  """
   align right			◆ :y/0	(y/0)
@@ -88,10 +88,12 @@ TEMPLATE			⌧ :_/0	(_/0)
       add style			◆ :_/0	(_/0)"""
  ++ --BLOCKS AND SPANS
  """
-  < paragraph/0 | figure/0 | heading/1	 :blocks/1	(blocks/1)
+  insert block element		⌧ :_/0	(_/0)
+    < paragraph/0 | figure/0 | heading/1	 :blocks/1	(blocks/1)
     +⌯				◆ :_/0	(_/0)
-  < text/1 | spans/1		  :spans/1	(spans/1)
-    𝑇⌯				◆ :_/0	(_/0)"""
+  insert span element		⌧ :_/0	(_/0)
+    𝑇				◆ :_/0	(_/0)
+    < text/1 | spans/1		  :spans/1	(spans/1)"""
  ++ --HTML TAGS
  """
   heading			⍞ :h/0	(h/0)
@@ -104,7 +106,7 @@ TEMPLATE			⌧ :_/0	(_/0)
       U 			  :k/2	(k/2)"""
                                                   
     
-
+   
 live =
  """
 LIVE            	⌧ :live/0	(live/0)
@@ -123,7 +125,7 @@ state =
         |> State.target ( sig "live/1" )
         |> State.choose "ROOT" [ sig "initial/1" ]
         -- initialized --
-        |> State.choose "USER a" [ sig "paragraph/0" ]
+{-        |> State.choose "USER a" [ sig "paragraph/0" ]
            
         |> State.target ( sig "USER a/4" )
         |> State.choose "USER b" [ sig "y/1" ]
@@ -131,7 +133,7 @@ state =
         |> State.choose "USER c" [ sig "y/0" ]
         |> State.target ( sig "USER a/1" )
         |> State.choose "USER d" [ sig "blocks/1" ]
-{-      |> State.choose "USER e" [ sig "figure/0" ]
+        |> State.choose "USER e" [ sig "figure/0" ]
         |> State.choose "ERROR" [ sig "_/0" ]
 -}
 
@@ -172,19 +174,23 @@ update msg model =
     let
         commit : ( Model -> Model ) -> ( Model, Cmd msg )
         commit f =
-             ( model 
-               |> f 
+            ( f model 
                |> ( \m ->
-                      map_session ( History.browse_to m.view_options.browse_past ) m )
-             , Cmd.none )
-        map_session : ( History State -> History State ) -> Model -> Model
+                      map_session
+                        ( History.browse_to m.view_options.browse_past ) m
+                  )
+            , Cmd.none )
+            
+        map_session : Map ( History State ) -> Map Model
         map_session f m =
-             { m | session = f m.session }
-        map_view : ( ViewOptions -> ViewOptions ) -> Model -> Model
+            { m | session = f m.session }
+
+        map_view : Map ViewOptions -> Map Model
         map_view f m =
-             { m | view_options = f m.view_options }
+            { m | view_options = f m.view_options }
+
         browse to =
-             map_view ( \v-> {v| browse_past = to } )
+            map_view ( \v-> {v| browse_past = to } )
     in
     case msg of
         Intend intent ->

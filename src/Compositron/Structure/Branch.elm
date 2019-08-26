@@ -157,7 +157,7 @@ is eq ba bt =
 first : ( a -> Maybe b ) -> Branch a -> Maybe b
 first fu brn =
     fu ( node brn )
-        |> Maybe.Extra.or ( first_just ( first fu ) ( kids brn ) )
+        |> Maybe.Extra.or ( first_just ( first fu ) ( kids brn |> List.reverse ) )
                 
        
 
