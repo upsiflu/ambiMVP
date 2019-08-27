@@ -1,0 +1,98 @@
+module Compositron.Flow exposing
+    ( serialize, deserialize )
+
+{-|-}
+type Flow
+    = Meta -- can be above, below, introducing, or trailing.
+    | Inside
+    | Sectioning
+    | Heading
+    | Paragraph
+    | Figure
+    | Figcaption
+    | Symbolic
+    | Inaccessible -- for bodies that are not (yet) realized.
+    | Info String
+    | T Text
+    | P Picture
+    | U Url
+    | Y Youtube
+    | V Vimeo
+
+serialize_flow : Flow -> String
+serialize_flow f =
+    case f of
+        Meta -> "⍚"
+        Inside -> "⌻"
+        Sectioning -> "⌸"
+        Heading -> "⍞"
+        Paragraph -> "¶"
+        Figure -> "⌹"
+        Figcaption -> "⌯"
+        Symbolic -> "◆"
+        Inaccessible -> "⌧"
+        Info s -> "🛈 " ++ s
+        T ( Text tx t ) -> "T " ++ Data.serialize tx ++ " | " ++ Data.serialize t
+        P ( Picture picture ) -> "P " ++ Data.serialize picture
+        U ( Url url ) -> "U " ++ Data.serialize url
+        Y ( Youtube youtube ) -> "Y " ++ Data.serialize youtube
+        V ( Vimeo vimeo ) -> "V " ++ Data.serialize vimeo
+
+deserialize_flow : String -> Maybe Flow
+deserialize_flow s =
+    case s of
+        "⍚" -> Just Meta
+        "⌻" -> Just Inside
+        "⌸" -> Just Sectioning
+        "⍞" -> Just Heading
+        "¶" -> Just Paragraph
+        "⌹" -> Just Figure
+        "⌯" -> Just Figcaption
+        "◆" -> Just Symbolic
+        "⌧" -> Just Inaccessible
+        other ->
+            case String.split " " other
+                     |> both
+                        ( List.head >> Maybe.withDefault ""
+                        , List.tail >> Maybe.withDefault [""] >> String.join " " )
+            of
+                ( "🛈", rest ) ->
+                    Just ( Info rest )
+                ( "T", rest ) ->
+                    rest |> String.split " | "
+                         |> list_to_tuple
+                         |> Maybe.map ( each Data.deserialize >> \( te, xt ) -> T ( Text te xt ))
+                         |> Maybe.Extra.or
+                            ( Just <| Info ( "Failed to compose a T Text item from " ++ rest ) )
+                ( "P", dat ) ->
+                    Data.deserialize dat |> Picture >> P >> Just
+                ( "U", dat ) ->
+                    Data.deserialize dat |> Url >> U >> Just
+                ( "Y", dat ) ->
+                    Data.deserialize dat |> Youtube >> Y >> Just
+                ( "V", dat ) ->
+                    Data.deserialize dat |> Vimeo >> V >> Just
+                _ -> Nothing
+
+type alias Name = String
+type alias Frozen = Data
+type alias Fluid = Data
+
+
+type Text
+    -- while you edit text via a contenteditable span, the vDOM retains the frozen string\
+    -- to keep the state within the Browser.
+    = Text Fluid Frozen
+      
+type Picture
+    = Picture Data
+      
+type Url
+    = Url Data
+      
+type Youtube
+    = Youtube Data
+
+type Vimeo
+    = Vimeo Data
+                                                              

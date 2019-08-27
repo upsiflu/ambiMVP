@@ -21,7 +21,8 @@ module Compositron.View exposing
 
     -- set
     , set_text
-
+    , set_element
+        
     -- view
     , present
     )
@@ -102,6 +103,10 @@ add_id =
 set_text : String -> Map ( View msg sig cosig data )
 set_text t =
     \v-> { v | text = t }
+
+set_element : Element msg -> Map ( View msg sig cosig data )
+set_element e =
+    \v-> { v | element = e }
          
 set_signature : Maybe sig -> Map ( View msg sig cosig data )
 set_signature sig =

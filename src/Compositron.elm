@@ -69,6 +69,7 @@ import Compositron.Signature as Signature exposing ( Creator )
 import Compositron.Item as Item
 import Compositron.Manifestation as Manifestation exposing ( Manifestation )
 import Compositron.Data as Data exposing ( Data )
+import Compositron.Cogroup as Cogroup
 
 import Compositron.View as View exposing ( View, Action (..) )
 
@@ -256,7 +257,7 @@ choose cre new_signatures compositron =
         node = live compositron |> Structure.node
         available_signatures =
             Item.alternatives ( node.item )
-                |> List.map ( Item.assumptions ( node.prototype ) )
+                |> List.map ( Cogroup.assumptions ( node.prototype ) )
     in
         if List.member new_signatures available_signatures then
             new_signatures
@@ -422,7 +423,7 @@ view_live_branch new_creator message show_symbol branch =
             let
                 alternative_cogroup_views =
                     ( if is_targeted then Item.alternatives this.item else [] )
-                        |> List.map ( Item.view_cogroup this.prototype show_symbol )
+                        |> List.map ( Cogroup.view_option this.prototype show_symbol )
                         |> List.indexedMap
                            ( \n ->
                                 over ( View.ephemeral "Option" ( Signature.ephemeral n ) )
@@ -474,8 +475,6 @@ view_live_branch new_creator message show_symbol branch =
         to_message =
             create_intent new_creator this
             >> message.from_intent
-            -->> Debug.log "message created"
-
     in
         View.active "State" this.signature inner
             |> Node.view this

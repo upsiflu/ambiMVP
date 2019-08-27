@@ -4,7 +4,10 @@
     "version": "0.0.1",
     "exposed-modules": [
 	"Compositron",
+	"Compositron.Node",
 	"Compositron.Item",
+	"Compositron.Flow",
+	"Compositron.Cogroup",
 	"Compositron.Structure.EagerZipperTree",
 	"Compositron.Structure.Branch",
 	"Compositron.Structure.Group",
