@@ -79,9 +79,10 @@ TEMPLATE			⌧ :_/0	(_/0)
     <				  :t/5	(layout/1)"""
  ++ --LAYOUT
  """
-  align right			◆ :y/0	(y/0)
-  align centered		◆ :y/1	(y/1)
-  shaded green			◆ :y/2	(y/2)
+  align right			⍚ :y/0	(y/0)
+      style			◆ :_/0	(_/0)
+  align centered		⍚ :y/1	(y/1)
+  shaded green			⍚ :y/2	(y/2)
   layout			⍚ :l/0	(l/0)
     <				  :layout/1	(layout/1)
     < y/0 | y/1 | y/2		  :l/2	(l/2)
@@ -109,7 +110,7 @@ TEMPLATE			⌧ :_/0	(_/0)
    
 live =
  """
-LIVE            	⌧ :live/0	(live/0)
+LIVE            	🗔 :live/0	(live/0)
   <			  :live/1	(initial/1)*
  """
     

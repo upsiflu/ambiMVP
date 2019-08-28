@@ -8,6 +8,7 @@ module Compositron.Item exposing
     , data
     , to_symbol
     , is_self_assumption
+    , is_assumption
     , equal
     , alternatives
     , assumptions
@@ -39,6 +40,7 @@ module Compositron.Item exposing
 @docs to_symbol
 
 @docs is_self_assumption
+@docs is_assumption
 @docs equal
         
 @docs alternatives
@@ -60,6 +62,7 @@ module Compositron.Item exposing
         
 import Helpers exposing (..)
 import Maybe.Extra
+import Html exposing ( Html )
 
 import Compositron.Data as Data exposing ( Data )
 import Compositron.Signature as Signature exposing ( Signature )
@@ -126,6 +129,12 @@ is_self_assumption : Item l t -> Bool
 is_self_assumption itm =
     itm == Assume ( Of Self )
 
+{-|-}
+is_assumption : Item l t -> Bool
+is_assumption itm =
+    case itm of
+        Assume _ -> True
+        _ -> False
 
 {-|-}
 alternatives : Item l t -> List ( Cogroup t )
@@ -251,10 +260,12 @@ view itm =
                        Of single ->
                            Cogroup.view single
                        Or head more ->
-                           View.add_class "options"
-                               >> View.set_text "..."
+                           View.set_element
+                               ( \att chi -> Html.button att [ Html.ul [] chi ] )
+                               >> View.add_class "options"
         Body n f ->
             View.add_class n
+                >> View.set_text n
                 >> Flow.view f
                         
         Err string ->

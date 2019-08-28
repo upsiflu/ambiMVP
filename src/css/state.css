@@ -3,18 +3,18 @@
 /*buttons and toggles*/
 
 
+
+
+
+
+
+
+
+
 /* Modeswitching */
 /*switching between edit and review mode (small to medium screen only)*/
 
-.options {
-}
-.options > button { color:white; transition:all .2s; display:inline-block; text-indent:0rem;}
-.Option { background:rgb(75,80,45); line-height:2.2rem;min-width:3.4rem; height:2.9rem}
-.Option:hover {background:rgb(40,40,0);}
-.Option+.Option {margin-left:1px;}
-.Option:first-of-type { padding-left:.6rem;} 
-.Option:last-of-type { padding-right:.6rem;} 
-.Option > label {  font-size:1rem; }
+
 
 .layout_indicator { 
     min-width:5.1rem;

@@ -13,8 +13,7 @@ module Compositron.Node exposing
         
     -- set
     , set_item
-    , passivate
-    , activate
+    , set_manifestation
     , inc
 
     -- map
@@ -44,8 +43,7 @@ Create by shifting domains:
 # Set
 @docs set_item
 @docs inc
-@docs passivate
-@docs activate
+@docs set_manifestation
 
 # Map
 @docs map_item
@@ -63,7 +61,7 @@ import Helpers exposing (..)
 import Compositron.Item as Item exposing ( Item )
 import Compositron.Data as Data exposing ( Data )
 import Compositron.Signature as Signature exposing ( Signature )
-import Compositron.Manifestation as Manifestation exposing ( Manifestation )
+import Compositron.Manifestation as Manifestation exposing ( Manifestation (..) )
 
 import Compositron.View as View exposing ( View, Action (..) )
 
@@ -87,7 +85,7 @@ trivial =
     { signature = Signature.root
     , prototype = Signature.root
     , item = Item.Err "trivial"
-    , manifestation = Manifestation.passive
+    , manifestation = Notargeted
     }
 
 {-|-}
@@ -101,7 +99,7 @@ primer creator =
     { signature = Signature.prime creator
     , prototype = Signature.prime creator
     , item = Item.Err "primer"
-    , manifestation = Manifestation.passive
+    , manifestation = Notargeted
     }
 
 {-|-}
@@ -173,17 +171,10 @@ map_manifestation fu =
 set_item : Item sig cosig -> Map ( Node sig cosig )
 set_item itm =
     \this-> { this | item = itm }
-             
+
+{-|-}
+set_manifestation : Manifestation -> Map ( Node sig cosig )
 set_manifestation = always >> map_manifestation
-
-{-|-}
-activate : Map ( Node sig cosig )
-activate = set_manifestation Manifestation.active
-
-{-|-}
-passivate : Map ( Node sig cosig )
-passivate = set_manifestation Manifestation.passive
-
 
                     
 -- serial form

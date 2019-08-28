@@ -60,7 +60,7 @@ type Action prototype data
     | Input_span data
     | Blur_span
     | Contenteditable
-    | Targeted ( Action prototype data )
+    | When_targeted ( Action prototype data )
 
 type Children msg sig cosig data =
     Children ( () -> List ( View msg sig cosig data ) )

@@ -7,36 +7,40 @@ import Compositron.View as View exposing ( View, Action (..) )
 -- Manifestation
 
 
-type alias Manifestation =
-    { target : Bool }
+type Manifestation
+    = Targeted
+    | Cotargeted
+    | Notargeted
 
-target = always { target = True }
-untarget = always { target = False }
-targeted = (==) { target = True }
-
-passive = untarget ()
-active = target ()
-
-
+targeted = (==) Targeted
+           
 view : Manifestation -> Map ( View msg item signature data )
 view manifestation =
-    if targeted manifestation
-    then
-        View.add_action Focus_here >> View.add_class "targeted"
-    else
-        View.add_action Navigate_here
+    case manifestation of
+        Notargeted ->
+            View.add_action Navigate_here
+                >> View.add_class "notargeted"
+        Cotargeted ->
+            View.add_action Navigate_here
+                >> View.add_class "cotargeted"
+        Targeted ->
+            View.add_action Focus_here
+                >> View.add_class "targeted"
+        
                                                                     
 
 
 serialize : Manifestation -> String
 serialize manifestation =
-    case targeted manifestation of
-        True -> "*"
-        False -> ""
+    case manifestation of
+        Targeted -> "*"
+        Cotargeted -> "~"
+        Notargeted -> ""
 
 deserialize : String -> Maybe Manifestation
 deserialize str =
     case str of
-        "*" -> Just active
-        "" -> Just passive
+        "*" -> Just Targeted
+        "~" -> Just Cotargeted
+        "" -> Just Notargeted
         _ -> Nothing

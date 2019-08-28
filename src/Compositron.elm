@@ -67,7 +67,7 @@ import Compositron.Structure.Group as Group
 import Compositron.Node as Node
 import Compositron.Signature as Signature exposing ( Creator )
 import Compositron.Item as Item
-import Compositron.Manifestation as Manifestation exposing ( Manifestation )
+import Compositron.Manifestation as Manifestation exposing ( Manifestation (..) )
 import Compositron.Data as Data exposing ( Data )
 import Compositron.Cogroup as Cogroup
 
@@ -244,12 +244,40 @@ type Edit
 
 {-| Mark some node active.-}
 target : LiveSignature -> Map State
-target sig =
-    mark Node.passivate
-        >> map_live ( Structure.find ( \this -> this.signature == sig ) |> perhaps )
-        >> mark Node.activate
-        >> trace ("TARGET! "++Signature.serialize sig)
+target sig compositron =
+    let
+        clean s =
+           s |> map_live ( perhaps ( Structure.find ( .manifestation >> (==) Cotargeted ) ) )
+             |> set Notargeted
+             |> back ( Structure.node ( live s ) )
+        go      = map_live ( perhaps ( Structure.find ( .signature >> (==) sig ) ) )
+        back to = map_live ( perhaps ( Structure.find ( (==) to ) ) )
+        set to  = mark ( Node.set_manifestation to )
+    in
+        compositron
+            |> set Notargeted
+            |> clean
+            |> case ( compositron, go compositron )
+                     |> each ( live >> Structure.node >> .item >> Item.is_assumption )
+               of
+                    ( True, True ) ->
+                        set Cotargeted
+                            >> go
+                            >> set Targeted
+                    ( False, True ) ->
+                        set Cotargeted
+                            >> go
+                            >> set Targeted
+                    ( True, False ) ->
+                        go
+                            >> set Targeted
+                    ( False, False ) ->
+                        go
+                            >> set Targeted
+                               
 
+
+                
 {-| disambiguate some node. -}
 choose : Creator -> ( List TempSignature ) -> Map State
 choose cre new_signatures compositron =
@@ -427,7 +455,7 @@ view_live_branch new_creator message show_symbol branch =
                         |> List.indexedMap
                            ( \n ->
                                 over ( View.ephemeral "Option" ( Signature.ephemeral n ) )
-                                     >> View.element ( always Html.button )
+                                     >> View.set_element ( \att chi -> Html.li [] [ Html.button att chi ] )
                                      >> View.activate to_attribute
                            )
             in
@@ -467,7 +495,7 @@ view_live_branch new_creator message show_symbol branch =
                     |> to_message >> onBlur
             Contenteditable ->
                 Html.Attributes.contenteditable True
-            Targeted action ->
+            When_targeted action ->
                 if is_targeted
                 then to_attribute sig action
                 else class ""

@@ -54,6 +54,8 @@ import Compositron.View as View exposing ( View, Action (..) )
   # ⌧
 
 ### Semantics
+- _Page_: will try to fill the available screen.
+  # 🗔
 - _Inside_: Unaltered `span` item.
   # ⌻
 - _Sectioning_: `section` item.
@@ -82,6 +84,7 @@ type Flow
     | Symbolic
     | Inaccessible
     | Info String
+    | Page
     | Inside
     | Sectioning
     | Heading
@@ -119,7 +122,7 @@ data flow =
 {-|-}
 is_symbolic : Flow -> Bool
 is_symbolic flow =
-    flow == Symbolic
+    flow == Symbolic || flow == Meta
 
 
 
@@ -162,6 +165,7 @@ serialize : Flow -> String
 serialize f =
     case f of
         Meta -> "⍚"
+        Page -> "🗔"
         Inside -> "⌻"
         Sectioning -> "⌸"
         Heading -> "⍞"
@@ -183,6 +187,7 @@ deserialize : String -> Maybe Flow
 deserialize s =
     case s of
         "⍚" -> Just Meta
+        "🗔" -> Just Page
         "⌻" -> Just Inside
         "⌸" -> Just Sectioning
         "⍞" -> Just Heading
@@ -227,22 +232,32 @@ view flow =
     case flow of
         Symbolic ->
             View.set_element Html.label
+                >> View.add_class "◆"
+        Page ->
+            View.set_element Html.main_
+                >> View.set_text ""
         Inside ->
             View.set_element Html.span
         Meta ->
             View.set_element Html.span
+                >> View.add_class "⍚"
         Inaccessible ->
             View.set_element Html.pre
         Paragraph ->
             View.set_element Html.p
+                >> View.set_text ""
         Sectioning ->
             View.set_element Html.section
+                >> View.set_text ""
         Heading ->
             View.set_element Html.h1
+                >> View.set_text ""
         Figure ->
             View.set_element Html.figure
+                >> View.set_text ""
         Caption ->
             View.set_element Html.figcaption
+                >> View.set_text ""
         Info string ->
             View.set_element
                 (\att ch -> Html.div [] [ Html.h1 [] [ Html.text string ], Html.p att ch ] )
@@ -250,9 +265,9 @@ view flow =
                 >> View.set_text string
         T txt -> -- this is only the inner part, not the span!
             View.add_class "input"
-                >> View.add_action ( Targeted Contenteditable )
-                >> View.add_action ( Targeted ( Input_span txt.frozen ) )
-                >> View.add_action ( Targeted Blur_span )
+                >> View.add_action ( When_targeted Contenteditable )
+                >> View.add_action ( When_targeted ( Input_span txt.frozen ) )
+                >> View.add_action ( When_targeted Blur_span )
                 -- view frozen span text to cope with contenteditable:
                 >> case txt.frozen of
                        Nothing ->

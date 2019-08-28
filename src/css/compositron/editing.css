@@ -3,7 +3,98 @@
 
 .editing .Assume.targeted { color:transparent; margin-left:-1em;}
 
+.editing .editor {padding-bottom:30rem;}
+
 .editing .editor section pre {overflow-y:scroll; overflow-x:visible; height:25rem; }
+.editing main {overflow:visible; min-height:15rem; outline: .1rem dashed grey;}
+
+.editing p { min-height:5rem; background:white;}
+.editing p.targeted {z-index:3;}
+
+/* Assumes stack vertically down. */
+.editing .options:nth-of-type(1) {top:0rem; position:relative;}
+.editing .options:nth-of-type(2) {top:3rem; position:relative;}
+.editing .options:nth-of-type(3) {top:6rem; position:relative;}
+.editing .options:nth-of-type(4) {top:6rem; position:relative;}
+
+/* paragraph indicator (pilcrow) on targeted items */
+.editing label.◆ { position:absolute; right:0rem; top:0rem;}
+.editing label.¶ { position:absolute; right:0rem; top:0rem;}
+.editing p {position:relative;}
+.editing p:focus>label.¶:before {content:"¶"}
+
+/* self assumption indicator (fleuron) */
+.editing .targeted>.Assume.self:before {content:"❦"; position:absolute;bottom:-1.5rem; left:50%; width:2rem;
+					font-size:.7em;margin-left:-1rem;text-align:center;}
+.editing .targeted>.Assume.self { outline:4px solid red; }
+.editing .Assume.self { width:0;height:0;display:inline-block; }
+
+
+/* attached menu for options */
+.editing .Assume.options { display:inline-block;
+			   margin: 0 -3rem -3rem 0; width:3rem; max-width:3rem; height:3rem;
+			   position:relative;
+			   overflow:visible;
+			 }
+.editing .Assume.options {padding-left:0rem;padding-top:0rem;}
+.editing .Assume.options:before { background:#eee;
+                                 content:"+"; position:absolute; text-align:center;
+				 border:1px solid white; border-radius:1.5rem; line-height:2.4rem;
+			         height:2.6rem; width:2.6rem; top:.2rem;left:.2rem;color:black;
+			         box-shadow: 0px .1rem .8rem black; }
+.editing .Assume.options:focus {box-shadow:none;}
+.editing .Assume.options.targeted:before {visibility:hidden;}
+.editing .Assume.options.targeted:focus:after {visibility:visible;}
+.editing .Assume.options.targeted:after { background:#777; color:transparent;
+                                 content:"+"; position:absolute; text-align:center;
+				 border:1px solid white; border-radius:1.5rem; line-height:2.4rem;
+			         height:2.6rem; width:2.6rem; top:.2rem;left:.2rem;
+			         box-shadow: 0px .1rem .8rem black;}
+
+
+.editing .notargeted>.Assume.options {display:none;}
+
+/* menu open */
+.editing .options > ul { position:fixed; left:50vw; bottom:0;max-height:12rem;overflow-y:scroll;margin-left:-10rem; width:20rem;height:auto; background:#eee; box-shadow:0 -.5rem 1rem rgba(0,0,0,.3); padding: 0rem .1rem; }
+.editing .options .Option { color:white; transition:all .2s; display:block; text-indent:0rem;
+			    background:rgb(75,80,45); line-height:2.2rem;min-width:3.4rem; height:3rem;
+			    margin-bottom:0rem;}
+.editing .options > ul > li {display: inline-block;}
+
+.editing .options .Option .⍚ { color:inherit;font-size:inherit; height:inherit; bottom:inherit;position:inherit; overflow:ellipsis; white-space:pre;}
+
+.editing .Option:hover {background:rgb(40,40,0);}
+.editing .Option:first-of-type { transform:translateX(-1px) }
+.editing .Option:last-of-type { transform:translateX(1px) }
+.editing .Option:not(:first-of-type):not(:last-of-type)  { border-top:1px solid white;
+							   border-bottom:1px solid white;}
+
+.editing .Option > label.Referral {  font-size:1rem; position:relative; }
+
+
+
+ul > label {display:none !important; }
+
+/* meta items */
+.editing .⍚ {position:absolute; bottom:-2.1rem; right:0;
+	     font-family:sans-serif; font-size:.8rem;
+	     background:rgba(222,222,222,.8); padding:.4rem .6rem; border-radius:1em;}
+.editing .⍚.targeted {background:rgba(0,0,0,.7); color:white;}
+.editing .⍚:hover {background:rgba(211,211,211,1);}
+.editing .⍚ ~ .⍚ { bottom:-4.1rem; }
+.editing .⍚ ~ .⍚ ~ .⍚ { bottom:-6.1rem; }
+.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ { bottom:-8.1rem; }
+.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ { bottom:-10.1rem; }
+.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ { bottom:-12.1rem;
+				       background:transparent; color:transparent }
+.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚:after { content:"⋮";
+					     font-weight:bold;
+					     color:black;
+					     overflow:visible; display:inline-block; position:relative; }
+
+.editing .notargeted > .⍚ { display:none; }
+
+
 
 .editing .item.targeted {
     background:rgba(0,0,0,.1);
