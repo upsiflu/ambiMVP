@@ -53,7 +53,7 @@ import Html.Events exposing ( .. )
 import Html.Lazy exposing ( .. )
 import Json.Decode as Json
 import Task
-import List.Extra
+
 
 import History.Intent exposing ( Intent )
 
@@ -245,36 +245,30 @@ type Edit
 {-| Mark some node active.-}
 target : LiveSignature -> Map State
 target sig compositron =
-    let
-        clean s =
-           s |> map_live ( perhaps ( Structure.find ( .manifestation >> (==) Cotargeted ) ) )
-             |> set Notargeted
-             |> back ( Structure.node ( live s ) )
-        go      = map_live ( perhaps ( Structure.find ( .signature >> (==) sig ) ) )
-        back to = map_live ( perhaps ( Structure.find ( (==) to ) ) )
-        set to  = mark ( Node.set_manifestation to )
-    in
-        compositron
-            |> set Notargeted
-            |> clean
-            |> case ( compositron, go compositron )
-                     |> each ( live >> Structure.node >> .item >> Item.is_assumption )
-               of
-                    ( True, True ) ->
-                        set Cotargeted
-                            >> go
-                            >> set Targeted
-                    ( False, True ) ->
-                        set Cotargeted
-                            >> go
-                            >> set Targeted
-                    ( True, False ) ->
-                        go
-                            >> set Targeted
-                    ( False, False ) ->
-                        go
-                            >> set Targeted
-                               
+    case
+        live compositron |> Structure.find ( .signature >> (==) sig )
+    of
+        Nothing ->
+            compositron 
+        Just new ->
+            ( mark ( Node.set_manifestation Targeted )
+                  << map_live ( Structure.find ( .signature >> (==) sig ) )
+                >>  ) )
+            case ( new, compositron ) |> each ( Structure.node >> .item >> Item.is_assumption ) of
+                ( True, True ) ->
+                ( True, False ) ->
+                ( False, True ) ->
+                ( False, False ) ->
+
+            compositron
+                |> mark ( Node.set_manifestation Notargeted )
+                |> if Structure.node new |> .item |> Item.is_assumption
+                   then
+                       -- the next target is an ambivalent assumption and will open the menu
+                       mark ( Node.set_manifestation Cotargeted )
+                   else
+                   
+                |> 
 
 
                 
@@ -449,44 +443,19 @@ view_live_branch new_creator message show_symbol branch =
                             
         inner = \_->
             let
-                clump_zero_size_items kids =
-                    kids
-                        |> List.Extra.groupWhile
-                           ( \a b -> View.is_zero_size a && View.is_zero_size b )
-                        |> List.map
-                           ( \kid ->
-                               case kid of
-                                   ( single, [] ) ->
-                                     single
-                                   ( head, tail ) ->
-                                     View.ephemeral "multiple-zero-size" ( Signature.ephemeral 0 )
-                                         |> View.set_element Html.span
-                                         |> View.set_children
-                                             ( head::tail
-                                                 |> List.map ( View.add_wrap Html.li )
-                                             )
-                                         |> View.add_wrap Html.ul
-                           )
-                append_alternative_cogroup_views =
-                    if is_targeted
-                    then Item.alternatives this.item
+                alternative_cogroup_views =
+                    ( if is_targeted then Item.alternatives this.item else [] )
                         |> List.map ( Cogroup.view_option this.prototype show_symbol )
                         |> List.indexedMap
                            ( \n ->
                                 over ( View.ephemeral "Option" ( Signature.ephemeral n ) )
-                                     >> View.set_element Html.button
-                                     >> View.add_wrap Html.li
-                                     >> View.add_index n
+                                     >> View.set_element ( \att chi -> Html.li [] [ Html.button att chi ] )
                                      >> View.activate to_attribute
                            )
-                        |> (++)
-                    else identity
             in
                 Branch.kids branch
-                    |> List.map ( view_live_branch new_creator message show_symbol )
-                    |> if is_targeted
-                       then clump_zero_size_items >> append_alternative_cogroup_views
-                       else identity
+                |> List.map ( view_live_branch new_creator message show_symbol )
+                |> (++) alternative_cogroup_views
             
 
         -- interactivity

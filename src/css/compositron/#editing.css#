@@ -32,6 +32,11 @@
 .editing .multiple-zero-size
     { background:black; width:0; height: 0; overflow:visible;
       display:inline-block; position:relative;}
+
+.editing .multiple-zero-size > ul
+    { background:black; width:0; height: 0; overflow:visible;
+      display:inline-block; position:relative;}
+
 .editing .multiple-zero-size .zero
     { position:relative;
       width:3rem; height:3rem;background:yellow; outline:1px solid blue; }

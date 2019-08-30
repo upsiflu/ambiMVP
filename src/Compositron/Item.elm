@@ -256,6 +256,7 @@ view itm =
     case itm of
         Assume tmp ->
             View.add_class "Assume"
+                >> View.set_size View.Zero
                 >> case tmp of
                        Of single ->
                            Cogroup.view single

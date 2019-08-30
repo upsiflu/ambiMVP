@@ -4,6 +4,7 @@
     "version": "0.0.1",
     "exposed-modules": [
 	"Compositron",
+        "Compositron.View",
 	"Compositron.Node",
 	"Compositron.Item",
 	"Compositron.Flow",
