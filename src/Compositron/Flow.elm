@@ -37,7 +37,7 @@ import Helpers exposing (..)
 import Maybe.Extra
 import Compositron.Data as Data exposing ( Data )
 
-import Compositron.View as View exposing ( View, Action (..) )
+import Compositron.View as View exposing ( View, Action (..), Role )
 
 
 {-| Directs how the browser renders an `Item`.
@@ -53,7 +53,7 @@ import Compositron.View as View exposing ( View, Action (..) )
 - _Inaccessible_: no intended for the user interface.
   # ⌧
 
-### Semantics
+### Semantic flow
 - _Page_: will try to fill the available screen.
   # 🗔
 - _Inside_: Unaltered `span` item.
@@ -70,20 +70,12 @@ import Compositron.View as View exposing ( View, Action (..) )
   # ℭ
 - `figcaption` or `aside`, depending on the container type.
   # ⌇
-
-### Media
-- _T_ `text`: Editable content. Use in situations such as editing visible text, urls, etc.
-- _P_ `picture`.
-- _U_ `url`.
-- _Y_ `link`: Youtube video.
-- _V_ `link`: Vimeo video.
-
+- _D_: Data renderer without kids.
 -}
 type Flow
     = Meta
     | Symbolic
     | Inaccessible
-    | Info String
     | Page
     | Inside
     | Sectioning
@@ -91,11 +83,7 @@ type Flow
     | Paragraph
     | Figure
     | Caption
-    | T { fluid : Data, frozen : Data }
-    | P Data
-    | U Data
-    | Y Data
-    | V Data
+    | D Data
 
 
 -- create
@@ -112,11 +100,7 @@ symbolic = Symbolic
 data : Flow -> Maybe Data
 data flow =
     case flow of
-        T txt -> Just txt.fluid
-        P dat -> Just dat
-        U dat -> Just dat
-        Y dat -> Just dat
-        V dat -> Just dat
+        D d -> Just d
         _ -> Nothing
 
 {-|-}
@@ -129,29 +113,25 @@ is_symbolic flow =
 -- map
 
 
+map_data fu flow =
+    case flow of
+        D dat -> D ( fu dat )
+        _ -> flow
+
 {-|-}
 set_data : Data -> Map Flow
-set_data dat flow =
-    case flow of
-        T txt -> T { txt | fluid = dat }
-        P _ -> P dat
-        U _ -> U dat
-        Y _ -> Y dat
-        V _ -> V dat
-        x -> x
+set_data dat =
+    map_data ( \_-> dat )
 
 {-|-}
 freeze : Map Flow
-freeze flow =
-    case flow of
-        T txt -> T { txt | frozen = txt.fluid }
-        x -> x
+freeze =
+    map_data Data.freeze
+    
 {-|-}
 unfreeze : Map Flow
-unfreeze flow =
-    case flow of
-        T txt -> T { txt | frozen = txt.fluid }
-        x -> x
+unfreeze =
+    map_data Data.unfreeze
 
 
 
@@ -174,12 +154,7 @@ serialize f =
         Caption -> "⌯"
         Symbolic -> "◆"
         Inaccessible -> "⌧"
-        Info s -> "🛈 " ++ s
-        T txt -> "T " ++ Data.serialize txt.fluid ++ " | " ++ Data.serialize txt.frozen
-        P picture -> "P " ++ Data.serialize picture
-        U url -> "U " ++ Data.serialize url
-        Y youtube -> "Y " ++ Data.serialize youtube
-        V vimeo -> "V " ++ Data.serialize vimeo
+        D dat -> Data.serialize dat 
 
                    
 {-|-}
@@ -197,29 +172,8 @@ deserialize s =
         "◆" -> Just Symbolic
         "⌧" -> Just Inaccessible
         other ->
-            case String.split " " other
-                     |> both
-                        ( List.head >> Maybe.withDefault ""
-                        , List.tail >> Maybe.withDefault [""] >> String.join " " )
-            of
-                ( "🛈", rest ) ->
-                    Just ( Info rest )
-                ( "T", rest ) ->
-                    rest |> String.split " | "
-                         |> list_to_tuple
-                         |> Maybe.map
-                            ( each Data.deserialize >> \( te, xt ) -> T { fluid = te, frozen =  xt } )
-                         |> Maybe.Extra.or
-                            ( Just <| Info ( "Failed to compose a T Text item from " ++ rest ) )
-                ( "P", dat ) ->
-                    Data.deserialize dat |> P >> Just
-                ( "U", dat ) ->
-                    Data.deserialize dat |> U >> Just
-                ( "Y", dat ) ->
-                    Data.deserialize dat |> Y >> Just
-                ( "V", dat ) ->
-                    Data.deserialize dat |> V >> Just
-                _ -> Nothing
+            Data.deserialize other
+                |> Maybe.map D
 
 
 
@@ -227,58 +181,33 @@ deserialize s =
 
 
 {-|-}
-view : Flow -> Map ( View msg l t Data )
+view : Flow -> Map ( View node t )
 view flow =
     case flow of
         Symbolic ->
-            View.set_element Html.label
-                >> View.add_class "◆"
+            identity
         Page ->
-            View.set_element Html.main_
-                >> View.set_text ""
+            View.role View.P
         Inside ->
-            View.set_element Html.span
+            View.role View.Span
         Meta ->
-            View.set_element Html.span
-                >> View.add_class "⍚"
+            identity
         Inaccessible ->
-            View.set_element Html.pre
+            identity
         Paragraph ->
-            View.set_element Html.p
-                >> View.set_text ""
+            View.role View.P
         Sectioning ->
-            View.set_element Html.section
-                >> View.set_text ""
+            View.role View.P
         Heading ->
-            View.set_element Html.h1
-                >> View.set_text ""
+            View.role View.H
         Figure ->
-            View.set_element Html.figure
-                >> View.set_text ""
+            View.role View.F
         Caption ->
-            View.set_element Html.figcaption
-                >> View.set_text ""
-        Info string ->
-            View.set_element
-                (\att ch -> Html.div [] [ Html.h1 [] [ Html.text string ], Html.p att ch ] )
-                >>View.add_class "info"
-                >> View.set_text string
-        T txt -> -- this is only the inner part, not the span!
-            View.add_class "input"
-                >> View.add_action ( When_targeted Contenteditable )
-                >> View.add_action ( When_targeted ( Input_span txt.frozen ) )
-                >> View.add_action ( When_targeted Blur_span )
-                -- view frozen span text to cope with contenteditable:
-                >> case txt.frozen of
-                       Nothing ->
-                           identity
-                       Just frozen_string ->
-                           View.set_text frozen_string
-        P source ->
-            View.add_class "picture"
-                >> View.element ( always Html.img )
-        U url ->
-            View.add_class "url"
-                >> View.element ( always Html.input )
-        Y _ -> identity
-        V _ -> identity
+            View.role View.C
+        D d ->
+            View.decode d
+                >> View.action ( Class <| Data.serialize_constructor d )
+                >> View.action ( When_targeted Contenteditable )
+                >> View.action ( When_targeted Blur_span )
+                >> View.action ( When_targeted ( Input_span d ) )
+   

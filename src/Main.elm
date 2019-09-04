@@ -55,7 +55,48 @@ Figure <
 ...
 -}
 template =
- """
+    """
+TEMPLATE			⌧ :_/0	(_/0)
+  < paragraph/0 | figure/0	  :initial/1	(initial/1)
+  Paragraph			¶ :paragraph/0	(paragraph/0)
+    < blocks/1 | spans/1	  :p/1	(p/1)
+    <				  :p/2	(p/2)
+    <				  :p/3	(layout/1)
+  Figure			⌹ :figure/0	(figure/0)
+    < blocks/1 | spans/1	  :f/1	(f/1)
+    Caption			⌯ :f/2	(f/2)
+      < blocks/1 | spans/1	  :f/3	(f/3)
+    <				  :f/4	(layout/1)
+  Text				⌻ :t/0	(t/0)
+    <				  :text/1	(span/1)
+    what you write!		𝑇  ~ :t/2	(t/2)
+    <                             :t/3	(layout/1)
+  L A Y O U T			⌧ :_/0	(_/0)
+    <				  :layout/1	(layout/1)
+    < y/0 | y/1 | y/2		  :l/2	(l/2)
+      add style			◆ :_/0	(_/0)
+  align right			⍚ :y/0	(y/0)
+      style			◆ :_/0	(_/0)
+  align centered		⍚ :y/1	(y/1)
+  shaded green			⍚ :y/2	(y/2)
+  layout			⍚ :l/0	(l/0)
+  B L O C K S  A N D  S P A N S	⌧ :_/0	(_/0)
+    < paragraph/0 | figure/0 | heading/1	 :blocks/1	(blocks/1)
+    blocks				◆ :_/0	(_/0)
+  insert span element		⌧ :_/0	(_/0)
+    𝑇				◆ :_/0	(_/0)
+    < text/1 | spans/1		  :spans/1	(spans/1)
+  heading			⍞ :h/0	(h/0)
+    ⍞				◆ :_/0	(_/0)
+    <				  :heading/1	(heading/1)
+    <				  :h/2	(spans/1)
+    <				  :h/3	(layout/1)
+  link				⌻ :k/0	(k/0)
+    destination			⍚ :link/1	(link/1)
+      U 			  :k/2	(k/2)"""
+
+{-
+    """
 TEMPLATE			⌧ :_/0	(_/0)
   < paragraph/0 | figure/0	  :initial/1	(initial/1)
   Paragraph			¶ :paragraph/0	(paragraph/0)
@@ -106,7 +147,7 @@ TEMPLATE			⌧ :_/0	(_/0)
     destination			⍚ :link/1	(link/1)
       U 			  :k/2	(k/2)"""
                                                   
-    
+-}    
    
 live =
  """

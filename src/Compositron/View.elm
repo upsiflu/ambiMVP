@@ -1,211 +1,429 @@
 module Compositron.View exposing
     ( View
-    , Element
+
+    , live
+    , err
+
+    , face
+    , kid
+    , kids
+    , target
+    , decode
     , Action (..)
-    , Size (..)
+    , action
+    , option
+    , options
+    , Role (..)
+    , role
 
-    -- create
-    , static
-    , ephemeral
-    , active
-
-    -- read
-    , is_zero_size
-        
-    -- map
-    , element
-    , children
-    , activate
-        
-    -- add
-    , add_id
-    , add_action
-    , add_class
-    , add_attribute
-    , add_wrap
-    , add_index
-
-    -- set
-    , set_text
-    , set_size
-    , set_element
-    , set_children
-        
-    -- view
-    , present
+    , view
     )
 
+{-| Each View corresponds to one Live Branch in a Compositron.
+The relation to Html is more complex as three rules guide the
+adaptation of an arbitrary COmpositron into semantically correct
+Html5.
 
-import Html exposing ( Html, Attribute )
-import Html.Attributes as Attributes
-import Html.Events exposing ( .. )
-import Html.Lazy exposing ( .. )
+@docs View
 
-import Helpers exposing ( .. )
+## Relation of View Constructors with Nodes and Html
 
-
-
-type alias View msg sig cosig data =
-      { descriptor : String
-      , signature : Maybe sig
-      , element : Element msg
-      , size : Size
-      , text : String
-      , actions : List ( Action cosig data )
-      , attributes : List ( Attribute msg )
-      , children : Children msg sig cosig data
-      }
-
-type Size =
-    Zero | One
+A _Transient_ node, originating at an ambiguous Assume, has a gatekeeper function.
+Its 'kids' are Options, originating at a Template.
+In Html, the option menu is only drawn when the Transient is Targeted.
+      
+Self Assumptions and Symbolics produce _Tags_ relating to their container.
     
-type alias Element msg =
-    List ( Attribute msg ) ->
-    List ( Html msg ) ->
-    Html msg
+The _Container_ originates from a Body with kids.
+In Html, it may require wrapping:
 
-type Action prototype data
-    = Navigate_here
+🅁 𝐻 may only have 'phrasing' content. So  map  kids.
+
+Additionally, a container responds to the size attribute of
+their kids and may need to clump groups of too_small kids:
+
+🅁 If successive items are too small, then clump them in groups that
+expand when any member or descendent thereof is open.
+    
+Renderer: a body with data-bearing flow.
+Becomes a Html element with source or seed attributes, such as `text`, `a` or `img`.
+Children become siblings (or labels?) in the Html tree.
+
+🅁 [contenteditable] can't have children. --> Wrap in an outer span.
+
+_Error_: an Error node.
+Ignore children and just display a collapsible error message in place.
+
+# Create
+@docs live
+
+# Map
+@docs err
+@docs target
+@docs face
+@docs decode
+
+## Kids
+@docs kid
+@docs kids
+
+## Action
+@docs Action
+@docs action
+
+## Option
+@docs option
+@docs options
+
+## Role
+@docs Role
+@docs role
+
+# View
+@docs view
+-}
+
+
+import Helpers exposing (..)
+
+import Html exposing (..)
+import Html.Events exposing (..)
+import Html.Attributes as A
+import Compositron.Data as Data exposing ( Data (..) )
+
+
+{-|-}
+type View node prototype
+    = Transient
+      ( Parameters node ) ( Nonempty ( Option prototype ) )
+    | Tag
+      ( Parameters node )
+    | Renderer
+      ( Parameters node ) Data
+    | Container
+      ( Parameters node ) Role ( List ( Kid node prototype ) )
+    | Error
+      ( Parameters node ) String
+
+type alias Option prototype =
+    List prototype
+        
+{-|-}
+type Action
+    = Id String
+    | Class String
+    | Navigate_here
     | Focus_here
-    | Choose_these ( List prototype )
-    | Input_url data
-    | Input_span data
+    | Input_url Data
+    | Input_span Data
     | Blur_span
     | Contenteditable
-    | When_targeted ( Action prototype data )
-
-type Children msg sig cosig data =
-    Children ( () -> List ( View msg sig cosig data ) )
-
-force_children :
-    View msg sig cosig data ->
-    List ( View msg sig cosig data )
-force_children v =
-    case v.children of
-        Children force_list -> force_list ()
-        
-actions fu =
-    \v-> { v | actions = fu v.actions }
-attributes fu =
-    \v-> { v | attributes = fu v.attributes }
-element fu =
-    \v-> { v | element = fu v.element }
-children :
-    Map ( List ( View msg sig cosig data ) ) ->
-    Map ( View msg sig cosig data )
-children fu =
-    \v-> { v | children =
-               Children ( fu ( force_children v ) |> always ) }
-
-add_action =
-    (::) >> actions
-add_attribute =
-    (::) >> attributes
-add_child =
-    (::) >> children
-
-add_class : String -> Map ( View msg sig cosig data )
-add_class =
-    Attributes.class >> add_attribute
-
-add_id : String -> Map ( View msg sig cosig data )
-add_id =
-    Attributes.id >> add_attribute
-        
-set_text : String -> Map ( View msg sig cosig data )
-set_text t =
-    \v-> { v | text = t }
-
-set_element : Element msg -> Map ( View msg sig cosig data )
-set_element e =
-    \v-> { v | element = e }
-         
-set_signature : Maybe sig -> Map ( View msg sig cosig data )
-set_signature sig =
-    \v-> { v | signature = sig }
-
-set_size : Size -> Map ( View msg sig cosig data )
-set_size size =
-    \v-> { v | size = size }
-
-set_children chi =
-    \v-> { v | children =
-               Children ( always chi ) }
-         
-is_zero_size : View msg sig cosig data -> Bool
-is_zero_size = .size >> ( (==) Zero )
-
-static : String -> View msg sig cosig data
-static descriptor =
-    { descriptor = descriptor
-    , size = One
-    , signature = Nothing
-    , element = Html.span
-    , text = ""
-    , actions = []
-    , attributes = [ Attributes.class descriptor ]
-    , children = Children ( always [] )
-    }    
-
-active :
-    String ->
-    sig ->
-    ( () -> List ( View msg sig cosig data ) ) ->
-    View msg sig cosig data
-active descriptor sig inner =
-    static descriptor
-        |> children ( \_-> inner () )
-        |> set_signature ( Just sig )
-
-ephemeral :
-    String ->
-    sig ->
-    View msg sig cosig data
-ephemeral descriptor sig =
-    active descriptor sig ( always [] )
-        |> set_size Zero
-
-
-add_wrap :
-    Element msg
-        -> Map ( View msg sig cosig data )
-add_wrap outside =
-    element ( \inside -> ( \att chi -> outside [] [ inside att chi ] ) )
-
-
-add_index :
-    Int
-        -> Map ( View msg sig cosig data )
-add_index n =
-    add_class ( "n"++String.fromInt n )
+    | When_targeted Action
     
-                           
-activate : 
-    ( sig -> ( Action prototype data -> Attribute msg ) ) ->
-    Map ( View msg sig prototype data )
-activate act v =
-    case v.signature of
-        Nothing ->
-            v
-        Just sig ->
-            v   |> attributes ( (++) ( List.map ( act sig ) v.actions ) )
-                |> clear_actions
+type alias Parameters node =
+    { node : node
+    , open : Bool
+    , face : String
+    , actions : List Action
+    }
 
-clear_actions =
-    actions ( always [] )
+
+    
+-- create
+
+
+{-|-}      
+live : node -> View node prototype
+live n = Tag
+    { node = n
+    , open = False
+    , face = "***"
+    , actions = []
+    }
+
+
+
+parameters v =
+    case v of
+        Transient p os -> p 
+        Tag p -> p
+        Renderer p d -> p
+        Container p r ks -> p
+        Error p s -> p
+        
+map_parameters : Map ( Parameters node ) -> Map ( View node prototype )
+map_parameters fu v =
+    case v of
+        Transient p os ->
+            Transient ( fu p ) os 
+        Tag p ->
+            Tag ( fu p )
+        Renderer p d ->
+            Renderer ( fu p ) d
+        Container p r ks ->
+            Container ( fu p ) r ks
+        Error p s ->
+            Error ( fu p ) s
+
+
+{-|-}
+err : String -> Map ( View node prototype )
+err str v = Error ( parameters v ) str
+
+{-|-}
+target : Map ( View node prototype )
+target =
+    map_parameters ( \p -> { p | open = True } )
+        >> action ( Class "t" )
+
+{-|-}
+type Role
+    = P 
+    | H
+    | F
+    | C
+    | Span
                    
-preview :
-    View msg sig cosig data ->
-    Html msg
-preview v =
+{-|-}
+role : Role -> Map ( View node prototype )
+role rl v =
+    case v of
+        Container p r ks ->
+            Container p rl ks
+        _ ->
+            Container ( parameters v ) rl []
+                
+{-|-}
+decode : Data -> Map ( View node prototype )
+decode d v =
+    Renderer ( parameters v ) d
+        
+{-|-}
+face : String -> Map ( View node prototype )
+face fa v =
+    v |> map_parameters
+        ( \p -> { p | face = fa++"/"++p.face } )
+
+{-|-}    
+action : Action -> Map ( View node prototype )
+action ac v =
+    v |> map_parameters
+        ( \p -> { p | actions = ac::p.actions } )
+
+
+{-|-}            
+kids : List ( View node prototype ) -> Map ( View node prototype )
+kids vs =
+    case vs of
+        [] -> identity
+        [vw] -> kid vw
+        vw::vww -> kid vw >> kids vww
+        
+{-|-}            
+kid : View node prototype -> Map ( View node prototype )
+kid new v =
     let
-        html_attributes =
-            ( if v.size == Zero then "zero" else "" ) |> Attributes.class |> ( \c->c::v.attributes )
-        html_children =
-            ( Html.text v.text ) ::
-            ( List.map preview ( force_children v ) ) 
-    in lazy2
-        v.element html_attributes html_children
+        size : View node prototype -> Int
+        size viw =
+            case viw of
+                Renderer p d ->
+                    Data.size d
+                     
+                Container p r ks ->
+                    ks |> List.foldl
+                          ( \k acc ->
+                                (+) acc <|
+                                case k of
+                                    Kid vw   ->
+                                        size vw
+                                    Clump ( cl, ump ) ->
+                                        cl::ump |> List.map size
+                                                |> List.foldl (+) 0
+                          ) 0
+                _ -> 0
+
+        measure = if size new > 4 then Sufficient else TooSmall
+    in
+        case v of
+            Container p r [] ->
+                case measure of
+                    TooSmall ->
+                        Container p r [ Clump ( new, [] ) ]
+
+                    Sufficient ->
+                        Container p r [ Kid new ]
+                    
+            Container p r ( k::kk ) ->
+                case ( measure, k ) of
+                    ( TooSmall, Clump ( cl, umped ) ) ->
+                        Container p r ( Clump ( new, cl::umped )::kk )
+                            
+                    ( TooSmall, Kid _ ) ->
+                        Container p r ( Clump ( new, [] )::k::kk )
+                            
+                    ( Sufficient, _ ) ->
+                        Container p r ( Kid new::k::kk )
+                            
+            _ -> v
+
+{-|-}
+options : List ( Option prototype ) -> Map ( View node prototype )
+options os =
+    case os of
+        [] -> identity
+        [op] -> option op
+        op::tions -> option op >> options tions
+                 
+{-|-}                 
+option : Option prototype -> Map ( View node prototype )
+option op v =
+    case v of
+        Transient p ( t, ions ) ->
+            Transient p ( op, t::ions )
+        Tag p ->
+            Transient p ( op, [] )
+        _ ->
+            err "Error in View.option" v
             
     
-present = preview
+type Measure
+    = Sufficient
+    | TooSmall
+             
+type Kid node prototype
+    = Kid ( View node prototype )
+    | Clump ( Nonempty ( View node prototype ) )
+
+           
+
+
+
+
+-- view
+
+
+{-|-}
+view :
+    { to_attribute : node -> Action -> Attribute msg
+    , to_choice : node -> Option prototype -> { choice : Attribute msg, face : String }
+    }
+    -> View node prototype
+    -> Html msg
+view context v =
+    let
+        this = parameters v |> .node
+        to_attributes = this
+            |> context.to_attribute
+            |> List.map
+        to_choice = this
+            |> context.to_choice
+                        
+        element =
+            case v of
+                Transient p os ->
+                    div 
+                Tag p ->
+                    span
+                Renderer p d ->
+                    span
+                Container p P ks ->
+                    div
+                Container p H ks ->
+                    h1
+                Container p F ks ->
+                    figure
+                Container p C ks ->
+                    div
+                Container p Span ks ->
+                    span
+                Error p s ->
+                    div
+
+        role_to_attribute r =
+            case r of
+                P -> "¶"
+                H -> "ℌ"
+                F -> "❦"
+                C -> "ℭ"
+                Span -> "⟷"
+                
+        attributes = 
+            case v of
+                Transient p os ->
+                    to_attributes p.actions
+                        |> (::) ( A.class "◇" )
+                Tag p ->
+                    to_attributes p.actions
+                        |> (::) ( A.class "◆" )
+                Renderer p d ->
+                    to_attributes p.actions
+                Container p r ks ->
+                    to_attributes p.actions
+                        |> (::) ( A.class "C" )
+                        |> (::) ( A.class ( role_to_attribute r ) )
+                Error p s ->
+                    [ A.class "Error" ]
+
+        children =
+            case v of
+                Transient p ( op, tions ) ->
+                    [ span [ A.class "face pl" ] [ text "+" ]
+                    , span [ A.class "connector-v" ] []
+                    , ul [] ( List.map ( to_choice >> deopt ) ( op::tions ) )
+                    ]
+                Tag p ->
+                    [ text p.face ]
+                Renderer p d ->
+                    Data.view d
+                Container p r ks ->
+                    List.map dekid ks
+                        |> (::) ( label [ A.class "Tag face" ] [ text p.face ] )
+                Error par s ->
+                    [ h3 [] [ text "Error" ], p [] [ text s ] ]
+
+        deface str =
+            span [ A.class "face" ] [ text str ]
+                        
+        deopt o =
+            li [] [ button [ A.class "Option", o.choice ] [ deface o.face ] ]
+            
+        dekid k =
+          case k of
+              Kid vw ->
+                  view context vw
+              Clump ( cl, ump ) ->
+                  view_clump_menu ( cl::ump )
+
+        view_clump_menu : List ( View node prototype ) -> Html msg
+        view_clump_menu vv =
+            let
+                all_kids vw =
+                    case vw of
+                        Container p r ks ->
+                            ks
+                        _ -> []
+                view_is_open vw =
+                    parameters vw
+                        |> .open
+                        |> (||) ( all_kids vw |> List.any kid_is_open )
+                kid_is_open k =
+                    case k of
+                        Kid vw ->
+                            view_is_open vw
+                        Clump ( cl, ump ) ->
+                            cl::ump
+                                |> List.any view_is_open
+                view_clumped_entry vw =
+                    li [] [ view context vw ]
+
+            in
+                -- draw the menu; use css to expand and compress it.
+                div [ A.class "clump" ]
+                    [ span [ A.class "face cl blink" ] [ text "][" ]
+                    , List.map view_clumped_entry vv
+                        |> ul [ A.classList [ ( "expanded"
+                                              , List.any view_is_open vv ) ] ]
+                    ]
+                
+    in
+        element attributes children

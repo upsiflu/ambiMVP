@@ -248,9 +248,9 @@ deserialize str =
                     
 {-|-}
 view :
-    Node ( Signature domain ) cosig ->
-        Map ( View msg ( Signature domain ) cosig Data )
+    Node ( Signature domain ) ( Signature codomain ) ->
+        Map ( View ( Node ( Signature domain ) ( Signature codomain ) ) ( Signature codomain ) )
 view node =
     Signature.view node.signature
-        >> Item.view node.item
+        >> Item.view node.prototype node.item
         >> Manifestation.view node.manifestation

@@ -14,19 +14,16 @@ type Manifestation
 
 targeted = (==) Targeted
            
-view : Manifestation -> Map ( View msg item signature data )
+view : Manifestation -> Map ( View node prototype )
 view manifestation =
     case manifestation of
         Notargeted ->
-            View.add_action Navigate_here
-                >> View.add_class "notargeted"
+            View.action Navigate_here
         Cotargeted ->
-            View.add_action Navigate_here
-                >> View.add_class "cotargeted"
+            View.action Navigate_here
         Targeted ->
-            View.add_action Focus_here
-                >> View.add_class "targeted"
-        
+            View.target
+                >> View.action Focus_here
                                                                     
 
 

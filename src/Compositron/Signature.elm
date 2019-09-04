@@ -107,6 +107,6 @@ deserialize str =
 -- view
 
 
-view : Signature domain -> Map ( View msg ( Signature domain ) cosig data )
+view : Signature domain -> Map ( View node ( Signature codomain ) )
 view signature =
-    View.add_id <| serialize signature
+    View.action ( serialize signature |> Id )

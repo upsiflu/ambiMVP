@@ -2,7 +2,7 @@ module Compositron.Cogroup exposing
     ( Cogroup (..)
     , assumptions
     , serialize, deserialize
-    , view_option, view )
+    , view )
 
 {-|
 # Definition
@@ -16,7 +16,6 @@ module Compositron.Cogroup exposing
 @docs deserialize
 
 # View
-@docs view_option
 @docs view
 -}
 
@@ -79,51 +78,22 @@ deserialize to_t s =
                  |> Maybe.andThen to_nonempty
                  |> Maybe.map ( Open >> Referral )
 
-
-                    
-{-| Paint the symbol of the cogroup you can choose to manifest.
-
-
-
--}
-view_option :
-    t
-    -> ( t -> View msg l t data )
-    -> Cogroup t
-    -> Map (View msg l t data )
-view_option prototype make_child cog =
-    let
-        connect references child_views =
-            View.children ( (++) child_views )
-                >> View.add_action ( Choose_these ( Debug.log "refChoos" references ) )
-                >> View.add_class ( "Cogroup" )
-    in
-        case cog of
-            Referral ( Open ( ref, refs ) ) ->
-                ( ref::refs ) |> List.map ( make_child >> View.add_class "Referral" )
-                              |> connect ( ref::refs )
-                                 
-            Referral ( Insatiable ref ) ->
-                [ ref |> make_child >> View.add_class "Insatiable" ]
-                    |> connect [ ref ]
-                    
-            Self ->
-                [ prototype |> make_child >> View.add_class "Self" ]
-                    |> connect [ prototype ]
-
+    
+     
+                       
 {-|-}
 view :
     Cogroup t
-        -> Map ( View msg l t data )
+        -> Map ( View node t )
 view cog =
     case cog of
         Self ->
-            View.add_class "self"
-                >> View.set_element ( Html.div)
+            View.action ( Class "self-assumption" )
+                >> View.face "s"
                 
         Referral ( Insatiable ref ) ->
-            View.add_class "insatiable"
-                >> View.set_element ( Html.div)
+            View.action ( Class "insatiable" )
+                >> View.face "!"
                 
         Referral ( Open _ ) ->
-            View.set_text "ERROR: open referral in this assumption (Cogroup)"
+            View.err "Open referral in this assumption (Cogroup)."

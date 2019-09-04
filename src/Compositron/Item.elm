@@ -3,9 +3,11 @@ module Compositron.Item exposing
 
     -- create
     , default_symbol
+    , default_face
         
     -- read
     , data
+    , option_face
     , to_symbol
     , is_self_assumption
     , is_assumption
@@ -33,10 +35,12 @@ module Compositron.Item exposing
 
 # create
 @docs default_symbol
+@docs default_face
 @docs accept
 
 # Read
 @docs data
+@docs option_face
 @docs to_symbol
 
 @docs is_self_assumption
@@ -119,6 +123,26 @@ flow itm =
         _ -> Nothing
 
 
+{-| While this item is in template, it shows this string as a 'face'.-}
+option_face : Item l t -> Maybe String
+option_face itm =
+    case itm of
+        Assume _ -> Nothing
+        Body n f ->
+            if Flow.is_symbolic f then
+                Just n
+            else
+                case Flow.data f of
+                    Just d -> 
+                        Just ( Data.serialize_constructor d )
+                    Nothing -> 
+                        Just ( Flow.serialize f )
+        Err _ -> Just "⚠"
+
+{-|-}
+default_face : String
+default_face = "***"
+              
 {-| Maybe this item is a `Flow.Symbolic` Body?-}
 to_symbol : Item l t -> Maybe ( Item l t )
 to_symbol itm =
@@ -250,26 +274,23 @@ deserialize to_l to_t str =
                       
 {-|-}
 view :
-    Item l t
-    -> Map ( View msg l t Data )
-view itm =
+    t
+    -> Item l t
+    -> Map ( View node t )
+view prototype itm =
     case itm of
         Assume tmp ->
-            View.add_class "Assume"
-                >> View.set_size View.Zero
-                >> case tmp of
-                       Of single ->
-                           Cogroup.view single
-                       Or head more ->
-                           View.set_element
-                               ( \att chi -> Html.button att [ Html.ul [] chi ] )
-                               >> View.add_class "options"
+            case tmp of
+                  Of single ->
+                      Cogroup.view single
+                  Or head more ->
+                      View.options
+                          ( head::( ambiguation_to_list more )
+                          |> List.map ( Cogroup.assumptions prototype ) )
         Body n f ->
-            View.add_class n
-                >> View.set_text n
+            View.face n
                 >> Flow.view f
                         
         Err string ->
-            View.add_class string
-                >> View.add_class "Err"
+            View.err string
                 

@@ -53,7 +53,7 @@ import Html.Events exposing ( .. )
 import Html.Lazy exposing ( .. )
 import Json.Decode as Json
 import Task
-import List.Extra
+
 
 import History.Intent exposing ( Intent )
 
@@ -245,36 +245,16 @@ type Edit
 {-| Mark some node active.-}
 target : LiveSignature -> Map State
 target sig compositron =
-    let
-        clean s =
-           s |> map_live ( perhaps ( Structure.find ( .manifestation >> (==) Cotargeted ) ) )
-             |> set Notargeted
-             |> back ( Structure.node ( live s ) )
-        go      = map_live ( perhaps ( Structure.find ( .signature >> (==) sig ) ) )
-        back to = map_live ( perhaps ( Structure.find ( (==) to ) ) )
-        set to  = mark ( Node.set_manifestation to )
-    in
-        compositron
-            |> set Notargeted
-            |> clean
-            |> case ( compositron, go compositron )
-                     |> each ( live >> Structure.node >> .item >> Item.is_assumption )
-               of
-                    ( True, True ) ->
-                        set Cotargeted
-                            >> go
-                            >> set Targeted
-                    ( False, True ) ->
-                        set Cotargeted
-                            >> go
-                            >> set Targeted
-                    ( True, False ) ->
-                        go
-                            >> set Targeted
-                    ( False, False ) ->
-                        go
-                            >> set Targeted
-                               
+    case
+        live compositron  |> Structure.find ( .signature >> (==) sig )
+    of
+        Nothing ->
+            compositron 
+        Just new ->
+            compositron
+                |> mark ( Node.set_manifestation Notargeted )
+                |> map_live ( perhaps ( Structure.find ( .signature >> (==) sig ) ) )
+                |> mark ( Node.set_manifestation Targeted )
 
 
                 
@@ -354,7 +334,7 @@ create_intent new_creator this edit =
             }
         -- switch the data in the item to be more concrete or a more empty.
         Modify cre new_data ->
-            { serial = [ "~", Data.enstring new_data ] |> String.join (" ")
+            { serial = [ "~", Data.serialize new_data ] |> String.join (" ")
             , function = modify new_creator new_data 
             , inverse =
                 case Item.data this.item of
@@ -369,8 +349,37 @@ create_intent new_creator this edit =
             }
                      
 
+{-| Unique String representation, given an appropriate node serializer.-}
+serialize : State -> { live : String, template : String }
+serialize c =
+    { live = live c |> Structure.serialize Node.serialize
+    , template = template c |> Structure.serialize Node.serialize
+    }
+
+{-| Parse from a unique string, given an appropriate node deserializer. -}
+deserialize : { live : String, template : String } -> State
+deserialize serial =
+    Compositron
+    { live = serial.live
+        |> Structure.deserialize
+              ( Node.deserialize >> Maybe.withDefault Node.error >> Node.adopt_domain )
+              ( .manifestation >> Manifestation.targeted )
+    , template = serial.template
+        |> Structure.deserialize
+              ( Node.deserialize >> Maybe.withDefault Node.error )
+              ( .manifestation >> Manifestation.targeted )
+    }
+           
+            
+{-| Console output. -}
+log : State -> LiveStructure
+log = live >> Structure.log Node.serialize
+
+
+
+      
     
--- preview
+-- view
 
 
 type alias Message msg m =
@@ -403,163 +412,90 @@ preview new_creator message compositron =
                       []
                       [ Html.text ( serialize compositron |> .live )]
                 ]
-                
-        composition =
-            let
-                show_symbol :
-                    TempSignature ->
-                        View msg LiveSignature TempSignature Data
-                show_symbol =
-                    dereference compositron
-                        >> maybe
-                               ( Structure.template_group
-                                     >> Group.first ( .item >> Item.to_symbol )
-                                     >> Maybe.withDefault ( Item.default_symbol )
-                                     >> Item.accept
-                                     >> Item.view
-                               )
-                        >> over ( View.static "Template" )
-            in
-                live compositron
-                    |> Structure.tree
-                    |> view_live_branch
-                           new_creator
-                           message
-                           show_symbol
-                    |> View.present
-    in
-        [ incipit, composition ]
-
-
-        
-view_live_branch :
-    Creator
-        -> Message msg m
-        -> ( TempSignature -> View msg LiveSignature TempSignature Data )
-        -> LiveBranch
-        -> View msg LiveSignature TempSignature Data
-        
-view_live_branch new_creator message show_symbol branch =
-    let
-        this : LiveNode
-        this = Branch.node branch
-
-        is_targeted =
-            Manifestation.targeted this.manifestation
-                            
-        inner = \_->
-            let
-                clump_zero_size_items kids =
-                    kids
-                        |> List.Extra.groupWhile
-                           ( \a b -> View.is_zero_size a && View.is_zero_size b )
-                        |> List.map
-                           ( \kid ->
-                               case kid of
-                                   ( single, [] ) ->
-                                     single
-                                   ( head, tail ) ->
-                                     View.ephemeral "multiple-zero-size" ( Signature.ephemeral 0 )
-                                         |> View.set_element Html.span
-                                         |> View.set_children
-                                             ( head::tail
-                                                 |> List.map ( View.add_wrap Html.li )
-                                             )
-                                         |> View.add_wrap Html.ul
-                           )
-                append_alternative_cogroup_views =
-                    if is_targeted
-                    then Item.alternatives this.item
-                        |> List.map ( Cogroup.view_option this.prototype show_symbol )
-                        |> List.indexedMap
-                           ( \n ->
-                                over ( View.ephemeral "Option" ( Signature.ephemeral n ) )
-                                     >> View.set_element Html.button
-                                     >> View.add_wrap Html.li
-                                     >> View.add_index n
-                                     >> View.activate to_attribute
-                           )
-                        |> (++)
-                    else identity
-            in
-                Branch.kids branch
-                    |> List.map ( view_live_branch new_creator message show_symbol )
-                    |> if is_targeted
-                       then clump_zero_size_items >> append_alternative_cogroup_views
-                       else identity
-            
 
         -- interactivity
 
-        to_attribute :
-            LiveSignature ->
-            Action TempSignature Data ->
-            Html.Attribute msg
-        to_attribute sig act = case act of
-            Navigate_here -> 
-                Target sig
-                    |> to_message >> onClickNoBubble
-            Focus_here ->
-                Dom.focus ( Signature.serialize sig )
-                    |> Task.attempt (\_->message.noop)
-                    |> message.from_command
-                    |> onClickNoBubble
-            Choose_these refs ->
-                Choose new_creator ( Debug.log "choose these on click " refs )
-                    |> to_message >> onClickNoBubble
-            Input_url old ->
-                ( Data.destring >> Modify new_creator >> to_message )
-                    |> onInput
-            Input_span old ->
-                Json.map
-                    ( Data.destring >> Modify new_creator >> to_message )
-                    ( Json.at ["target", "textContent"] Json.string )
-                    |> on "input"
-            Blur_span ->
-                Freeze
-                    |> to_message >> onBlur
-            Contenteditable ->
-                Html.Attributes.contenteditable True
-            When_targeted action ->
-                if is_targeted
-                then to_attribute sig action
-                else class ""
-                
-        to_message =
+        to_choice :
+            LiveNode
+            -> List TempSignature
+            -> { face : String, choice : Html.Attribute msg }
+        to_choice this protos =
+            { face = List.head protos
+                  |> Maybe.andThen ( dereference compositron )
+                  |> Maybe.withDefault ( template compositron )
+                  |> Structure.template_group
+                  |> Group.first ( .item >> Item.option_face )
+                  |> Maybe.withDefault ( Item.default_face )
+            
+            , choice = protos
+                  |> Debug.log "choose these on click"
+                  |> Choose new_creator
+                  |> to_message this >> onClickNoBubble
+            }
+            
+        to_message :
+            LiveNode
+            -> Edit
+            -> msg
+        to_message this =
             create_intent new_creator this
-            >> message.from_intent
+                >> message.from_intent
+            
+        to_attribute :
+            LiveNode ->
+            Action ->
+            Html.Attribute msg
+        to_attribute this act =
+            let
+                merge_data : String -> Data
+                merge_data str =
+                    this.item |> Item.data |> Data.merge str
+            in
+               case act of
+                   Id str ->
+                       Html.Attributes.id str
+                   Class str ->
+                       Html.Attributes.class str
+                   Navigate_here -> 
+                       Target this.signature
+                           |> to_message this >> onClickNoBubble
+                   Focus_here ->
+                       Dom.focus ( Signature.serialize this.signature )
+                           |> Task.attempt (\_-> message.noop )
+                           |> message.from_command >> onClickNoBubble
+                   Input_url old ->
+                       ( merge_data >> Modify new_creator >> to_message this )
+                           |> onInput
+                   Input_span old ->
+                       Json.map
+                           ( merge_data >> Modify new_creator >> to_message this )
+                           ( Json.at ["target", "textContent"] Json.string )
+                           |> on "input"
+                   Blur_span ->
+                       Freeze
+                           |> to_message this
+                           |> onBlur
+                   Contenteditable ->
+                       Html.Attributes.contenteditable True
+                   When_targeted action ->
+                       if Manifestation.targeted this.manifestation
+                       then to_attribute this action
+                       else class ""
+                           
+
+        view_live_branch :
+            LiveBranch
+            -> View LiveNode TempSignature
+        view_live_branch branch =
+            View.live ( Branch.node branch )
+                |> Node.view ( Branch.node branch )
+                |> View.kids ( Branch.kids branch |> List.map view_live_branch )
+
+                
+        composition =
+            live compositron
+                |> Structure.tree
+                |> view_live_branch
+                |> View.view { to_choice = to_choice, to_attribute = to_attribute }
     in
-        View.active "State" this.signature inner
-            |> Node.view this
-            |> View.activate to_attribute
-            
-
-                                 
--- serial form
-               
-
-{-| Unique String representation, given an appropriate node serializer.-}
-serialize : State -> { live : String, template : String }
-serialize c =
-    { live = live c |> Structure.serialize Node.serialize
-    , template = template c |> Structure.serialize Node.serialize
-    }
-
-{-| Parse from a unique string, given an appropriate node deserializer. -}
-deserialize : { live : String, template : String } -> State
-deserialize serial =
-    Compositron
-    { live = serial.live
-        |> Structure.deserialize
-              ( Node.deserialize >> Maybe.withDefault Node.error >> Node.adopt_domain )
-              ( .manifestation >> Manifestation.targeted )
-    , template = serial.template
-        |> Structure.deserialize
-              ( Node.deserialize >> Maybe.withDefault Node.error )
-              ( .manifestation >> Manifestation.targeted )
-    }
-           
-            
-{-| Console output. -}
-log : State -> LiveStructure
-log = live >> Structure.log Node.serialize
+        [ incipit, composition ]            
