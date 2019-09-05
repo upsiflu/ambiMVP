@@ -1,0 +1,204 @@
+// imports
+
+
+
+// Google Fonts
+@import url(https://fonts.googleapis.com/css?family=Lato:300,700&display=swap);
+
+// Font Variables
+$ui-font: 'Lato', sans;
+
+    
+// Compositron
+
+
+
+// Focus Indicators
+button
+  position: relative
+  
+button:focus, [contenteditable]:focus
+  outline: none
+  box-shadow: none
+[contenteditable]:focus
+  outline: .05rem dashed black
+  background: white
+button:focus:after, [contenteditable]:focus:after
+  letter-spacing: 0
+  content: "✢"
+  position: absolute
+  top: .05em;
+  left: 0
+  font-size: 1.5rem
+  line-height: 1em
+  padding-top: .05em
+  text-indent: .08em
+  font-family: "Garamond EB", serif
+  width: 100%
+  animation: spin .5s ease-out 1
+  pointer-events: none
+.◇:focus:after
+  font-size: 1.2em
+  top: -2.2em
+.collapsed
+  .◇:focus:after
+    top: -1em
+[contenteditable]:focus:after
+  left: -.75em
+  font-size: .6em
+  top: -.5em
+
+
+*
+  transition:all .2s
+
+span, .editing span
+  font-size: 1rem
+  line-height: 1.2rem
+
+// View -> Container
+  
+.editing
+  .C
+    min-height: 1.2rem
+    position: relative
+    line-height: 1.2rem
+  .C > .Tag
+    position: absolute
+    top: 0
+    left: -1rem
+    width: .8rem
+    text-align: center
+    overflow: hidden
+    font-size: .3rem
+  .C.¶
+    padding: .4rem 1rem .8rem 1rem
+    margin: 0
+    .C.¶
+      margin: -.4rem -1rem -.8rem -1rem
+  .C.¶:after
+      content: " "
+      outline: 1px solid red
+      width: calc(100% - 2rem)
+      height: calc(100% - 1.2rem)
+      position: absolute
+      top: .4rem
+      left: 1rem
+      pointer-events: none
+
+.◇
+  text-align: center
+
+/* C L U M P */
+
+
+.clump
+  display: inline
+  z-index: 1
+  outline: 1px solid rgba(255,0,0,.2)
+  position: relative
+  height: 1.2rem
+  > *
+    pointer-events: none
+    > *
+      pointer-events: auto
+  > .face
+    position: absolute
+    width: 3rem
+    height: 1.2rem
+    margin-left: -1.2rem
+    text-align: center
+  > .face.cl
+    text-indent: -.29em
+    font-size: 1.2rem
+  > ul
+    display: flex
+    flex-wrap: wrap
+    justify-content: center
+    margin-top: -1.2rem
+    height: 1.2rem
+    > li > .Transient
+      color: red
+
+  // C O L L A P S E D
+  .collapsed
+    position: absolute
+    width: 3rem
+    height: 1.2rem
+    margin-left: -1.5rem
+    > .◇
+      width: 3rem
+      height: 1.2rem
+      text-align: center
+      > ul
+        display: none
+    > .◇:hover
+      background: red
+      // E X P A N D E D
+  ul.expanded
+    position: fixed
+    left: 0
+    width: 100%
+    > li
+      > .◇
+        > .face
+            position: relative
+            padding: 0
+            font-size: 4.8em
+            line-height: .6rem
+            font-family: 'Lato', sans-serif
+            font-weight: 300
+      > .◇:not(.t)
+        max-height: 3.2rem
+        > ul
+          width: 0
+          overflow: hidden
+          pointer-events: none
+          > li
+            display: none
+      > .◇.t
+        pointer-events: none
+        > * > *
+          pointer-events: auto
+        > .face:before
+          content: " "
+          border: .1rem dashed black
+          position: absolute
+          width: 1em
+          height: 1em
+          top: .15em
+          left: -.21em
+          border-radius: .5em
+        > ul
+          display: flex
+          flex-wrap: wrap
+          justify-content: center
+          position: fixed
+          bottom: 0
+          width: 100%
+          left: 0
+          z-index: 1
+          pointer-events: none
+          > *
+            pointer-events: auto
+          > li
+            border-top: .05rem solid rgb(200,180,10)
+            border-color: black
+            > .Option
+              position: relative;
+              background: rgb(200,180,10)
+              line-height: 1.2rem
+              height: 3.6rem
+              padding: .5rem
+              border: .025rem solid white
+              border-top-width: .05rem
+            > .Option:hover,
+            > .Option:focus
+              background: rgb(180,165,0)
+          > li:first-of-type
+            > .Option
+              border-left-width: 0
+          > li:last-of-type
+            > .Option
+              border-right-width: 0
+          

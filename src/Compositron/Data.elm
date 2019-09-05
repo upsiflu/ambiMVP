@@ -78,14 +78,14 @@ merge str d =
 freeze : Map Data
 freeze d =
     case d of
-        Text txt -> Text { txt | fluid = txt.frozen }
+        Text txt -> Text { txt | frozen = txt.fluid }
         _ -> d
 
 {-|-}
 unfreeze : Map Data
 unfreeze d =
     case d of
-        Text txt -> Text { txt | frozen = txt.fluid }
+        Text txt -> Text { txt | fluid = txt.frozen }
         _ -> d
 
       

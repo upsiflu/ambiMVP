@@ -229,7 +229,7 @@ kid new v =
                 Renderer p d ->
                     Data.size d
                      
-                Container p r ks ->
+                Container p Span ks ->
                     ks |> List.foldl
                           ( \k acc ->
                                 (+) acc <|
@@ -240,6 +240,7 @@ kid new v =
                                         cl::ump |> List.map size
                                                 |> List.foldl (+) 0
                           ) 0
+                Container p _ ks -> 10
                 _ -> 0
 
         measure = if size new > 4 then Sufficient else TooSmall
@@ -321,9 +322,9 @@ view context v =
         element =
             case v of
                 Transient p os ->
-                    div 
+                    button
                 Tag p ->
-                    span
+                    label
                 Renderer p d ->
                     span
                 Container p P ks ->
@@ -357,6 +358,8 @@ view context v =
                         |> (::) ( A.class "◆" )
                 Renderer p d ->
                     to_attributes p.actions
+                        |> (::) ( A.class "C" )
+                        |> (::) ( A.contenteditable True )
                 Container p r ks ->
                     to_attributes p.actions
                         |> (::) ( A.class "C" )
@@ -367,7 +370,7 @@ view context v =
         children =
             case v of
                 Transient p ( op, tions ) ->
-                    [ span [ A.class "face pl" ] [ text "+" ]
+                    [ label [ A.class "face pl" ] [ text "+" ]
                     , span [ A.class "connector-v" ] []
                     , ul [] ( List.map ( to_choice >> deopt ) ( op::tions ) )
                     ]
@@ -376,7 +379,7 @@ view context v =
                 Renderer p d ->
                     Data.view d
                 Container p r ks ->
-                    List.map dekid ks
+                    List.map dekid ( List.reverse ks )
                         |> (::) ( label [ A.class "Tag face" ] [ text p.face ] )
                 Error par s ->
                     [ h3 [] [ text "Error" ], p [] [ text s ] ]
@@ -418,12 +421,22 @@ view context v =
 
             in
                 -- draw the menu; use css to expand and compress it.
-                div [ A.class "clump" ]
-                    [ span [ A.class "face cl blink" ] [ text "][" ]
-                    , List.map view_clumped_entry vv
-                        |> ul [ A.classList [ ( "expanded"
-                                              , List.any view_is_open vv ) ] ]
-                    ]
+                case ( List.any view_is_open vv, List.head vv ) of
+                    ( True, _ ) ->
+                        -- draw the expanded menu
+                        div [ A.class "clump" ]
+                            [ span [ A.class "face cl blink" ] [ text "][" ]
+                            , ul [ A.class "expanded" ] ( List.map view_clumped_entry vv )
+                            ]
+                    ( False, Just pivot ) ->
+                        -- draw the collapsed menu. Show the first clumped entry before the tag.
+                        div [ A.class "clump" ]
+                            [ span [ A.class "face cl blink" ] [ text "][" ]
+                            , span [ A.class "collapsed" ] [ view context pivot ]
+                            ]
+                    ( False, Nothing ) ->
+                        text ""
+                    
                 
     in
         element attributes children

@@ -1,161 +1,180 @@
-/* EDITING, think "layout view" */
+@charset "UTF-8";
+@import url(https://fonts.googleapis.com/css?family=Lato:300,700&display=swap);
+button {
+  position: relative; }
 
+button:focus, [contenteditable]:focus {
+  outline: none;
+  box-shadow: none; }
 
-.editing .Assume.targeted { color:transparent; margin-left:-1em;}
+[contenteditable]:focus {
+  outline: .05rem dashed black;
+  background: white; }
 
-.editing .editor {padding-bottom:30rem;}
+button:focus:after, [contenteditable]:focus:after {
+  letter-spacing: 0;
+  content: "✢";
+  position: absolute;
+  top: .05em;
+  left: 0;
+  font-size: 1.5rem;
+  line-height: 1em;
+  padding-top: .05em;
+  text-indent: .08em;
+  font-family: "Garamond EB", serif;
+  width: 100%;
+  animation: spin .5s ease-out 1;
+  pointer-events: none; }
 
-.editing .editor section pre {font-size:.65rem; overflow-y:scroll; overflow-x:visible; height:25rem; }
-.editing main {overflow:visible; min-height:15rem; outline: .1rem dashed grey;}
+.◇:focus:after {
+  font-size: 1.2em;
+  top: -2.2em; }
 
-.editing p { min-height:5rem; background:white;}
-.editing p.targeted {z-index:3;}
-.editing p {position:relative;}
+.collapsed .◇:focus:after {
+  top: -1em; }
 
+[contenteditable]:focus:after {
+  left: -.75em;
+  font-size: .6em;
+  top: -.5em; }
 
-/* self assumption indicator (fleuron) in ungrouped self Assumptions*/
-.editing .targeted>.Assume.self:before {content:"❦"; position:absolute;bottom:-1.5rem; left:50%; width:2rem;
-					font-size:.7em;margin-left:-1rem;text-align:center;}
-.editing .targeted>.Assume.self { outline:4px solid red; }
-.editing .Assume.self { width:0;height:0;display:inline-block; }
+span, .editing span {
+  font-size: 1rem;
+  line-height: 1.2rem; }
 
-/* paragraph indicator (pilcrow) on targeted items */
-.editing label.◆ { position:absolute; right:0rem; top:0rem;}
-.editing label.¶ { position:absolute; right:0rem; top:0rem;}
+.editing .C {
+  min-height: 1.2rem;
+  position: relative;
+  line-height: 1.2rem; }
 
+.editing .C > .Tag {
+  position: absolute;
+  top: 0;
+  left: -1rem;
+  width: .8rem;
+  text-align: center;
+  overflow: hidden;
+  font-size: .3rem; }
 
+.editing .C.¶ {
+  padding: .4rem 1rem .8rem 1rem;
+  margin: 0; }
+  .editing .C.¶ .C.¶ {
+    margin: -.4rem -1rem -.8rem -1rem; }
 
-/* MENUS */
+.editing .C.¶:after {
+  content: " ";
+  outline: 1px solid red;
+  width: calc(100% - 2rem);
+  height: calc(100% - 1.2rem);
+  position: absolute;
+  top: .4rem;
+  left: 1rem;
+  pointer-events: none; }
 
-/* grouped multiple zero-size items */
+.◇ {
+  text-align: center; }
 
-.editing .multiple-zero-size
-    { background:black; width:0; height: 0; overflow:visible;
-      display:inline-block; position:relative;}
-.editing .multiple-zero-size .zero
-    { position:relative;
-      width:3rem; height:3rem;background:yellow; outline:1px solid blue; }
-
-
-/* (1) Self assumption */
-
-.editing .targeted > .multiple-zero-size > .Assume.self:after
-    { content:"❦"; position:absolute;
-      width:3rem; text-align:center; line-height:3rem; }
-
-.editing .targeted > .multiple-zero-size > .Assume.self:after
-    { content:"❦"; position:absolute;
-      width:3rem; text-align:center; line-height:3rem; }
-
-/* (2) Options ( ambiguous assumptions ) */
-
-.editing .targeted > .multiple-zero-size > .Assume.options
-{ display: inline-block; }
-
-
-/* attached menu for options */
-/*
-.editing .Assume.options { display:inline-block;
-			   margin: 0 -3rem -3rem 0; width:3rem; max-width:3rem; height:3rem;
-			   position:relative;
-			   overflow:visible;
-			 }
-.editing .Assume.options {padding-left:0rem;padding-top:0rem;}
-.editing .Assume.options:before { background:#eee;
-                                 content:"+"; position:absolute; text-align:center;
-				 border:1px solid white; border-radius:1.5rem; line-height:2.4rem;
-			         height:2.6rem; width:2.6rem; top:.2rem;left:.2rem;color:black;
-			         box-shadow: 0px .1rem .8rem black; }
-.editing .Assume.options:focus {box-shadow:none;}
-.editing .Assume.options.targeted:before {visibility:hidden;}
-.editing .Assume.options.targeted:focus:after {visibility:visible;}
-.editing .Assume.options.targeted:after { background:#777; color:transparent;
-                                 content:"+"; position:absolute; text-align:center;
-				 border:1px solid white; border-radius:1.5rem; line-height:2.4rem;
-			         height:2.6rem; width:2.6rem; top:.2rem;left:.2rem;
-			         box-shadow: 0px .1rem .8rem black;}
-
-
-.editing .notargeted>.Assume.options {display:none;}
-*/
-
-.editing *.notargeted:hover:before { background:white; }
-
-
-/**/
-
-
-/* tooltip label before opening */
-.editing *.notargeted:hover > ul > label.◆ {display:block; position:relative;}
-.editing *.notargeted:not(:hover) > ul > label.◆ {display:none;}
-.editing *.targeted > ul > label.◆ {display:block; position:relative; pointer-events: none;color:black; transition:all 2s; bottom:0; width:100%; text-align:center; height:2rem;}
-
-
-/* menu open */
-.editing .options > ul { position:fixed; left:50vw; bottom:0;max-height:12rem;overflow-y:scroll;margin-left:-10rem; width:20rem;height:auto; background:#eee; box-shadow:0 -.5rem 1rem rgba(0,0,0,.3); padding: 0rem .1rem; }
-.editing .options .Option { color:white; transition:all .2s; display:block; text-indent:0rem;
-			    background:rgb(75,80,45); line-height:2.2rem;min-width:3.4rem; height:3rem;
-			    margin-bottom:0rem; }
-.editing .options > ul > li {display: inline-block;}
-
-.editing .options .Option .⍚ { color:inherit;font-size:inherit; height:inherit; bottom:inherit;position:inherit; overflow:ellipsis; white-space:pre;background-color:rgba(255,255,255,.1);}
-
-.editing .Option:hover {background:rgb(40,40,0);}
-.editing .Option:first-of-type { transform:translateX(-1px) }
-.editing .Option:last-of-type { transform:translateX(1px) }
-.editing .Option:not(:first-of-type):not(:last-of-type)  { border-top:1px solid white;
-							   border-bottom:1px solid white;}
-
-.editing .Option > label.Referral {  font-size:1rem; position:relative; }
-
-
-/* meta items */
-.editing .⍚ {position:absolute; bottom:-2.1rem; right:0;
-	     font-family:sans-serif; font-size:.8rem;
-	     background:rgba(222,222,222,.8); padding:.4rem .6rem; border-radius:1em;}
-.editing .⍚.targeted {background:rgba(0,0,0,.7); color:white;}
-.editing .⍚:hover {background:rgba(211,211,211,1);}
-.editing .⍚ ~ .⍚ { bottom:-4.1rem; }
-.editing .⍚ ~ .⍚ ~ .⍚ { bottom:-6.1rem; }
-.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ { bottom:-8.1rem; }
-.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ { bottom:-10.1rem; }
-.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ { bottom:-12.1rem;
-				       background:transparent; color:transparent }
-.editing .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚ ~ .⍚:after { content:"⋮";
-					     font-weight:bold;
-					     color:black;
-					     overflow:visible; display:inline-block; position:relative; }
-
-.editing .notargeted > .⍚ { display:none; }
-
-
-
-.editing .item.targeted {
-    background:rgba(0,0,0,.1);
-}
-
-.editing .item.targeted>span:focus  {
-    background:white;
-    outline:none;
-    border-bottom:.1rem solid rgb(200,10,60);
-}
-
-.Empty>span.T {
-    padding: 0 1.3rem; border-bottom: .1rem solid rgb(200,10,60);
-}
-
-
-.editing figure>*:first-child { height:6rem;background:rgba(0,0,0,.8); color:yellow; width:100%;
-				position: relative;
-			        display: block !important;}
-.editing figure>*:first-child.targeted { background:rgba(0,0,0,1); }
-.editing figcaption { padding:.3rem; border-bottom: .07rem solid black; }
-
-
-.editing figure { background:silver;}
-.editing .targeted label.◆ {display:block;}
-
-/*
-span.Assume {display:none;}
-
-.editing label.◆ {margin-bottom:-2rem;}*/
+/* C L U M P */
+.clump {
+  display: inline;
+  z-index: 1;
+  outline: 1px solid rgba(255, 0, 0, 0.2);
+  position: relative;
+  height: 1.2rem; }
+  .clump > * {
+    pointer-events: none; }
+    .clump > * > * {
+      pointer-events: auto; }
+  .clump > .face {
+    position: absolute;
+    width: 3rem;
+    height: 1.2rem;
+    margin-left: -1.2rem;
+    text-align: center; }
+  .clump > .face.cl {
+    text-indent: -.29em;
+    font-size: 1.2rem; }
+  .clump > ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: -1.2rem;
+    height: 1.2rem; }
+    .clump > ul > li > .Transient {
+      color: red; }
+  .clump .collapsed {
+    position: absolute;
+    width: 3rem;
+    height: 1.2rem;
+    margin-left: -1.5rem; }
+    .clump .collapsed > .◇ {
+      width: 3rem;
+      height: 1.2rem;
+      text-align: center; }
+      .clump .collapsed > .◇ > ul {
+        display: none; }
+    .clump .collapsed > .◇:hover {
+      background: red; }
+  .clump ul.expanded {
+    position: fixed;
+    left: 0;
+    width: 100%; }
+    .clump ul.expanded > li > .◇ > .face {
+      position: relative;
+      padding: 0;
+      font-size: 4.8em;
+      line-height: .6rem;
+      font-family: 'Lato', sans-serif;
+      font-weight: 300; }
+    .clump ul.expanded > li > .◇:not(.t) {
+      max-height: 3.2rem; }
+      .clump ul.expanded > li > .◇:not(.t) > ul {
+        width: 0;
+        overflow: hidden;
+        pointer-events: none; }
+        .clump ul.expanded > li > .◇:not(.t) > ul > li {
+          display: none; }
+    .clump ul.expanded > li > .◇.t {
+      pointer-events: none; }
+      .clump ul.expanded > li > .◇.t > * > * {
+        pointer-events: auto; }
+      .clump ul.expanded > li > .◇.t > .face:before {
+        content: " ";
+        border: .1rem dashed black;
+        position: absolute;
+        width: 1em;
+        height: 1em;
+        top: .15em;
+        left: -.21em;
+        border-radius: .5em; }
+      .clump ul.expanded > li > .◇.t > ul {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        left: 0;
+        z-index: 1;
+        pointer-events: none; }
+        .clump ul.expanded > li > .◇.t > ul > * {
+          pointer-events: auto; }
+        .clump ul.expanded > li > .◇.t > ul > li {
+          border-top: 0.05rem solid #c8b40a;
+          border-color: black; }
+          .clump ul.expanded > li > .◇.t > ul > li > .Option {
+            position: relative;
+            background: #c8b40a;
+            line-height: 1.2rem;
+            height: 3.6rem;
+            padding: .5rem;
+            border: .025rem solid white;
+            border-top-width: .05rem; }
+          .clump ul.expanded > li > .◇.t > ul > li > .Option:hover,
+          .clump ul.expanded > li > .◇.t > ul > li > .Option:focus {
+            background: #b4a500; }
+        .clump ul.expanded > li > .◇.t > ul > li:first-of-type > .Option {
+          border-left-width: 0; }
+        .clump ul.expanded > li > .◇.t > ul > li:last-of-type > .Option {
+          border-right-width: 0; }

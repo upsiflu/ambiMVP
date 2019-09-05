@@ -68,8 +68,7 @@ TEMPLATE			⌧ :_/0	(_/0)
       < blocks/1 | spans/1	  :f/3	(f/3)
     <				  :f/4	(layout/1)
   Text				⌻ :t/0	(t/0)
-    <				  :text/1	(span/1)
-    what you write!		𝑇  ~ :t/2	(t/2)
+    what you write!		𝑇 fluid text ~ frozen text :text/1	(text/1)
     <                             :t/3	(layout/1)
   L A Y O U T			⌧ :_/0	(_/0)
     <				  :layout/1	(layout/1)
@@ -82,12 +81,9 @@ TEMPLATE			⌧ :_/0	(_/0)
   layout			⍚ :l/0	(l/0)
   B L O C K S  A N D  S P A N S	⌧ :_/0	(_/0)
     < paragraph/0 | figure/0 | heading/1	 :blocks/1	(blocks/1)
-    blocks				◆ :_/0	(_/0)
   insert span element		⌧ :_/0	(_/0)
-    𝑇				◆ :_/0	(_/0)
     < text/1 | spans/1		  :spans/1	(spans/1)
   heading			⍞ :h/0	(h/0)
-    ⍞				◆ :_/0	(_/0)
     <				  :heading/1	(heading/1)
     <				  :h/2	(spans/1)
     <				  :h/3	(layout/1)
@@ -95,59 +91,6 @@ TEMPLATE			⌧ :_/0	(_/0)
     destination			⍚ :link/1	(link/1)
       U 			  :k/2	(k/2)"""
 
-{-
-    """
-TEMPLATE			⌧ :_/0	(_/0)
-  < paragraph/0 | figure/0	  :initial/1	(initial/1)
-  Paragraph			¶ :paragraph/0	(paragraph/0)
-    ¶				◆ :_/0	(_/0)
-    < blocks/1 | spans/1	  :p/1	(p/1)
-    <				  :p/2	(p/2)
-    <				  :p/3	(layout/1)
-  Figure			⌹ :figure/0	(figure/0)
-    ⌹				◆ :_/0	(_/0)
-    < blocks/1 | spans/1	  :f/1	(f/1)
-      🖼				◆ :/0	(_/0)
-    Caption			⌯ :f/2	(f/2)
-      < blocks/1 | spans/1	  :f/3	(f/3)
-        ⌯			◆ :_/0	(_/0)
-    <				  :f/4	(layout/1)
-  Text				⌻ :t/0	(t/0)
-    𝑇				◆ :_/0	(_/0)
-    <				  :text/1	(span/1)
-    T ` | `			  :t/2	(t/2)
-    <				  :t/4	(link/1)
-    <				  :t/5	(layout/1)"""
- ++ --LAYOUT
- """
-  align right			⍚ :y/0	(y/0)
-      style			◆ :_/0	(_/0)
-  align centered		⍚ :y/1	(y/1)
-  shaded green			⍚ :y/2	(y/2)
-  layout			⍚ :l/0	(l/0)
-    <				  :layout/1	(layout/1)
-    < y/0 | y/1 | y/2		  :l/2	(l/2)
-      add style			◆ :_/0	(_/0)"""
- ++ --BLOCKS AND SPANS
- """
-  insert block element		⌧ :_/0	(_/0)
-    < paragraph/0 | figure/0 | heading/1	 :blocks/1	(blocks/1)
-    +⌯				◆ :_/0	(_/0)
-  insert span element		⌧ :_/0	(_/0)
-    𝑇				◆ :_/0	(_/0)
-    < text/1 | spans/1		  :spans/1	(spans/1)"""
- ++ --HTML TAGS
- """
-  heading			⍞ :h/0	(h/0)
-    ⍞				◆ :_/0	(_/0)
-    <				  :heading/1	(heading/1)
-    <				  :h/2	(spans/1)
-    <				  :h/3	(layout/1)
-  link				⌻ :k/0	(k/0)
-    destination			⍚ :link/1	(link/1)
-      U 			  :k/2	(k/2)"""
-                                                  
--}    
    
 live =
  """
@@ -167,8 +110,13 @@ state =
         |> State.target ( sig "live/1" )
         |> State.choose "ROOT" [ sig "initial/1" ]
         -- initialized --
-{-        |> State.choose "USER a" [ sig "paragraph/0" ]
-           
+        |> State.choose "USERa" [ sig "blocks/1" ]
+        |> State.choose "USERa" [ sig "paragraph/0" ]
+        |> State.target ( sig "USERa/0" )
+        |> State.choose "USERb" [ sig "spans/1" ]
+        |> State.choose "USERc" [ sig "text/1" ]
+
+{-           
         |> State.target ( sig "USER a/4" )
         |> State.choose "USER b" [ sig "y/1" ]
         |> State.target ( sig "USER b/0" )
@@ -259,7 +207,7 @@ update msg model =
         DoCommand c ->
             ( model, c )
             |> trace "do command..."
-            |> \_ -> ( model, Debug.log "command" c )
+            |> \_ -> ( model, {-Debug.log "command"-} c )
         NoOp ->
             ( model, Cmd.none )
             |> trace "noop..."

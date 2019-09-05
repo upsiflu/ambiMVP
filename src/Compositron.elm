@@ -428,7 +428,7 @@ preview new_creator message compositron =
                   |> Maybe.withDefault ( Item.default_face )
             
             , choice = protos
-                  |> Debug.log "choose these on click"
+                  --|> Debug.log "choose these on click"
                   |> Choose new_creator
                   |> to_message this >> onClickNoBubble
             }

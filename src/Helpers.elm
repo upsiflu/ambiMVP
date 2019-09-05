@@ -99,11 +99,11 @@ import Maybe.Extra
 
 {-| print a single line to the console.-}
 trace : String -> Map b
-trace text = \x -> Debug.log "-" text |> always x
+trace text = \x -> {-Debug.log "-" text |> always-} x
 
 {-| print multiple lines to the console.-}
 multitrace : String -> Map b
-multitrace text = \x -> Debug.log "~" text |> always x
+multitrace text = \x -> {-Debug.log "~" text |> always-} x
 
 
 -- aliases
