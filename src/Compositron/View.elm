@@ -87,9 +87,12 @@ Ignore children and just display a collapsible error message in place.
 import Helpers exposing (..)
 
 import Html exposing (..)
-import Html.Events exposing (..)
-import Html.Attributes as A
+import Html.Attributes as A exposing (property)
 import Compositron.Data as Data exposing ( Data (..) )
+
+import Html.Events as Events exposing (..)
+import Json.Decode as Decode
+import Json.Encode as Encode exposing (Value)
 
 
 {-|-}
@@ -318,6 +321,13 @@ view context v =
             |> List.map
         to_choice = this
             |> context.to_choice
+
+        wrapper =
+            case v of
+                Renderer p d ->
+                    \el -> span [ A.class "wrapper" ] [ el, label [ A.class "Tag face" ] [ text p.face ] ]
+                _ ->
+                    identity
                         
         element =
             case v of
@@ -325,6 +335,8 @@ view context v =
                     button
                 Tag p ->
                     label
+                Renderer p ( Text t ) ->
+                    Html.node "editable-span"
                 Renderer p d ->
                     span
                 Container p P ks ->
@@ -356,10 +368,13 @@ view context v =
                 Tag p ->
                     to_attributes p.actions
                         |> (::) ( A.class "◆" )
+                Renderer p ( Text t ) ->
+                    to_attributes p.actions
+                        |> (::) ( t.frozen |> Maybe.withDefault "" |> Encode.string >> property "string" )
                 Renderer p d ->
                     to_attributes p.actions
                         |> (::) ( A.class "C" )
-                        |> (::) ( A.contenteditable True )
+                        |> (::) ( A.contenteditable False )
                 Container p r ks ->
                     to_attributes p.actions
                         |> (::) ( A.class "C" )
@@ -439,4 +454,4 @@ view context v =
                     
                 
     in
-        element attributes children
+        element attributes children |> wrapper

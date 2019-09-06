@@ -30,6 +30,11 @@ module Compositron.Data exposing
 -}
 
 import Html exposing ( Html )
+import Html.Attributes exposing (property)
+import Html.Events as Events exposing (on)
+import Json.Decode as Decode
+import Json.Encode as Encode exposing (Value)
+
 import Helpers exposing (..)
 
 {-|-}
@@ -59,9 +64,9 @@ size d =
 {-|-}
 merge : String -> Maybe Data -> Data
 merge str d =
-    case d of
+    case ( Debug.log "DATA" d ) of
         Just ( Text t ) ->
-            Text { t | fluid = destring str }
+            Text { t | fluid = destring ( Debug.log "STRING" str) }
         Just ( Url u ) ->
             Url { href = destring str }
         Just ( Picture p ) ->
@@ -165,7 +170,7 @@ view : Data -> List ( Html msg )
 view d =
     case d of
         Text t ->
-            [ Html.text ( enstring t.frozen ) ]
+            []
         Url _ ->
             [ Html.text "☍" ]
         Picture _ ->

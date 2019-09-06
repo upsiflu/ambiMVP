@@ -59,6 +59,19 @@ span, .editing span
 // View -> Container
   
 .editing
+  .wrapper
+    position: relative
+  .𝑇
+    min-width: 2rem
+  .𝑇 + label
+    text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
+    position: absolute
+    right: 0
+    bottom: -.6rem
+    font-size: .6rem
+    height: .6rem
+    line-height: .6rem
+    text-align: right
   .C
     min-height: 1.2rem
     position: relative
@@ -71,14 +84,22 @@ span, .editing span
     text-align: center
     overflow: hidden
     font-size: .3rem
+  .C.ℭ, .C.¶
+    min-height: 2.4rem
+    .C.ℭ, .C.¶
+      margin: 0 -1rem
+  .C.ℭ
+    padding: .4rem 1rem .2rem 1rem
+    margin: 0
+    line-height: 1.8rem
+    font-style: italic
+    display: block
   .C.¶
     padding: .4rem 1rem .8rem 1rem
     margin: 0
-    .C.¶
-      margin: -.4rem -1rem -.8rem -1rem
-  .C.¶:after
+  .C.¶:before
       content: " "
-      outline: 1px solid red
+      outline: 1px dashed rgba(255,0,0,.5)
       width: calc(100% - 2rem)
       height: calc(100% - 1.2rem)
       position: absolute

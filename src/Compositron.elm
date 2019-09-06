@@ -334,8 +334,8 @@ create_intent new_creator this edit =
             }
         -- switch the data in the item to be more concrete or a more empty.
         Modify cre new_data ->
-            { serial = [ "~", Data.serialize new_data ] |> String.join (" ")
-            , function = modify new_creator new_data 
+            { serial = [ "~", Data.serialize new_data |> Debug.log "=" ] |> String.join (" ")
+            , function = modify new_creator new_data |> Debug.log "executing Modify" 
             , inverse =
                 case Item.data this.item of
                     Nothing -> identity
@@ -463,20 +463,21 @@ preview new_creator message compositron =
                        Dom.focus ( Signature.serialize this.signature )
                            |> Task.attempt (\_-> message.noop )
                            |> message.from_command >> onClickNoBubble
-                   Input_url old ->
-                       ( merge_data >> Modify new_creator >> to_message this )
-                           |> onInput
                    Input_span old ->
                        Json.map
                            ( merge_data >> Modify new_creator >> to_message this )
-                           ( Json.at ["target", "textContent"] Json.string )
-                           |> on "input"
+                           ( Json.at [ "detail" ] Json.string )
+                           |> Debug.log "on string changed..."
+                           |> on "stringChanged"
+                   Input_url old ->
+                       ( merge_data >> Modify new_creator >> to_message this )
+                           |> onInput
                    Blur_span ->
                        Freeze
                            |> to_message this
                            |> onBlur
                    Contenteditable ->
-                       Html.Attributes.contenteditable True
+                       class "" --Html.Attributes.contenteditable False
                    When_targeted action ->
                        if Manifestation.targeted this.manifestation
                        then to_attribute this action

@@ -42,6 +42,22 @@ span, .editing span {
   font-size: 1rem;
   line-height: 1.2rem; }
 
+.editing .wrapper {
+  position: relative; }
+
+.editing .𝑇 {
+  min-width: 2rem; }
+
+.editing .𝑇 + label {
+  text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
+  position: absolute;
+  right: 0;
+  bottom: -.6rem;
+  font-size: .6rem;
+  height: .6rem;
+  line-height: .6rem;
+  text-align: right; }
+
 .editing .C {
   min-height: 1.2rem;
   position: relative;
@@ -56,15 +72,25 @@ span, .editing span {
   overflow: hidden;
   font-size: .3rem; }
 
+.editing .C.ℭ, .editing .C.¶ {
+  min-height: 2.4rem; }
+  .editing .C.ℭ .C.ℭ, .editing .C.ℭ .C.¶, .editing .C.¶ .C.ℭ, .editing .C.¶ .C.¶ {
+    margin: 0 -1rem; }
+
+.editing .C.ℭ {
+  padding: .4rem 1rem .2rem 1rem;
+  margin: 0;
+  line-height: 1.8rem;
+  font-style: italic;
+  display: block; }
+
 .editing .C.¶ {
   padding: .4rem 1rem .8rem 1rem;
   margin: 0; }
-  .editing .C.¶ .C.¶ {
-    margin: -.4rem -1rem -.8rem -1rem; }
 
-.editing .C.¶:after {
+.editing .C.¶:before {
   content: " ";
-  outline: 1px solid red;
+  outline: 1px dashed rgba(255, 0, 0, 0.5);
   width: calc(100% - 2rem);
   height: calc(100% - 1.2rem);
   position: absolute;
