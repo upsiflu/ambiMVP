@@ -8,6 +8,15 @@ module Compositron.Flow exposing
 
 
 {-|
+Flow tags annotate bodies to help translate a composition to the medium of Html.
+As all other element ofs a composition are medium-agnostic, flow tags must enumerate
+all features that we want an Html/css rendition to expose, namely:
+
+- **user interface concerns** such as info boxes, tagging, group representation, and
+accessibility,
+- **semantic markup** such as outlining, labelling and sectioning, and finally
+- **data generators** that manage Html-specific data types (see [`Data`](Data#Data)). 
+
 # Definition
 @docs Flow
 
@@ -37,60 +46,58 @@ import Helpers exposing (..)
 import Maybe.Extra
 import Compositron.Data as Data exposing ( Data )
 
-import Compositron.View as View exposing ( View, Action (..), Role )
+import Compositron.View as View exposing ( View, Action (..), Role (..) )
 
 
-{-| Directs how the browser renders an `Item`.
+{-| Directs how the browser renders a `Body`.
  
-### User interface
-- _Info_: A friendly, dismissible Infobox.
-  # 🛈
-- _Meta_: Attach to the end of a targeted item. Only render inside the targeted element.
-  # ⍚
-- _Symbolic_: Singular; related to the enclosing item.
-   Only used to represent a _Cogroup_, else discarded.
-  # ◆
-- _Inaccessible_: no intended for the user interface.
-  # ⌧
+While a structure of nested Groups comprises _inherent_ relations, we use flow tags
+to add interface, meaning, or data to them.
 
-### Semantic flow
-- _Page_: will try to fill the available screen.
-  # 🗔
-- _Inside_: Unaltered `span` item.
-  # ⌻
-- _Sectioning_: `section` item.
-  # ⌸
-- _Heading_: `h1`; related to the following contents.
-  # ⍞
-- _Paragraph_: `p`.
-  # ¶
-- _Figure_: Autonomous content. `figure`. The last _Caption_ within a figure will be a `figcaption`.
-  # ❧
-- _Caption_: Singular; meta or augmenting. Related to the enclosing item.
-  # ℭ
-- `figcaption` or `aside`, depending on the container type.
-  # ⌇
+Contrary to < and >, which channel shape resp. data from one group to another,
+flow tags never actually affect the flow of data or structure through the composition.
+Instead, they help translate the composition to a user interface in the medium of Html.
+
+
+### User Interface Flows
+
+Bodies tagged with a User Interface flow enrich the actual composition with one-to-one and one-to-many relations.
+As these items will take no space in the layout, but need to be accessible in order to satisfy the tangibility tenet, they will appear in clumps and menus.
+
+- # ⍛ 
+  _Tag_: Tag a group. Use for _facet classification_ such as style classes, hashtags, and other explicit categorization tasks.
+- # 🜺 
+  _Representation_: Stands in for a group as long as it is eventual, i.e. a _Cogroup_.
+  The body will appear as a _face_ in an option. Once the cogroup is instanciated, you find the representation clumped so to be tangible directly.
+- # ⮾
+  _Nopresentation_: remove the item (but not its deascendants) from the user interface. Will appear in a clump so you can edit it.
+  
+
+### Semantic Tags (see [`View`](Compositron.View)!)
+
+These tags provide a semantic metastructure to the bodies in a tree.
+They are 'built-in' classes or tags, closely related to Html tags.
+
+### Data Extension
+
 - _D_: Data renderer without kids.
 -}
+
 type Flow
-    = Meta
-    | Symbolic
-    | Inaccessible
-    | Page
-    | Inside
-    | Sectioning
-    | Heading
-    | Paragraph
-    | Figure
-    | Caption
+    = I Interfacing
+    | S View.Role
     | D Data
 
-
+type Interfacing
+    = Tag
+    | Representation
+    | Nopresentation      
+      
 -- create
 
 {-|-}
 symbolic: Flow
-symbolic = Symbolic
+symbolic = I Representation
       
 
 -- read
@@ -106,7 +113,7 @@ data flow =
 {-|-}
 is_symbolic : Flow -> Bool
 is_symbolic flow =
-    flow == Symbolic || flow == Meta
+    flow == I Representation || flow == I Tag
 
 
 
@@ -144,37 +151,36 @@ unfreeze =
 serialize : Flow -> String
 serialize f =
     case f of
-        Meta -> "⍚"
-        Page -> "🗔"
-        Inside -> "⌻"
-        Sectioning -> "⌸"
-        Heading -> "⍞"
-        Paragraph -> "¶"
-        Figure -> "⌹"
-        Caption -> "⌯"
-        Symbolic -> "◆"
-        Inaccessible -> "⌧"
-        D dat -> Data.serialize dat 
+        I Tag ->
+            "⍛"
+        I Representation ->
+            "🜺"
+        I Nopresentation ->
+            "⮾"
+        S rl ->
+            View.serialize_role rl
+        D dat ->
+            Data.serialize dat 
 
                    
 {-|-}
 deserialize : String -> Maybe Flow
 deserialize s =
     case s of
-        "⍚" -> Just Meta
-        "🗔" -> Just Page
-        "⌻" -> Just Inside
-        "⌸" -> Just Sectioning
-        "⍞" -> Just Heading
-        "¶" -> Just Paragraph
-        "⌹" -> Just Figure
-        "⌯" -> Just Caption
-        "◆" -> Just Symbolic
-        "⌧" -> Just Inaccessible
+        "⍛" ->
+            Just ( I Tag )
+        "🜺" ->
+            Just ( I Representation )
+        "⮾" ->
+            Just ( I Nopresentation )
         other ->
-            Data.deserialize other
-                |> Maybe.map D
-
+            case other |> both ( View.deserialize_role, Data.deserialize ) of
+                ( Just r, _ ) ->
+                    Just ( S r )
+                ( _, Just d ) ->
+                    Just ( D d )
+                _ ->
+                    Nothing
 
 
 -- view
@@ -184,26 +190,14 @@ deserialize s =
 view : Flow -> Map ( View node t )
 view flow =
     case flow of
-        Symbolic ->
+        I Tag ->
             identity
-        Page ->
-            View.role View.P
-        Inside ->
-            View.role View.Span
-        Meta ->
+        I Representation ->
             identity
-        Inaccessible ->
+        I Nopresentation ->
             identity
-        Paragraph ->
-            View.role View.P
-        Sectioning ->
-            View.role View.P
-        Heading ->
-            View.role View.H
-        Figure ->
-            View.role View.F
-        Caption ->
-            View.role View.C
+        S role ->
+            View.role role
         D d ->
             View.decode d
                 >> View.action ( Class <| Data.serialize_constructor d )

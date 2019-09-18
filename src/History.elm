@@ -45,34 +45,62 @@ Given a history, `do` can transform an Intent into a Transformation.
 -}
 
 import Helpers exposing ( .. )
-import History.Transformation as Transformation exposing ( Transformation, Copy ( .. ) )
+import History.Transformation.Signature as Signature exposing ( Signature )
+import History.Transformation as Transformation exposing ( Transformation, Copy ( .. ), compare )
 import History.Intent as Intent exposing ( .. )
+
+import List.Extra
 
 {-|History is a zipper; it represents a hole in a sorted stack.
 A Transformation can be inverted. History stores
 positive transformations to the top of the current state
 and inverted ones towards the bottom ("future"/"past").-}
 type History s =
-    History { past:    List ( Transformation s )
+    History { future: List ( Transformation s )
             , present: s
-            , future:  List ( Transformation s )
+            , past: List ( Inverse ( Transformation s ) )
             }
-
+        
+type Inverse x =
+    Inverse x
+        
         
 -- create
 
 {-|from a single state.-}
-singleton:s -> History s
+singleton: s -> History s
 singleton s =
     History { past = [], present = s, future = [] }
 
-{-| Tool to turn a Copy into a real Transformation. -}
-slot : History s -> ( Transformation.Copy s -> Transformation s )
-slot =
-    transformations
-        >> last
+
+
+        
+{-| Tool to turn a Copy into a real Transformation by scheduling it for the future.-}
+schedule : Transformation.Copy s -> History s -> Transformation s
+schedule c =
+    transformations >> last
         >> Maybe.withDefault ( Transformation.initial )
-        >> Transformation.successive
+        >> Transformation.successive c
+
+
+
+
+{-| Given an Intent, create a `Do` Copy, then slot on top of the given History.-}
+do : Intent s -> History s -> Transformation s
+do =
+    Transformation.Do >> schedule
+
+{-| Given a Signature, try to find the matching transformation in the past, then `Undo` and slot on top of the given History.-}
+undo : Signature -> History s -> Transformation s
+undo =
+    Transformation.Undo >> schedule
+
+
+   
+
+            
+-- read
+
 
 {-| Used e.g. to create Creators in Compositron.-}
 recent_signature_string : History s -> String
@@ -80,43 +108,54 @@ recent_signature_string =
     transformations
         >> last
         >> Maybe.withDefault ( Transformation.initial )
-        >> Transformation.serialize_signature
+        >> Transformation.signature >> Signature.serialize
 
-{-| It uses Transformation.do to chain `Intent >> Copy >> Transformation`.-}
-do : History s -> ( Intent s -> Transformation s )
-do h =
-    Transformation.do >> slot h
-
+        
          
                    
 -- map
         
-{-| The transformation will be sorted according to `Transformation.isBelow`, `Transformation.isAbove`. The state will only be affected if the new transformation is _below_ the current transformation..-}
-insert : Transformation s -> History s -> History s
+{-| The transformation will be sorted according to `Transformation.isBelow`, `Transformation.isAbove`. The state will only be affected if the new transformation is _below_ the current transformation.-}
+insert : Transformation s -> Map ( History s )
 insert t h =
-    let here =   mapFuture ( (::) ( {-Debug.log "new transformation arrived in history"-} t ) )
+    let here =   map_future ( (::) ( {-Debug.log "new transformation arrived in history"-} t ) )
         lower =  prev >> insert t >> next
         higher = next >> insert t >> prev
     in
     case ( past h, future h ) of
         ( [],     [] ) ->
             here h
-        ( p::ast, [] ) ->
-            if      Transformation.isBelow p t then lower h else here h
+        ( ( Inverse p )::ast, [] ) ->
+            if      Transformation.compare ( Signature.is_below ) p t then lower h else here h
         ( [],     f::uture ) ->
-            if      Transformation.isAbove f t then higher h else here h
-        ( p::ast, f::uture ) ->
-            if      Transformation.isBelow p t then lower h
-            else if Transformation.isAbove f t then higher h else here h
+            if      Transformation.compare ( Signature.is_above ) f t then higher h else here h
+        ( ( Inverse p )::ast, f::uture ) ->
+            if      Transformation.compare ( Signature.is_below ) p t then lower h
+            else if Transformation.compare ( Signature.is_above ) f t then higher h else here h
 
 
+remove : ( Transformation s -> Bool ) -> Map ( History s )
+remove fil h =
+    let             
+        new_past =
+            past h |> List.filter ( uninverse >> fil >> not )
+        old_future =
+            future h
+    in
+        bottom h
+            |> map_future ( \_-> new_past |> List.map uninverse )
+            |> top
+            |> map_future ( \_-> old_future )
+
+            
+                
 
 -- browse
 
-{-| Use Nothing to jump to the top, `Just <Int>` for positions below top.-}
+{-| Use Nothing to jump to the top, `Just <Int>` for absolute positions after zero.-}
 browse_to : Maybe Int -> History s -> History s
 browse_to to h =
-    let position = past h |> List.length |> always
+    let position = \_-> past h |> List.length
     in h |> case to of
         Nothing ->
             top
@@ -139,21 +178,41 @@ prev : History s -> History s
 prev h =
     case past h of
         [] -> h
-        p::ast ->
-            History { past    = ast
-                    , present = present h |> Transformation.engage p
-                    , future  = ( Transformation.invert p )::( future h )
-                    }
+        ( Inverse p )::ast ->
+            case Transformation.copy p of
+                Undone trans ->
+                    --reinsert the previously undone transformation 
+                    h |> map_past ( \_-> ast )
+                      |> insert trans
+                      |> map_future ( (::) p )
+                Do intent ->
+                    --unapply the intent
+                    h |> map_past ( \_-> ast )
+                      |> map_present intent.inverse
+                      |> map_future ( (::) p )
+                _ ->
+                    h |> map_past ( \_-> ast )
 
 next : History s -> History s
 next h =
     case future h of
         [] -> h
         f::uture ->
-            History { past    = ( Transformation.invert f )::( past h )
-                    , present = present h |> Transformation.engage f
-                    , future  = uture
-                    }
+            case Transformation.copy f of
+                Undo undo_sig ->
+                    h |> map_future ( \_-> uture )
+                      |> case past h |> List.Extra.find ( uninverse >> Transformation.signature >> (==) undo_sig ) of
+                             Nothing ->
+                                 map_past ( (::) ( Inverse f ) )
+                             Just ( Inverse to_undo ) ->
+                                 remove ( Transformation.is undo_sig )
+                                     >> map_past ( (::) ( Inverse ( f |> Transformation.undone to_undo ) ) )
+                Do intent ->
+                    h |> map_future ( \_-> uture )
+                      |> map_present intent.function
+                      |> map_past ( (::) ( Inverse f ) )
+                _ ->
+                    h |> map_future ( \_-> uture )
 
 
 isTop : History s -> Bool                
@@ -179,7 +238,7 @@ summary :
     , present : s
     , future : List ( String, String )
     }
-summary h = { past = past h |> List.reverse >> List.map Transformation.serialize
+summary h = { past = past h |> List.reverse >> List.map ( uninverse >> Transformation.serialize )
             , present = present h
             , future = future h |> List.map Transformation.serialize
             }
@@ -188,13 +247,23 @@ summary h = { past = past h |> List.reverse >> List.map Transformation.serialize
 -- type helpers
 
 future ( History h ) = h.future
-mapFuture f ( History h ) = History { h | future = f h.future }
+map_future f ( History h ) = History { h | future = f h.future }
 
 past ( History h ) = h.past
 
+map_past : Map ( List ( Inverse ( Transformation s ) ) ) -> Map ( History s )
+map_past f ( History h ) = History { h | past = f h.past }
+
+
 present ( History h ) = h.present
-mapPresent f ( History h ) = History { h | present = f h.present }
+map_present f ( History h ) = History { h | present = f h.present }
                       
 transformations : History s -> List ( Transformation s )
 transformations =
-    both ( past >> List.reverse, future ) >> \(a, b) -> a++b
+    both ( past >> List.reverse >> List.map uninverse, future ) >> \(a, b) -> a++b
+
+
+
+uninverse : Inverse i -> i
+uninverse ( Inverse i ) = i
+       

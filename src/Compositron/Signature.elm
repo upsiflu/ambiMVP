@@ -17,22 +17,42 @@ module Compositron.Signature exposing
     , deserialize
     )
 
+{-| If you call `root` only once, 
+and call `create` only with unique strings,
+then each signature will be unique.
+
+# Definition
+@docs Signature
+@docs Creator
+
+# Create
+@docs root
+@docs ephemeral
+@docs prime
+@docs inc
+
+# Map
+@docs accept
+
+# Serial Form
+@docs serialize
+@docs deserialize
+
+# View
+@docs view
+|-} 
+
+
 import Compositron.View as View exposing ( View, Action (..) )
 
 import Helpers exposing (..)
 
 
-{-| Signature
 
-If you call root only once, 
-and call create only with unique strings,
-then each signature will be unique.
-
-|-} 
-
-
+{-|-}
 type alias Creator = String
 
+{-|-}
 type Signature domain =
     Signature { creator : Creator, scalar : Int }
 
@@ -40,24 +60,26 @@ type Signature domain =
         
 -- create
 
-        
+{-|-}        
 root : Signature domain
 root = prime "upsiflu" |> inc
 
-
+{-|-}
 inc : Map ( Signature domain )
 inc = map_scalar ( (+) 1 )
 
-
+{-|-}
 prime : String -> Signature prime
 prime cre = Signature { creator = cre, scalar = 0 }
 
+{-|-}
 ephemeral : Int -> Signature domaine
 ephemeral n = Signature { creator = "ephemeral", scalar = n }
 
              
 -- map
 
+{-|-}
 accept : Signature p -> Signature l
 accept ( Signature primer ) =
         Signature { creator = primer.creator, scalar = primer.scalar }
@@ -78,11 +100,12 @@ dec = map_scalar ( (-) 1 )
 
 -- serialize
 
-
+{-|-}
 serialize : Signature domain -> String
 serialize ( Signature sig ) =
     sig.creator ++ "/" ++ ( String.fromInt sig.scalar )
 
+{-|-}
 deserialize : String -> Maybe ( Signature domain )
 deserialize str =
     case String.split "/" str |> List.reverse of
@@ -106,7 +129,7 @@ deserialize str =
 
 -- view
 
-
+{-|-}
 view : Signature domain -> Map ( View node ( Signature codomain ) )
 view signature =
     View.action ( serialize signature |> Id )

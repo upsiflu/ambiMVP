@@ -1,15 +1,20 @@
 module Ui exposing
-    ( view
+    ( Ui
+    , view
+    , default
     , Message )
 
-{-|# View
+{-|# Config
+@docs Ui
 
-@docs view
+# Create
+@docs default
 
 # Messages
-
 @docs Message
 
+# View
+@docs view
 -}
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -44,6 +49,23 @@ type alias Message state msg =
     , noop : msg
     }
 
+{-|-}
+type alias Ui =
+    { layout : Bool
+    , editor : Bool
+    , review : Bool
+    , browse_past : Maybe Int
+    }
+    
+{-|-}
+default : Ui
+default =
+    { layout = True
+    , editor = True                                             
+    , review = False                                    
+    , browse_past = Nothing
+    }
+    
 {-|## [`message`](Ui#Message)
 
     { browse_history = BrowseHistory                                         

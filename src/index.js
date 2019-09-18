@@ -29,26 +29,33 @@ customElements.define
      set string(value){
 	 if (value != this._string ) { this._string = value }
      }
+     get identifier () {
+	 return this._identifier
+     }
+     set identifier(value){
+	 if (value != this._identifier ) { this._identifier = value }
+     }
+     
 	 
      connectedCallback(){
 	 let shadowRoot = this.attachShadow({mode: "open"})
 	 shadowRoot.innerHTML = `
 	    <style>
 	     :host {
-		 border: 2px solid #2f4858; border-radius: 3px;
 		 background-color: #f0fff0;
-		 display: block;
-		 padding: 3px; margin: 10px
+		 display: inline;
+		 min-width: .25em;
+		 min-height: 1.5rem;
 	     }
-	     .toolbar { height: 20px; border-bottom: 1px solid #2f4858 }
-	     .string { color: #33658a; padding-top: 3px; }
+	     .toolbar { height: 20px; border-bottom: 1px solid #2f4858; display:none; }
+	     .string { }
 	    </style>
 	    <span class="toolbar">
 	     <strong>B</strong>&nbsp;
 	     <em>I</em>&nbsp;
 	     <span style="text-decoration: underline">U</span>
 	    </span>
-	    <span class="string" contenteditable='true'>${this.string}</span>
+	    <span class="string" contenteditable='true' id='${this.identifier}'>${this.string}</span>
 	 `
 	 this._editor = this.shadowRoot.querySelector(".string")
 	 this._editor.addEventListener('input', (e)=>{

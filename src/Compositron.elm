@@ -5,7 +5,7 @@ module Compositron exposing
     , trivial
 
     -- view
-    , preview
+    , view
 
     -- serial form
     , log
@@ -32,7 +32,7 @@ To edit the live tree, you can modify, choose, ... each node.
 @docs modify
 
 # View and Interact
-@docs preview
+@docs view
 
 All interactions go through the rendered page. Since Compositron won't expose the functions that alter its state, we can only use serialize, deserialize and Edits to test it.
 
@@ -389,12 +389,12 @@ type alias Message msg m =
     }
 
 {-| render an interactive tree. -}
-preview :
+view :
     Creator
         -> Message msg m
         -> State
         -> List ( Html msg )
-preview new_creator message compositron =
+view new_creator message compositron =
     let
         incipit =
             Html.section []
@@ -460,7 +460,7 @@ preview new_creator message compositron =
                        Target this.signature
                            |> to_message this >> onClickNoBubble
                    Focus_here ->
-                       Dom.focus ( Signature.serialize this.signature )
+                       Dom.focus ( Signature.serialize this.signature ++ "-input" |> Debug.log "focus here" )
                            |> Task.attempt (\_-> message.noop )
                            |> message.from_command >> onClickNoBubble
                    Input_span old ->

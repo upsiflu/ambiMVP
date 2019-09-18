@@ -127,7 +127,7 @@ serialize_constructor d =
 serialize : Data -> String
 serialize d =
     serialize_constructor d
-        ++case d of
+        ++" "++case d of
               Text t ->
                   enstring t.fluid++" ~ "++enstring t.frozen
               Url u ->

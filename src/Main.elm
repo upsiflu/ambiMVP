@@ -10,7 +10,7 @@ import Html exposing (..)
 import History exposing ( History )
 import History.Intent exposing ( .. )
 import Helpers
-import Ui
+import Ui as Ui exposing ( Ui )
 
 -- persistent data structures
 import Compositron as State exposing ( State )
@@ -29,14 +29,8 @@ type alias Route = String
 type alias Model =
     { session : History State
     , route : Route
-    , view_options : ViewOptions
+    , ui : Ui
     }
-
-type alias ViewOptions =
-    { layout : Bool
-    , editor : Bool
-    , review : Bool
-    , browse_past : Maybe Int } 
 
 {-| The template in ambilang would be:
 
@@ -56,45 +50,48 @@ Figure <
 -}
 template =
     """
-TEMPLATE			⌧ :_/0	(_/0)
+TEMPLATE			⮾ :_/0	(_/0)
   < paragraph/0 | figure/0	  :initial/1	(initial/1)
   Paragraph			¶ :paragraph/0	(paragraph/0)
-    < blocks/1 | spans/1	  :p/1	(p/1)
+    ¶				⍛ :_/0	(_/0)
+    < blocks/1 | spans/1 | layout/1	  :p/1	(p/1)
     <				  :p/2	(p/2)
-    <				  :p/3	(layout/1)
-  Figure			⌹ :figure/0	(figure/0)
+  Figure			❦ :figure/0	(figure/0)
+    Figure			⍛ :_/0	(_/0)
     < blocks/1 | spans/1	  :f/1	(f/1)
-    Caption			⌯ :f/2	(f/2)
+    Caption			ℭ :f/2	(f/2)
       < blocks/1 | spans/1	  :f/3	(f/3)
     <				  :f/4	(layout/1)
-  Text				⌻ :t/0	(t/0)
+  Text				⟷ :t/0	(t/0)
+    𝑇				⍛ :_/0	(_/0)
     𝑇				𝑇 fluid text ~ frozen text :text/1	(text/1)
     <                             :t/3	(layout/1)
-  L A Y O U T			⌧ :_/0	(_/0)
-    <				  :layout/1	(layout/1)
-    < y/0 | y/1 | y/2		  :l/2	(l/2)
-      add style			◆ :_/0	(_/0)
-  align right			⍚ :y/0	(y/0)
-      style			◆ :_/0	(_/0)
-  align centered		⍚ :y/1	(y/1)
-  shaded green			⍚ :y/2	(y/2)
-  layout			⍚ :l/0	(l/0)
-  B L O C K S  A N D  S P A N S	⌧ :_/0	(_/0)
+  L A Y O U T			⮾ :_/0	(_/0)
+    Layout...			🜺 :x/0	(x/0)
+    < y/0 | y/1 | y/2		  :layout/1	(layout/1)
+  align right			⍛ :y/0	(y/0)
+  align centered		⍛ :y/1	(y/1)
+  shaded green			⍛ :y/2	(y/2)
+  layout			⍛ :l/0	(l/0)
+  B L O C K S  A N D  S P A N S	⮾ :_/0	(_/0)
+    Block elements...		🜺 :_/0	(_/0)
     < paragraph/0 | figure/0 | heading/1	 :blocks/1	(blocks/1)
-  insert span element		⌧ :_/0	(_/0)
+  insert span element		⮾ :_/0	(_/0)
+    Runs of text...		🜺 :_/0	(_/0)
     < text/1 | spans/1		  :spans/1	(spans/1)
   heading			⍞ :h/0	(h/0)
+    Heading			⍛ :_/0	(_/0)
     <				  :heading/1	(heading/1)
     <				  :h/2	(spans/1)
     <				  :h/3	(layout/1)
-  link				⌻ :k/0	(k/0)
-    destination			⍚ :link/1	(link/1)
+  link				⟷ :k/0	(k/0)
+    destination			⍛ :link/1	(link/1)
       U 			  :k/2	(k/2)"""
 
    
 live =
  """
-LIVE            	🗔 :live/0	(live/0)
+LIVE            	▓ :live/0	(live/0)
   <			  :live/1	(initial/1)*
  """
     
@@ -137,12 +134,7 @@ init : () ->
 init = \flags url key ->
     ( { session = History.singleton state
       , route = ""
-      , view_options =
-        { layout = True
-        , editor = True
-        , review = False 
-        , browse_past = Nothing
-        }
+      , ui = Ui.default
       }, Cmd.none )
 
 
@@ -167,7 +159,7 @@ update msg model =
             ( f model 
                |> ( \m ->
                       map_session
-                        ( History.browse_to m.view_options.browse_past ) m
+                        ( History.browse_to m.ui.browse_past ) m
                   )
             , Cmd.none )
             
@@ -175,9 +167,9 @@ update msg model =
         map_session f m =
             { m | session = f m.session }
 
-        map_view : Map ViewOptions -> Map Model
+        map_view : Map Ui -> Map Model
         map_view f m =
-            { m | view_options = f m.view_options }
+            { m | ui = f m.ui }
 
         browse to =
             map_view ( \v-> {v| browse_past = to } )
@@ -198,8 +190,8 @@ update msg model =
         ToggleLayout ->
             map_view (\v -> 
                 if v.review 
-                then {v| review = not v.review } 
-                else {v| layout = not v.layout })
+                then { v | review = not v.review } 
+                else { v | layout = not v.layout })
             |> commit
         ToggleReview ->
             map_view (\v -> {v| review = not v.review } )
@@ -229,13 +221,13 @@ main = Browser.application
                 { browse_history = BrowseHistory
                 , toggle_layout = ToggleLayout
                 , toggle_review = ToggleReview
-                , from_intent = History.do model.session >> Transform
+                , from_intent = \i -> History.do i model.session |> Transform
                 , from_command = DoCommand
                 , noop = NoOp
                 }
-                model.view_options
+                model.ui
                 model.session
-                ( State.preview recent_signature_string )
+                ( State.view recent_signature_string )
     , update = update
     , subscriptions = always Sub.none
     , onUrlChange = UrlChanged, onUrlRequest = LinkClicked

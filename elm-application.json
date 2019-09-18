@@ -4,9 +4,10 @@
     "version": "0.0.1",
     "exposed-modules": [
 	"Compositron",
+	"Compositron.Signature",
         "Compositron.View",
-	"Compositron.Node",
 	"Compositron.Item",
+	"Compositron.Node",
 	"Compositron.Flow",
 	"Compositron.Cogroup",
 	"Compositron.Structure.EagerZipperTree",
@@ -14,7 +15,9 @@
 	"Compositron.Structure.Group",
 	"Helpers",
 	"History",
+	"History.Intent",
 	"History.Transformation",
+	"History.Transformation.Signature",
 	"Ui"
     ]
 }

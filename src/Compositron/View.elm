@@ -16,6 +16,9 @@ module Compositron.View exposing
     , Role (..)
     , role
 
+    , serialize_role
+    , deserialize_role
+
     , view
     )
 
@@ -35,15 +38,31 @@ In Html, the option menu is only drawn when the Transient is Targeted.
 Self Assumptions and Symbolics produce _Tags_ relating to their container.
     
 The _Container_ originates from a Body with kids.
-In Html, it may require wrapping:
+In Html, it may require wrapping.
 
-🅁 𝐻 may only have 'phrasing' content. So  map  kids.
+- # ▓
+  _Page_: Exclusive container; will try to fill the available screen.
+- # ℌ
+  _Heading_: Outline Item; `h1`; related to the following contents.
+- # ¶ 
+  _Paragraph_: Sectioning container; similar to `p`, but more permissive in content type.
+- # ❦
+  _Figure_: Autonomous content; `figure`. The last _Caption_ within a figure will be a `figcaption`.
+- # ℭ
+  _Caption_: A commentary on (or description of) the surroundings.
+- # ⌇
+  _Aside_: Secondary content; `aside`.
+- # ⟷
+  _Span_: Grouping of a series of items; `span`.
 
 Additionally, a container responds to the size attribute of
 their kids and may need to clump groups of too_small kids:
 
 🅁 If successive items are too small, then clump them in groups that
 expand when any member or descendent thereof is open.
+
+🅁 ℌ may only have 'phrasing' content. So  map  kids.
+
     
 Renderer: a body with data-bearing flow.
 Becomes a Html element with source or seed attributes, such as `text`, `a` or `img`.
@@ -78,6 +97,9 @@ Ignore children and just display a collapsible error message in place.
 ## Role
 @docs Role
 @docs role
+
+@docs serialize_role
+@docs deserialize_role
 
 # View
 @docs view
@@ -179,12 +201,17 @@ target =
     map_parameters ( \p -> { p | open = True } )
         >> action ( Class "t" )
 
+
+
+
 {-|-}
 type Role
-    = P 
-    | H
-    | F
-    | C
+    = Page
+    | Heading
+    | Paragraph
+    | Figure
+    | Caption
+    | Aside
     | Span
                    
 {-|-}
@@ -205,7 +232,7 @@ decode d v =
 face : String -> Map ( View node prototype )
 face fa v =
     v |> map_parameters
-        ( \p -> { p | face = fa++"/"++p.face } )
+        ( \p -> { p | face = fa{-++" "++p.face-} } )
 
 {-|-}    
 action : Action -> Map ( View node prototype )
@@ -300,9 +327,46 @@ type Kid node prototype
 
            
 
-
-
-
+{-|-}
+serialize_role : Role -> String
+serialize_role r =
+    case r of
+        Page ->
+            "▓"
+        Heading ->
+            "ℌ"
+        Paragraph ->
+            "¶"
+        Figure ->
+            "❦"
+        Caption ->
+            "ℭ"
+        Aside ->
+            "⌇"
+        Span ->
+            "⟷"
+                  
+{-|-}
+deserialize_role : String -> Maybe Role
+deserialize_role s =
+    case s of
+        "▓" ->
+            Just Page 
+        "ℌ" ->
+            Just Heading
+        "¶" ->
+            Just Paragraph
+        "❦" ->
+            Just Figure
+        "ℭ" ->
+            Just Caption
+        "⌇" ->
+            Just Aside
+        "⟷" ->
+            Just Span
+        _ ->
+            Nothing
+                
 -- view
 
 
@@ -339,27 +403,23 @@ view context v =
                     Html.node "editable-span"
                 Renderer p d ->
                     span
-                Container p P ks ->
+                Container _ Page _ ->
+                    section
+                Container _ Paragraph _ ->
                     div
-                Container p H ks ->
+                Container _ Heading _ ->
                     h1
-                Container p F ks ->
+                Container _ Figure _ ->
                     figure
-                Container p C ks ->
+                Container _ Caption _ ->
                     div
-                Container p Span ks ->
+                Container _ Aside _ ->
+                    aside
+                Container _ Span _ ->
                     span
                 Error p s ->
                     div
-
-        role_to_attribute r =
-            case r of
-                P -> "¶"
-                H -> "ℌ"
-                F -> "❦"
-                C -> "ℭ"
-                Span -> "⟷"
-                
+    
         attributes = 
             case v of
                 Transient p os ->
@@ -369,8 +429,9 @@ view context v =
                     to_attributes p.actions
                         |> (::) ( A.class "◆" )
                 Renderer p ( Text t ) ->
-                    to_attributes p.actions
+                    to_attributes ( Focus_here :: p.actions )
                         |> (::) ( t.frozen |> Maybe.withDefault "" |> Encode.string >> property "string" )
+                        |> (::) ( t.frozen |> Maybe.withDefault "" |> Encode.string >> property "name" )
                 Renderer p d ->
                     to_attributes p.actions
                         |> (::) ( A.class "C" )
@@ -378,7 +439,7 @@ view context v =
                 Container p r ks ->
                     to_attributes p.actions
                         |> (::) ( A.class "C" )
-                        |> (::) ( A.class ( role_to_attribute r ) )
+                        |> (::) ( A.class ( serialize_role r ) )
                 Error p s ->
                     [ A.class "Error" ]
 
