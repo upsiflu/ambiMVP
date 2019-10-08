@@ -1,206 +1,332 @@
 @charset "UTF-8";
-@import url(https://fonts.googleapis.com/css?family=Lato:300,700&display=swap);
-button {
-  position: relative; }
+@import url("https://fonts.googleapis.com/css?family=EB+Garamond:400,400i&display=swap");
+@import url("https://fonts.googleapis.com/css?family=Fira+Sans&display=swap");
+input, button, textarea {
+  font-size: inherit;
+  display: inherit; }
+
+* {
+  transition: all .2s;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent; }
 
 button:focus, [contenteditable]:focus {
   outline: none;
   box-shadow: none; }
 
-[contenteditable]:focus {
-  outline: .05rem dashed black;
-  background: white; }
+h1, h2, h3, h4, h5, h6, h7 {
+  font-weight: inherit; }
 
-button:focus:after, [contenteditable]:focus:after {
-  letter-spacing: 0;
-  content: "✢";
+.editing .bubble.align-right + * {
+  float: right;
+  text-align: right;
+  display: inline-block; }
+
+.editing .bubble.align-right + * + .clump {
   position: absolute;
-  top: .05em;
-  left: 0;
-  font-size: 1.5rem;
-  line-height: 1em;
-  padding-top: .05em;
-  text-indent: .08em;
-  font-family: "Garamond EB", serif;
-  width: 100%;
-  animation: spin .5s ease-out 1;
-  pointer-events: none; }
+  right: 1rem; }
 
-.◇:focus:after {
-  font-size: 1.2em;
-  top: -2.2em; }
+.editing .bubble.red + * {
+  color: red; }
 
-.collapsed .◇:focus:after {
-  top: -1em; }
-
-[contenteditable]:focus:after {
-  left: -.75em;
-  font-size: .6em;
-  top: -.5em; }
-
-span, .editing span {
-  font-size: 1rem;
-  line-height: 1.2rem; }
-
-.editing .wrapper {
-  position: relative; }
-
-.editing .𝑇 {
-  min-width: 2rem; }
-
-.editing .𝑇 + label {
-  text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
+.label.𝑇::after {
+  content: "";
+  height: 2rem;
+  width: 2rem;
   position: absolute;
-  right: 0;
-  bottom: -.6rem;
-  font-size: .6rem;
-  height: .6rem;
-  line-height: .6rem;
-  text-align: right; }
+  margin-left: -1rem;
+  margin-top: -1rem;
+  left: 50%;
+  top: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 305 305'%3E%3Cpolygon points='0,0 0,85 30,85 30,30 137.5,30 137.5,275 82.5,275 82.5,305 222.5,305 222.5,275 167.5,275 167.5,30 275,30 275,85 305,85 305,0 '/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 45%; }
+
+.editing span[contenteditable] {
+  white-space: pre-line; }
+
+.editing .C.▓ {
+  font-family: "EB Garamond", serif;
+  padding-top: 8rem;
+  padding-bottom: 8rem;
+  margin: auto;
+  width: 24rem; }
 
 .editing .C {
-  min-height: 1.2rem;
-  position: relative;
-  line-height: 1.2rem; }
-
-.editing .C > .Tag {
-  position: absolute;
-  top: 0;
-  left: -1rem;
-  width: .8rem;
-  text-align: center;
-  overflow: hidden;
-  font-size: .3rem; }
-
-.editing .C.ℭ, .editing .C.¶ {
-  min-height: 2.4rem; }
-  .editing .C.ℭ .C.ℭ, .editing .C.ℭ .C.¶, .editing .C.¶ .C.ℭ, .editing .C.¶ .C.¶ {
-    margin: 0 -1rem; }
-
-.editing .C.ℭ {
-  padding: .4rem 1rem .2rem 1rem;
-  margin: 0;
-  line-height: 1.8rem;
-  font-style: italic;
-  display: block; }
-
-.editing .C.¶ {
-  padding: .4rem 1rem .8rem 1rem;
-  margin: 0; }
-
-.editing .C.¶:before {
-  content: " ";
-  outline: 1px dashed rgba(255, 0, 0, 0.5);
-  width: calc(100% - 2rem);
-  height: calc(100% - 1.2rem);
-  position: absolute;
-  top: .4rem;
-  left: 1rem;
-  pointer-events: none; }
-
-.◇ {
-  text-align: center; }
-
-/* C L U M P */
-.clump {
-  display: inline;
-  z-index: 1;
-  outline: 1px solid rgba(255, 0, 0, 0.2);
-  position: relative;
-  height: 1.2rem; }
-  .clump > * {
+  position: relative; }
+  .editing .C > .C {
+    min-height: 1.4rem;
+    position: relative;
+    line-height: 1.4rem; }
+  .editing .C .C > .Tag {
+    position: absolute;
+    top: 0;
+    left: -1rem;
+    width: .8rem;
+    text-align: center;
+    overflow: hidden;
+    font-size: .3rem; }
+  .editing .C .C.ℭ, .editing .C .C.¶, .editing .C .C.ℌ {
+    min-height: 2.4rem; }
+    .editing .C .C.ℭ .C.ℭ, .editing .C .C.ℭ .C.¶, .editing .C .C.ℭ .C.ℌ, .editing .C .C.¶ .C.ℭ, .editing .C .C.¶ .C.¶, .editing .C .C.¶ .C.ℌ, .editing .C .C.ℌ .C.ℭ, .editing .C .C.ℌ .C.¶, .editing .C .C.ℌ .C.ℌ {
+      margin-left: -1rem;
+      margin-right: -1rem; }
+  .editing .C .C.ℭ {
+    padding: .8rem 1rem .6rem 1rem;
+    font-size: 1.4rem;
+    line-height: 1.4rem;
+    font-style: italic;
+    display: block; }
+  .editing .C h1.C.ℌ:hover {
+    background: rgba(255, 0, 0, 0.05); }
+  .editing .C h1.C.ℌ {
+    font-size: 2.8rem;
+    padding: 1.2rem 1rem .8rem 1rem;
+    line-height: 2.8rem;
+    display: block;
+    margin-bottom: .8rem;
+    margin-top: 2.8rem;
+    letter-spacing: -.03em; }
+    .editing .C h1.C.ℌ > span.𝑇 {
+      margin-left: -.1em; }
+    .editing .C h1.C.ℌ > span.𝑇 ~ span.𝑇 {
+      margin-left: 0; }
+  .editing .C .C.¶ {
+    padding: .6rem 1rem .8rem 1rem;
+    margin: 0; }
+  .editing .C .C.¶:before {
+    content: "";
+    outline: 1px dashed rgba(255, 0, 0, 0.5);
+    width: calc(100% - 2rem);
+    height: calc(100% - 1.2rem);
+    position: absolute;
+    top: .4rem;
+    left: 1rem;
     pointer-events: none; }
-    .clump > * > * {
-      pointer-events: auto; }
-  .clump > .face {
-    position: absolute;
-    width: 3rem;
-    height: 1.2rem;
-    margin-left: -1.2rem;
-    text-align: center; }
-  .clump > .face.cl {
-    text-indent: -.29em;
-    font-size: 1.2rem; }
-  .clump > ul {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: -1.2rem;
-    height: 1.2rem; }
-    .clump > ul > li > .Transient {
-      color: red; }
-  .clump .collapsed {
-    position: absolute;
-    width: 3rem;
-    height: 1.2rem;
-    margin-left: -1.5rem; }
-    .clump .collapsed > .◇ {
-      width: 3rem;
-      height: 1.2rem;
-      text-align: center; }
-      .clump .collapsed > .◇ > ul {
-        display: none; }
-    .clump .collapsed > .◇:hover {
-      background: red; }
-  .clump ul.expanded {
+
+.blink {
+  animation: blink-animation 0.15s steps(2, start) 23; }
+
+.blink-twice,
+*[contenteditable]:focus,
+button:focus > *,
+.opened > button:focus + * {
+  animation: blink-animation 0.1s steps(2, start) 2; }
+
+.blink-once {
+  animation: blink-animation .5s ease-out 1; }
+
+@keyframes blink-animation {
+  from {
+    opacity: 1; }
+  to {
+    opacity: 0; } }
+
+@keyframes spin {
+  100% {
+    transform: rotate(-360deg); } }
+
+.editing label, .editing .label {
+  padding: .45rem 1rem .35rem 1rem;
+  line-height: 1.2rem;
+  font-size: .8rem;
+  border-radius: 1rem;
+  font-family: "Fira Sans", sans; }
+
+.editing [contenteditable]:focus {
+  outline: 1px dashed rgba(0, 0, 0, 0.2); }
+
+.editing [contenteditable]:focus::before {
+  content: "▶";
+  text-align: right;
+  width: 2em;
+  margin-left: -2em; }
+
+.editing [contenteditable]:focus::after {
+  content: "◀"; }
+
+.editing [contenteditable]:focus::after, .editing [contenteditable]:focus::before {
+  position: absolute;
+  transform: translate(0, 0.1em); }
+
+.editing .focus {
+  opacity: 0;
+  font-family: "EB Garamond", serif;
+  pointer-events: none;
+  animation: spin .5s ease-out 1;
+  position: absolute;
+  top: -.5rem;
+  left: 0;
+  width: 100%; }
+
+.editing *:not(.option) > .focus {
+  padding-left: 0;
+  padding-right: 0; }
+
+.editing .clump > .focus {
+  left: -.35em;
+  font-size: 70%;
+  text-indent: -.09em;
+  top: -.23em; }
+
+.editing button:focus > .focus {
+  opacity: 1; }
+
+.editing .clump, .editing button.clump {
+  position: relative;
+  outline: .5px dashed black;
+  display: inline-block;
+  height: 1em; }
+
+.editing .clump::after {
+  width: 1.2em;
+  height: 1.2em;
+  border: 1px dashed black;
+  content: "";
+  border-radius: .6em;
+  position: absolute;
+  left: calc(-.6em - 1px);
+  top: -.035em; }
+
+.editing .clump.opened::after {
+  border: 3px solid black; }
+
+.editing .clump.opened {
+  outline: 2px solid black; }
+  .editing .clump.opened > .bar {
+    padding-top: 3rem;
+    overflow: scroll;
+    width: 100vw;
     position: fixed;
-    left: 0;
+    bottom: 0;
+    left: 0; }
+
+.editing .wire {
+  background: white;
+  line-height: calc(3rem - 1px);
+  letter-spacing: 0;
+  font-size: .8rem;
+  min-height: 3rem;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 100vw; }
+  .editing .wire > * {
+    position: relative; }
+  .editing .wire > *::before, .editing .wire > *::after {
+    pointer-events: none;
+    border-top: 2px solid black;
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: .5rem;
+    content: ""; }
+  .editing .wire > *::after {
+    right: 0; }
+  .editing .wire > *::before {
+    left: 0; }
+  .editing .wire > *:first-child::after, .editing .wire .opened::after {
+    border-top-left-radius: 5px; }
+  .editing .wire > *:last-child::before, .editing .wire .opened::before {
+    border-top-right-radius: 5px; }
+  .editing .wire > *:first-child::before, .editing .wire > *:last-child::after {
+    border-top-color: transparent; }
+  .editing .wire > *.opened::after {
+    border-left: 1px solid black; }
+  .editing .wire > *.opened::before {
+    border-right: 1px solid black; }
+  .editing .wire > *:first-child:last-child::before, .editing .wire *:first-child:last-child::after {
+    border-top-color: transparent; }
+
+.editing .wire {
+  z-index: 1; }
+  .editing .wire .opened > .item {
+    height: calc(3rem - 1px); }
+  .editing .wire .wire {
+    z-index: 2;
+    position: relative;
+    left: 50%;
+    width: 100vw;
+    margin-right: -50vw;
+    margin-left: -50vw;
+    height: 3rem;
+    overflow: visible;
+    margin-bottom: -3rem; }
+  .editing .wire * > .label {
+    position: relative;
     width: 100%; }
-    .clump ul.expanded > li > .◇ > .face {
+  .editing .wire .R:hover > .label {
+    background: rgba(0, 100, 205, 0.2); }
+  .editing .wire .I > .label {
+    top: -1.49rem;
+    font-size: 1rem;
+    padding: 0 .3rem; }
+  .editing .wire .I:hover {
+    background: rgba(146, 190, 50, 0.5); }
+  .editing .wire .C.opened > .pipe {
+    position: absolute;
+    left: calc(50% - 1px);
+    height: .5rem;
+    bottom: 0;
+    border: 1px solid black; }
+  .editing .wire .C.opened > .tag {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    height: 1.2rem;
+    line-height: 1.2rem;
+    left: 0; }
+  .editing .wire .C.opened:hover > .label {
+    text-decoration: underline; }
+  .editing .wire .L.opened > .label {
+    background: #ac507d;
+    background-size: 5px 5px; }
+  .editing .wire .L.opened:hover > .label {
+    background: rgba(210, 80, 120, 0.4);
+    color: #ac507d; }
+  .editing .wire .L.opened:hover > .label::after {
+    content: "×";
+    color: white;
+    animation: blink-animation 0.1s steps(3, start) 3;
+    position: absolute;
+    left: calc(50% - .6rem);
+    top: 1.3rem;
+    background: black;
+    border-radius: 1rem;
+    height: 1.2rem;
+    width: 1.2rem; }
+  .editing .wire .stacked {
+    position: relative; }
+    .editing .wire .stacked > * {
+      height: 3rem; }
+    .editing .wire .stacked > .options {
       position: relative;
-      padding: 0;
-      font-size: 4.8em;
-      line-height: .6rem;
-      font-family: 'Lato', sans-serif;
-      font-weight: 300; }
-    .clump ul.expanded > li > .◇:not(.t) {
-      max-height: 3.2rem; }
-      .clump ul.expanded > li > .◇:not(.t) > ul {
-        width: 0;
-        overflow: hidden;
-        pointer-events: none; }
-        .clump ul.expanded > li > .◇:not(.t) > ul > li {
-          display: none; }
-    .clump ul.expanded > li > .◇.t {
-      pointer-events: none; }
-      .clump ul.expanded > li > .◇.t > * > * {
-        pointer-events: auto; }
-      .clump ul.expanded > li > .◇.t > .face:before {
-        content: " ";
-        border: .1rem dashed black;
-        position: absolute;
-        width: 1em;
-        height: 1em;
-        top: .15em;
-        left: -.21em;
-        border-radius: .5em; }
-      .clump ul.expanded > li > .◇.t > ul {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        left: 0;
-        z-index: 1;
-        pointer-events: none; }
-        .clump ul.expanded > li > .◇.t > ul > * {
-          pointer-events: auto; }
-        .clump ul.expanded > li > .◇.t > ul > li {
-          border-top: 0.05rem solid #c8b40a;
-          border-color: black; }
-          .clump ul.expanded > li > .◇.t > ul > li > .Option {
-            position: relative;
-            background: #c8b40a;
-            line-height: 1.2rem;
-            height: 3.6rem;
-            padding: .5rem;
-            border: .025rem solid white;
-            border-top-width: .05rem; }
-          .clump ul.expanded > li > .◇.t > ul > li > .Option:hover,
-          .clump ul.expanded > li > .◇.t > ul > li > .Option:focus {
-            background: #b4a500; }
-        .clump ul.expanded > li > .◇.t > ul > li:first-of-type > .Option {
-          border-left-width: 0; }
-        .clump ul.expanded > li > .◇.t > ul > li:last-of-type > .Option {
-          border-right-width: 0; }
+      display: flex; }
+      .editing .wire .stacked > .options > .option:not(:first-child) > .label {
+        padding-left: .4rem;
+        border-top-left-radius: 3px;
+        border-bottom-left-radius: 3px; }
+      .editing .wire .stacked > .options > .option:not(:last-child) > .label {
+        padding-right: .4rem;
+        border-top-right-radius: 3px;
+        border-bottom-right-radius: 3px; }
+      .editing .wire .stacked > .options > .option:hover > .label {
+        background: rgba(255, 0, 0, 0.1);
+        text-decoration: underline; }
+      .editing .wire .stacked > .options > .option > .label {
+        color: #ac507d; }
+    .editing .wire .stacked > .O {
+      width: 100%;
+      position: absolute;
+      height: .7em;
+      top: 0; }
+      .editing .wire .stacked > .O > .tag {
+        position: relative;
+        top: -.02em; }
+    .editing .wire .stacked > .M:hover, .editing .wire .stacked .S:hover {
+      text-decoration: underline; }

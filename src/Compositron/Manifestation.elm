@@ -2,18 +2,30 @@ module Compositron.Manifestation exposing (..)
 
 import Helpers exposing (..)
 
-import Compositron.View as View exposing ( View, Action (..) )
 
 -- Manifestation
 
 
 type Manifestation
     = Targeted
-    | Cotargeted
     | Notargeted
 
 targeted = (==) Targeted
-           
+
+serialize : Manifestation -> String
+serialize manifestation =
+    case manifestation of
+        Targeted -> "*"
+        Notargeted -> ""
+
+deserialize : String -> Maybe Manifestation
+deserialize str =
+    case str of
+        "*" -> Just Targeted
+        "" -> Just Notargeted
+        _ -> Nothing
+
+{--
 view : Manifestation -> Map ( View node prototype )
 view manifestation =
     case manifestation of
@@ -25,19 +37,4 @@ view manifestation =
             View.target
                 >> View.action Focus_here
                                                                     
-
-
-serialize : Manifestation -> String
-serialize manifestation =
-    case manifestation of
-        Targeted -> "*"
-        Cotargeted -> "~"
-        Notargeted -> ""
-
-deserialize : String -> Maybe Manifestation
-deserialize str =
-    case str of
-        "*" -> Just Targeted
-        "~" -> Just Cotargeted
-        "" -> Just Notargeted
-        _ -> Nothing
+--}

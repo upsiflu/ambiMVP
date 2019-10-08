@@ -7,12 +7,6 @@ module Helpers exposing
 
     , map_if
               
-    , Ambiguation (..)
-    , ambiguation_to_list
-    , ambiguation_from_nonempty
-    , Nonempty
-    , to_nonempty
-
     , over
     , with
 
@@ -46,19 +40,12 @@ module Helpers exposing
 
 # Type Aliases
 @docs Map
-@docs Nonempty
-@docs to_nonempty
 
 # Match
 @docs Match
 
 # Simple Conditionals
 @docs map_if
-
-# Ambiguation
-@docs Ambiguation
-@docs ambiguation_to_list
-@docs ambiguation_from_nonempty
 
 # Parameter Shuffling
 @docs over
@@ -92,6 +79,7 @@ module Helpers exposing
 import Html.Events exposing ( .. )
 import Json.Decode as Decode
 import Helpers.LZipper exposing (..)
+import Helpers.Nonempty exposing ( Nonempty )
 import Html as Html
 import Maybe.Extra 
 
@@ -135,47 +123,7 @@ map_if : Bool -> Map a -> Map a
 map_if predicate fu =
     if predicate then fu else identity
 
-      
-{-| One or more possibilities. Isomorphic to [`Nonempty`](#Nonempty).-}
-type Ambiguation a
-    = Or a ( Ambiguation a )
-    | Of a
-
-{-| Lossy conversion to List.-}
-ambiguation_to_list: Ambiguation a -> List a
-ambiguation_to_list a =
-    case a of
-        Or x y -> x :: ( ambiguation_to_list y )
-        Of x -> [x]
-
-{-| Isomorphic conversion.-}
-ambiguation_from_nonempty : Nonempty a -> Ambiguation a
-ambiguation_from_nonempty n =
-    case n of
-        ( head, [] ) -> Of head
-        ( head, [tail] ) -> Of tail |> Or head
-        ( head, t::ail ) ->
-            ambiguation_from_nonempty ( t, ail ) |> Or head
-        
-{-| A list with at least one element.-}
-type alias Nonempty a =
-    ( a, List a )
-
-{-| Map a function over all members of nonempty.-}
-map_nonempty : Map a -> Map ( Nonempty a )
-map_nonempty fu ( head, tail ) =
-    ( fu head, List.map fu tail )
-
-{-| Lossy conversion to List.-}
-from_nonempty : Nonempty a -> List a
-from_nonempty ( head, tail ) = head::tail
-
-{-| Fallable conversion from List.-}
-to_nonempty : List a -> Maybe ( Nonempty a )
-to_nonempty list =
-    case list of
-        l::ist -> Just ( l, ist )
-        _ -> Nothing
+             
 
 {-| Fallable conversion from List.-}
 list_to_tuple : List a -> Maybe ( a, a )

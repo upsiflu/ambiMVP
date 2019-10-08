@@ -20,7 +20,8 @@ module Compositron.Cogroup exposing
 -}
 
 import Helpers exposing (..)
-import Compositron.View as View exposing ( View, Action (..) )
+import Helpers.Nonempty as Nonempty exposing ( Nonempty )
+import Compositron.View as View exposing ( View, AssumptionTag (..) )
 import Html exposing ( Html )
 
 {-|-}
@@ -34,15 +35,15 @@ type Considering ref
 
 
 {-|-}
-assumptions : t -> Cogroup t -> List t
+assumptions : t -> Cogroup t -> Nonempty t
 assumptions prototype cog =
     case cog of
-        Self ->
-            [ prototype ]
-        Referral ( Open ( ref, refs ) ) ->
-            ref::refs
+        Referral ( Open refs ) ->
+            refs
         Referral ( Insatiable ref ) ->
-            [ ref ]
+            Nonempty.singleton ref
+        Self ->
+            Nonempty.singleton prototype
 
 {-|-}
 serialize :
@@ -75,7 +76,7 @@ deserialize to_t s =
                  |> Maybe.map ( Insatiable >> Referral )
          else
              s |> String.split ", " |> List.map to_t |> fold_must
-                 |> Maybe.andThen to_nonempty
+                 |> Maybe.andThen Nonempty.from_list
                  |> Maybe.map ( Open >> Referral )
 
     
@@ -88,12 +89,10 @@ view :
 view cog =
     case cog of
         Self ->
-            View.action ( Class "self-assumption" )
-                >> View.face "s"
+            View.indicate SelfAssumption
                 
         Referral ( Insatiable ref ) ->
-            View.action ( Class "insatiable" )
-                >> View.face "!"
+            View.indicate InsatiableAssumption
                 
         Referral ( Open _ ) ->
-            View.err "Open referral in this assumption (Cogroup)."
+            View.indicate IrresolvableAssumption

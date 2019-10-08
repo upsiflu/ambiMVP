@@ -2,17 +2,16 @@ module Compositron.Signature exposing
     ( Signature
     , Creator
 
-    -- map
+    -- Map
     , accept
         
-    -- create
+    -- Create
     , root
     , ephemeral
     , prime
     , inc
 
-    -- view
-    , view
+    -- Serial Form
     , serialize
     , deserialize
     )
@@ -37,9 +36,6 @@ then each signature will be unique.
 # Serial Form
 @docs serialize
 @docs deserialize
-
-# View
-@docs view
 |-} 
 
 
@@ -126,10 +122,3 @@ deserialize str =
                 Nothing
     
 
-
--- view
-
-{-|-}
-view : Signature domain -> Map ( View node ( Signature codomain ) )
-view signature =
-    View.action ( serialize signature |> Id )

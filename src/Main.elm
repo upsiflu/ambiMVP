@@ -63,7 +63,6 @@ TEMPLATE			⮾ :_/0	(_/0)
       < blocks/1 | spans/1	  :f/3	(f/3)
     <				  :f/4	(layout/1)
   Text				⟷ :t/0	(t/0)
-    𝑇				⍛ :_/0	(_/0)
     𝑇				𝑇 fluid text ~ frozen text :text/1	(text/1)
     <                             :t/3	(layout/1)
   L A Y O U T			⮾ :_/0	(_/0)
@@ -105,13 +104,13 @@ state =
         , template = template
         }
         |> State.target ( sig "live/1" )
-        |> State.choose "ROOT" [ sig "initial/1" ]
+        |> State.choose "ROOT" ( sig "initial/1", [] )
         -- initialized --
-        |> State.choose "USERa" [ sig "blocks/1" ]
-        |> State.choose "USERa" [ sig "paragraph/0" ]
-        |> State.target ( sig "USERa/0" )
-        |> State.choose "USERb" [ sig "spans/1" ]
-        |> State.choose "USERc" [ sig "text/1" ]
+        --|> State.choose "USERa" [ sig "blocks/1" ]
+        --|> State.choose "USERa" [ sig "paragraph/0" ]
+        --|> State.target ( sig "USERa/0" )
+        --|> State.choose "USERb" [ sig "spans/1" ]
+        --|> State.choose "USERc" [ sig "text/1" ]
 
 {-           
         |> State.target ( sig "USER a/4" )

@@ -1,24 +1,26 @@
 module Compositron.View exposing
     ( View
 
+    -- Create
     , live
-    , err
+        
+    -- Compositron
+    , contain
+    
+    -- Item (A, B, D, E)
+    , AssumptionTag (..)
+    , indicate
+    , offer
+    , play
+    , generate
+    , report
 
-    , face
-    , kid
-    , kids
-    , target
-    , decode
+    -- adding interactivity????
     , Action (..)
     , action
-    , option
-    , options
-    , Role (..)
-    , role
 
-    , serialize_role
-    , deserialize_role
 
+    -- Html Form
     , view
     )
 
@@ -30,10 +32,6 @@ Html5.
 @docs View
 
 ## Relation of View Constructors with Nodes and Html
-
-A _Transient_ node, originating at an ambiguous Assume, has a gatekeeper function.
-Its 'kids' are Options, originating at a Template.
-In Html, the option menu is only drawn when the Transient is Targeted.
       
 Self Assumptions and Symbolics produce _Tags_ relating to their container.
     
@@ -77,62 +75,84 @@ Ignore children and just display a collapsible error message in place.
 @docs live
 
 # Map
-@docs err
-@docs target
-@docs face
-@docs decode
+
+## Data
+@docs generate
+
+## Roles
+@docs play
+
+## Choices
+@docs AssumptionTag
+@docs indicate
+@docs offer
 
 ## Kids
-@docs kid
-@docs kids
+@docs contain
 
-## Action
+## Actions
 @docs Action
 @docs action
 
-## Option
-@docs option
-@docs options
+## Errors
+@docs report
 
-## Role
-@docs Role
-@docs role
-
-@docs serialize_role
-@docs deserialize_role
-
-# View
+# View to Html
 @docs view
 -}
 
 
 import Helpers exposing (..)
+import Helpers.Nonempty as Nonempty exposing ( Nonempty )
 
-import Html exposing (..)
-import Html.Attributes as A exposing (property)
+import Html exposing ( Html, label, text, del, figure, figcaption, h1, div, span, button, aside, section )
+
 import Compositron.Data as Data exposing ( Data (..) )
+import Compositron.Role as Role exposing ( Role (..) )
+import Compositron.Manifestation as Manifestation exposing ( Manifestation )
 
 import Html.Events as Events exposing (..)
+import Html.Attributes exposing ( class, id, property )
 import Json.Decode as Decode
-import Json.Encode as Encode exposing (Value)
+import Json.Encode as Encode exposing ( Value )
 
 
 {-|-}
 type View node prototype
-    = Transient
-      ( Parameters node ) ( Nonempty ( Option prototype ) )
-    | Tag
+    = Placeholder
       ( Parameters node )
+ -- A
+    | Indicator
+      ( Parameters node ) AssumptionTag
+    | Options
+      ( Parameters node ) ( Nonempty ( Option prototype ) )
+ -- B
+    | Leaf
+      ( Parameters node ) String Role
+    | Container
+      ( Parameters node ) String Role ( Nonempty ( Kid node prototype ) )
+ -- D
     | Renderer
       ( Parameters node ) Data
-    | Container
-      ( Parameters node ) Role ( List ( Kid node prototype ) )
+ -- E
     | Error
       ( Parameters node ) String
-
+          
 type alias Option prototype =
-    List prototype
-        
+    Nonempty prototype
+
+{-|-}
+type AssumptionTag
+    = SelfAssumption
+    | InsatiableAssumption
+    | IrresolvableAssumption
+    
+type alias Parameters node =
+    { node : node
+    , manifestation : Manifestation
+    , actions : List Action
+    }
+    
 {-|-}
 type Action
     = Id String
@@ -144,13 +164,8 @@ type Action
     | Blur_span
     | Contenteditable
     | When_targeted Action
+    | Property String Value
     
-type alias Parameters node =
-    { node : node
-    , open : Bool
-    , face : String
-    , actions : List Action
-    }
 
 
     
@@ -158,81 +173,78 @@ type alias Parameters node =
 
 
 {-|-}      
-live : node -> View node prototype
-live n = Tag
-    { node = n
-    , open = False
-    , face = "***"
-    , actions = []
+live : String -> node -> Manifestation -> View node prototype
+live sig nod man =
+    Placeholder
+    { node = nod
+    , actions = [ Id sig, Class "item" ]
+    , manifestation = man
     }
 
 
 
+-- modify
+
+to_clump : Map ( View node prototype )
+to_clump =
+    parameters
+      >> \p-> Placeholder { p | actions = ( Class "clump closed" )::p.actions }
+
+-- read
+
+kids v =
+    case v of
+        Container _ _ _ ( k, ks ) -> k::ks
+        _ -> []
+          
+
 parameters v =
     case v of
-        Transient p os -> p 
-        Tag p -> p
-        Renderer p d -> p
-        Container p r ks -> p
-        Error p s -> p
+        Placeholder p -> p
+        Indicator p _ -> p
+        Options p _ -> p
+        Leaf p _ _ -> p
+        Container p _ _ _ -> p
+        Renderer p _ -> p
+        Error p _ -> p
         
 map_parameters : Map ( Parameters node ) -> Map ( View node prototype )
 map_parameters fu v =
     case v of
-        Transient p os ->
-            Transient ( fu p ) os 
-        Tag p ->
-            Tag ( fu p )
-        Renderer p d ->
-            Renderer ( fu p ) d
-        Container p r ks ->
-            Container ( fu p ) r ks
-        Error p s ->
-            Error ( fu p ) s
+        Placeholder p -> Placeholder ( fu p )
+        Indicator p t -> Indicator ( fu p ) t
+        Options p o -> Options ( fu p ) o
+        Leaf p n r -> Leaf ( fu p ) n r
+        Container p n r k -> Container ( fu p ) n r k
+        Renderer p d -> Renderer ( fu p ) d
+        Error p m -> Error ( fu p ) m
 
 
 {-|-}
-err : String -> Map ( View node prototype )
-err str v = Error ( parameters v ) str
-
+indicate : AssumptionTag -> Map ( View node prototype )
+indicate tag v = Indicator ( parameters v ) tag
+                     
 {-|-}
-target : Map ( View node prototype )
-target =
-    map_parameters ( \p -> { p | open = True } )
-        >> action ( Class "t" )
+report : String -> Map ( View node prototype )
+report message v = Error ( parameters v ) message
 
-
-
-
-{-|-}
-type Role
-    = Page
-    | Heading
-    | Paragraph
-    | Figure
-    | Caption
-    | Aside
-    | Span
                    
 {-|-}
-role : Role -> Map ( View node prototype )
-role rl v =
+play : String -> Role -> Map ( View node prototype )
+play n r v =
     case v of
-        Container p r ks ->
-            Container p rl ks
+        Leaf p _ _ ->
+            Leaf p n r
+        Container p _ _ ks ->
+            Container p n r ks
         _ ->
-            Container ( parameters v ) rl []
+            Leaf ( parameters v ) n r
                 
 {-|-}
-decode : Data -> Map ( View node prototype )
-decode d v =
+generate : Data -> Map ( View node prototype )
+generate d v =
     Renderer ( parameters v ) d
         
-{-|-}
-face : String -> Map ( View node prototype )
-face fa v =
-    v |> map_parameters
-        ( \p -> { p | face = fa{-++" "++p.face-} } )
 
 {-|-}    
 action : Action -> Map ( View node prototype )
@@ -242,14 +254,26 @@ action ac v =
 
 
 {-|-}            
-kids : List ( View node prototype ) -> Map ( View node prototype )
-kids vs =
-    case vs of
-        [] -> identity
-        [vw] -> kid vw
-        vw::vww -> kid vw >> kids vww
+contain : Nonempty ( View node prototype ) -> Map ( View node prototype )
+contain ( v, vs ) =
+    kid v
+        >> case vs of
+               [] -> identity
+               [ w ] -> kid w
+               w::ws -> contain ( w, ws )
         
-{-|-}            
+        
+{-|-}
+offer : Nonempty ( Option prototype ) -> Map ( View node prototype )
+offer ( o, os ) =
+    option o
+        >> case os of
+               [] -> identity
+               [ p ] -> option p
+               p::tions -> offer ( p, tions )
+
+
+
 kid : View node prototype -> Map ( View node prototype )
 kid new v =
     let
@@ -259,62 +283,51 @@ kid new v =
                 Renderer p d ->
                     Data.size d
                      
-                Container p Span ks ->
-                    ks |> List.foldl
-                          ( \k acc ->
+                Container p _ Span ( k, ks ) ->
+                    k::ks |> List.foldl
+                          ( \ck acc ->
                                 (+) acc <|
-                                case k of
+                                case ck of
                                     Kid vw   ->
                                         size vw
                                     Clump ( cl, ump ) ->
                                         cl::ump |> List.map size
                                                 |> List.foldl (+) 0
                           ) 0
-                Container p _ ks -> 10
+                Container p _ _ ks -> 7
                 _ -> 0
 
-        measure = if size new > 4 then Sufficient else TooSmall
+        measure = if size new > 3 then Sufficient else TooSmall
     in
         case v of
-            Container p r [] ->
+            Leaf p n r ->
                 case measure of
                     TooSmall ->
-                        Container p r [ Clump ( new, [] ) ]
+                        Container p n r ( Clump ( new, [] ), [] )
 
                     Sufficient ->
-                        Container p r [ Kid new ]
+                        Container p n r ( Kid new, [] )
                     
-            Container p r ( k::kk ) ->
+            Container p n r ( k, kk ) ->
                 case ( measure, k ) of
                     ( TooSmall, Clump ( cl, umped ) ) ->
-                        Container p r ( Clump ( new, cl::umped )::kk )
+                        Container p n r ( Clump ( new, cl::umped ), kk )
                             
                     ( TooSmall, Kid _ ) ->
-                        Container p r ( Clump ( new, [] )::k::kk )
+                        Container p n r ( Clump ( new, [] ), k::kk )
                             
                     ( Sufficient, _ ) ->
-                        Container p r ( Kid new::k::kk )
+                        Container p n r ( Kid new, k::kk )
                             
             _ -> v
+                     
 
-{-|-}
-options : List ( Option prototype ) -> Map ( View node prototype )
-options os =
-    case os of
-        [] -> identity
-        [op] -> option op
-        op::tions -> option op >> options tions
-                 
-{-|-}                 
 option : Option prototype -> Map ( View node prototype )
 option op v =
     case v of
-        Transient p ( t, ions ) ->
-            Transient p ( op, t::ions )
-        Tag p ->
-            Transient p ( op, [] )
-        _ ->
-            err "Error in View.option" v
+        Options p ( o, os ) -> Options p ( op, o::os )
+        _ -> Options ( parameters v ) ( op, [] )
+            
             
     
 type Measure
@@ -326,193 +339,156 @@ type Kid node prototype
     | Clump ( Nonempty ( View node prototype ) )
 
            
-
-{-|-}
-serialize_role : Role -> String
-serialize_role r =
-    case r of
-        Page ->
-            "▓"
-        Heading ->
-            "ℌ"
-        Paragraph ->
-            "¶"
-        Figure ->
-            "❦"
-        Caption ->
-            "ℭ"
-        Aside ->
-            "⌇"
-        Span ->
-            "⟷"
-                  
-{-|-}
-deserialize_role : String -> Maybe Role
-deserialize_role s =
-    case s of
-        "▓" ->
-            Just Page 
-        "ℌ" ->
-            Just Heading
-        "¶" ->
-            Just Paragraph
-        "❦" ->
-            Just Figure
-        "ℭ" ->
-            Just Caption
-        "⌇" ->
-            Just Aside
-        "⟷" ->
-            Just Span
-        _ ->
-            Nothing
                 
 -- view
 
 
 {-|-}
 view :
-    { to_attribute : node -> Action -> Attribute msg
-    , to_choice : node -> Option prototype -> { choice : Attribute msg, face : String }
+    { to_attribute : node -> Action -> Html.Attribute msg
+    , to_choice : node -> Option prototype -> { choice : Html.Attribute msg, face : String }
     }
     -> View node prototype
     -> Html msg
 view context v =
     let
         this = parameters v |> .node
-        to_attributes = this
-            |> context.to_attribute
-            |> List.map
-        to_choice = this
-            |> context.to_choice
 
-        wrapper =
-            case v of
-                Renderer p d ->
-                    \el -> span [ A.class "wrapper" ] [ el, label [ A.class "Tag face" ] [ text p.face ] ]
-                _ ->
-                    identity
-                        
-        element =
-            case v of
-                Transient p os ->
-                    button
-                Tag p ->
-                    label
-                Renderer p ( Text t ) ->
-                    Html.node "editable-span"
-                Renderer p d ->
-                    span
-                Container _ Page _ ->
-                    section
-                Container _ Paragraph _ ->
-                    div
-                Container _ Heading _ ->
-                    h1
-                Container _ Figure _ ->
-                    figure
-                Container _ Caption _ ->
-                    div
-                Container _ Aside _ ->
-                    aside
-                Container _ Span _ ->
-                    span
-                Error p s ->
-                    div
-    
-        attributes = 
-            case v of
-                Transient p os ->
-                    to_attributes p.actions
-                        |> (::) ( A.class "◇" )
-                Tag p ->
-                    to_attributes p.actions
-                        |> (::) ( A.class "◆" )
-                Renderer p ( Text t ) ->
-                    to_attributes ( Focus_here :: p.actions )
-                        |> (::) ( t.frozen |> Maybe.withDefault "" |> Encode.string >> property "string" )
-                        |> (::) ( t.frozen |> Maybe.withDefault "" |> Encode.string >> property "name" )
-                Renderer p d ->
-                    to_attributes p.actions
-                        |> (::) ( A.class "C" )
-                        |> (::) ( A.contenteditable False )
-                Container p r ks ->
-                    to_attributes p.actions
-                        |> (::) ( A.class "C" )
-                        |> (::) ( A.class ( serialize_role r ) )
-                Error p s ->
-                    [ A.class "Error" ]
-
-        children =
-            case v of
-                Transient p ( op, tions ) ->
-                    [ label [ A.class "face pl" ] [ text "+" ]
-                    , span [ A.class "connector-v" ] []
-                    , ul [] ( List.map ( to_choice >> deopt ) ( op::tions ) )
-                    ]
-                Tag p ->
-                    [ text p.face ]
-                Renderer p d ->
-                    Data.view d
-                Container p r ks ->
-                    List.map dekid ( List.reverse ks )
-                        |> (::) ( label [ A.class "Tag face" ] [ text p.face ] )
-                Error par s ->
-                    [ h3 [] [ text "Error" ], p [] [ text s ] ]
-
-        deface str =
-            span [ A.class "face" ] [ text str ]
-                        
-        deopt o =
-            li [] [ button [ A.class "Option", o.choice ] [ deface o.face ] ]
             
-        dekid k =
-          case k of
-              Kid vw ->
-                  view context vw
-              Clump ( cl, ump ) ->
-                  view_clump_menu ( cl::ump )
-
-        view_clump_menu : List ( View node prototype ) -> Html msg
-        view_clump_menu vv =
-            let
-                all_kids vw =
-                    case vw of
-                        Container p r ks ->
-                            ks
-                        _ -> []
-                view_is_open vw =
-                    parameters vw
-                        |> .open
-                        |> (||) ( all_kids vw |> List.any kid_is_open )
-                kid_is_open k =
-                    case k of
-                        Kid vw ->
-                            view_is_open vw
-                        Clump ( cl, ump ) ->
-                            cl::ump
-                                |> List.any view_is_open
-                view_clumped_entry vw =
-                    li [] [ view context vw ]
-
+        config =
+            let button_labeled tag txt attr ks =
+                    [ label [] [ text txt ]
+                    , span [ class tag ] [ text tag ]
+                    , label [ class "focus" ] [ text "✢" ]
+                    ] |> (++) ks
+                      |> button attr
+                         
+                default =
+                    { wrap = \ks element_with_attr -> element_with_attr ks
+                    , element = span
+                    , actions = []
+                    , children = []
+                    }
             in
-                -- draw the menu; use css to expand and compress it.
-                case ( List.any view_is_open vv, List.head vv ) of
-                    ( True, _ ) ->
-                        -- draw the expanded menu
-                        div [ A.class "clump" ]
-                            [ span [ A.class "face cl blink" ] [ text "][" ]
-                            , ul [ A.class "expanded" ] ( List.map view_clumped_entry vv )
-                            ]
-                    ( False, Just pivot ) ->
-                        -- draw the collapsed menu. Show the first clumped entry before the tag.
-                        div [ A.class "clump" ]
-                            [ span [ A.class "face cl blink" ] [ text "][" ]
-                            , span [ A.class "collapsed" ] [ view context pivot ]
-                            ]
-                    ( False, Nothing ) ->
-                        text ""
+            case v of
+                Placeholder p ->
+                    default
+                Indicator p i ->
+                    { default
+                    | element =
+                          ( case i of
+                              SelfAssumption -> "<"
+                              InsatiableAssumption -> "∞"
+                              IrresolvableAssumption -> "⁇"
+                          ) |> button_labeled ""
+                    , actions =
+                          [ case i of
+                              SelfAssumption -> Class "SA"
+                              InsatiableAssumption -> Class "IA"
+                              IrresolvableAssumption -> Class "IrrA"
+                          ]
+                    }
+                Options p ( o, os ) ->
+                    { wrap = \ks elem ->
+                          span [ class "stacked" ] [ span [ class "options" ] ks, elem [] ]
+                    , element = button_labeled "+" ""
+                    , actions = [ Class "M" ]
+                    , children =
+                        let
+                            view_button op =
+                                button [ class "Option", op.choice ] [ span [ class "label" ] [ text op.face ] ]
+                        in
+                            List.map
+                                ( context.to_choice p.node >> view_button )
+                                ( o::os )
+                    }
+                Leaf p n r ->
+                    { default
+                    | element = button_labeled "" n
+                    , actions = [ Class ( Role.serialize r ) ]
+                    }
+                Container p n r ( k, ks ) ->
+                    { default
+                    | element =
+                        case r of
+                            Tag -> span
+                            Nopresentation -> del
+                            Page -> section
+                            Heading -> h1
+                            Paragraph -> Html.p
+                            Figure -> figure
+                            Caption -> figcaption
+                            Aside -> aside
+                            Span -> span
+                    , actions = [ Class ( "C " ++ Role.serialize r ) ]
+                    , children =
+                        let
+                            view_clump_menu : Nonempty ( View node prototype ) -> Html msg
+                            view_clump_menu ( cv, cvs ) =
+                                let
+                                    view_is_open vw =
+                                        parameters vw
+                                            |> .manifestation >> Manifestation.targeted
+                                            |> (||) ( kids vw |> List.any kid_is_open )
+                                    kid_is_open ck =
+                                        case ck of
+                                            Kid vw ->
+                                                view_is_open vw
+                                            Clump ( cl, ump ) ->
+                                                cl::ump |> List.any view_is_open
+                           
+                                    wire vv =
+                                        List.map ( view context ) vv
+                                            |> div [ class "wire" ]
+                                        
+
+                                in
+                                    if List.any view_is_open ( cv::cvs )
+                                        then
+                                            span
+                                                [ class "clump opened" ]
+                                                [ text "​"
+                                                , div [ class "bar" ] [ wire ( cv::cvs ) ]
+                                                ]
+                                        else
+                                            cv |> to_clump
+                                               |> view context
+                                            
+                        in
+                            k::ks
+                            |> List.reverse
+                            |> List.map (\ck->
+                                case ck of
+                                    Kid subview ->
+                                        view context subview
+                                    Clump clumped ->
+                                        view_clump_menu clumped )
+                               
+                    }
+                Renderer p ( Text t ) ->
+                    { default
+                    | element = Html.node "editable-span"
+                    , actions = 
+                        [ t.frozen |> Maybe.withDefault "" |> Encode.string >> Property "string"
+                        , t.frozen |> Maybe.withDefault "" |> Encode.string >> Property "name" ]
+                    }
+                Renderer p d ->
+                    { default
+                    | element = span
+                    , children = Data.view d
+                    }
+                Error p m ->
+                    { default
+                    | element = Html.p
+                    , children = [ h1 [] [ text "Error" ], Html.p [] [ text m ] ]
+                    }
+        
+            
+
                     
                 
     in
-        element attributes children |> wrapper
+        config.actions ++ .actions ( parameters v )
+            |> List.map ( context.to_attribute this )
+            |> config.element
+            |> config.wrap config.children

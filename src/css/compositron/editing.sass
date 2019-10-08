@@ -1,104 +1,145 @@
-// imports
-
-
-
-// Google Fonts
-@import url(https://fonts.googleapis.com/css?family=Lato:300,700&display=swap);
-
-// Font Variables
-$ui-font: 'Lato', sans;
-
-    
-// Compositron
-
-
-
-// Focus Indicators
-button
-  position: relative
-  
+// RESET //
+input, button, textarea
+  font-size: inherit
+  display: inherit
+*
+  transition: all .2s
+  box-sizing: border-box
+  margin: 0
+  padding: 0
+  border: none
+  background: transparent
 button:focus, [contenteditable]:focus
   outline: none
   box-shadow: none
-[contenteditable]:focus
-  outline: .05rem dashed black
-  background: white
-button:focus:after, [contenteditable]:focus:after
-  letter-spacing: 0
-  content: "✢"
-  position: absolute
-  top: .05em;
-  left: 0
-  font-size: 1.5rem
-  line-height: 1em
-  padding-top: .05em
-  text-indent: .08em
-  font-family: "Garamond EB", serif
-  width: 100%
-  animation: spin .5s ease-out 1
-  pointer-events: none
-.◇:focus:after
-  font-size: 1.2em
-  top: -2.2em
-.collapsed
-  .◇:focus:after
-    top: -1em
-[contenteditable]:focus:after
-  left: -.75em
-  font-size: .6em
-  top: -.5em
+h1, h2, h3, h4, h5, h6, h7
+  font-weight: inherit
 
 
-*
-  transition:all .2s
 
-span, .editing span
-  font-size: 1rem
-  line-height: 1.2rem
+// COLORS //
 
-// View -> Container
+$R: rgb(0,100,205)
+$R-transparent: rgba(0,100,205,.2)
+
+$I: rgb(166,170,100)
+$I-transparent: rgba(146,190,50,.5)
+
+
+$option: rgb(172,80,125)
+$option-transparent: rgba(210,80,120,.4)
+$option-transparent2: rgba(210,80,120,.2)
+$option-fancy: linear-gradient(135deg, $option-transparent 25%, $option-transparent2 25%) -.2rem 0,linear-gradient(225deg, $option-transparent 25%, transparent 25%) -.2rem 0,linear-gradient(315deg, $option-transparent 25%, $option-transparent2 25%),linear-gradient(45deg, $option-transparent 25%, transparent 25%)
+
+
+$hatching: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMCcgaGVpZ2h0PScxMCc+CiAgPHJlY3Qgd2lkdGg9JzEwJyBoZWlnaHQ9JzEwJyBmaWxsPSd3aGl0ZScvPgogIDxwYXRoIGQ9J00tMSwxIGwyLC0yCiAgICAgICAgICAgTTAsMTAgbDEwLC0xMAogICAgICAgICAgIE05LDExIGwyLC0yJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzInLz4KPC9zdmc+")
+
+$crosshatch: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc4JyBoZWlnaHQ9JzgnPgogIDxyZWN0IHdpZHRoPSc4JyBoZWlnaHQ9JzgnIGZpbGw9JyNmZmYnLz4KICA8cGF0aCBkPSdNMCAwTDggOFpNOCAwTDAgOFonIHN0cm9rZS13aWR0aD0nMC41JyBzdHJva2U9JyNhYWEnLz4KPC9zdmc+Cg==")
+
+
+
+// FONTS //
+
+@import url('https://fonts.googleapis.com/css?family=EB+Garamond:400,400i&display=swap')
+@import url('https://fonts.googleapis.com/css?family=Fira+Sans&display=swap')
+$ui-font: 'Fira Sans', sans
+$copy-font: 'EB Garamond', serif
+
   
+  
+  
+  
+// DYNAMIC SITE LAYOUT //
+
 .editing
-  .wrapper
-    position: relative
-  .𝑇
-    min-width: 2rem
-  .𝑇 + label
-    text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
-    position: absolute
-    right: 0
-    bottom: -.6rem
-    font-size: .6rem
-    height: .6rem
-    line-height: .6rem
+  .bubble.align-right+*
+    float: right
     text-align: right
-  .C
-    min-height: 1.2rem
-    position: relative
-    line-height: 1.2rem
-  .C > .Tag
+    display: inline-block
+  .bubble.align-right+*+.clump
     position: absolute
-    top: 0
-    left: -1rem
-    width: .8rem
-    text-align: center
-    overflow: hidden
-    font-size: .3rem
-  .C.ℭ, .C.¶
-    min-height: 2.4rem
-    .C.ℭ, .C.¶
-      margin: 0 -1rem
-  .C.ℭ
-    padding: .4rem 1rem .2rem 1rem
-    margin: 0
-    line-height: 1.8rem
-    font-style: italic
-    display: block
-  .C.¶
-    padding: .4rem 1rem .8rem 1rem
-    margin: 0
-  .C.¶:before
-      content: " "
+    right: 1rem
+  .bubble.red+*
+    color: red
+
+
+
+    
+// ICONS //
+.label.𝑇::after
+  content: ""
+  height: 2rem
+  width: 2rem
+  position: absolute
+  margin-left: -1rem
+  margin-top: -1rem
+  left: 50%
+  top: 50%
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 305 305'%3E%3Cpolygon points='0,0 0,85 30,85 30,30 137.5,30 137.5,275 82.5,275 82.5,305 222.5,305 222.5,275 167.5,275 167.5,30 275,30 275,85 305,85 305,0 '/%3E%3C/svg%3E")
+  background-repeat: no-repeat
+  background-position: center center
+  background-size: 45%
+
+    
+    
+    
+    
+    
+// STATIC SITE LAYOUT //
+
+.editing
+  span[contenteditable]
+    white-space: pre-line
+  .C.▓
+    font-family: $copy-font
+    padding-top: 8rem
+    padding-bottom: 8rem
+    margin: auto
+    width: 24rem
+  .C
+    position: relative
+    > .C
+      min-height: 1.4rem
+      position: relative
+      line-height: 1.4rem
+    .C > .Tag
+      position: absolute
+      top: 0
+      left: -1rem
+      width: .8rem
+      text-align: center
+      overflow: hidden
+      font-size: .3rem
+    .C.ℭ, .C.¶, .C.ℌ
+      min-height: 2.4rem
+      .C.ℭ, .C.¶, .C.ℌ
+        margin-left: -1rem
+        margin-right: -1rem
+    .C.ℭ
+      padding: .8rem 1rem .6rem 1rem
+      font-size: 1.4rem
+      line-height: 1.4rem
+      font-style: italic
+      display: block
+    h1.C.ℌ:hover
+      background: rgba(255,0,0,.05)
+    h1.C.ℌ
+      font-size: 2.8rem
+      padding: 1.2rem 1rem .8rem 1rem
+      line-height: 2.8rem
+      display: block
+      margin-bottom: .8rem
+      margin-top: 2.8rem
+      letter-spacing: -.03em
+      > span.𝑇
+        margin-left: -.1em
+      > span.𝑇~span.𝑇
+        margin-left: 0
+    .C.¶
+      padding: .6rem 1rem .8rem 1rem
+      margin: 0
+    .C.¶:before
+      content: ""
       outline: 1px dashed rgba(255,0,0,.5)
       width: calc(100% - 2rem)
       height: calc(100% - 1.2rem)
@@ -107,119 +148,234 @@ span, .editing span
       left: 1rem
       pointer-events: none
 
-.◇
-  text-align: center
+      
+      
+      
+// UI - FOCUS INDICATOR //
 
-/* C L U M P */
+.blink
+  animation: blink-animation .15s steps(2, start) 23
+.blink-twice,
+*[contenteditable]:focus,
+button:focus>*,
+.opened>button:focus+*
+  animation: blink-animation .1s steps(2, start) 2
+.blink-once
+  animation: blink-animation .5s ease-out 1
 
+@keyframes blink-animation
+  from
+    opacity: 1
+  to
+    opacity: 0
 
-.clump
-  display: inline
-  z-index: 1
-  outline: 1px solid rgba(255,0,0,.2)
-  position: relative
-  height: 1.2rem
-  > *
+@keyframes spin
+  100%
+    transform: rotate(-360deg)
+
+  
+// UI IN THE EDITOR //
+
+.editing
+  label, .label
+    padding: .45rem 1rem .35rem 1rem
+    line-height: 1.2rem
+    font-size: .8rem
+    border-radius: 1rem
+    font-family: $ui-font
+  [contenteditable]:focus
+    outline: 1px dashed rgba(0,0,0,.2)
+  [contenteditable]:focus::before
+    content: "▶"
+    text-align: right
+    width: 2em
+    margin-left: -2em
+  [contenteditable]:focus::after
+    content: "◀"
+  [contenteditable]:focus::after,[contenteditable]:focus::before
+    position: absolute
+    transform: translate(0,.1em)
+  .focus
+    opacity: 0
+    font-family: $copy-font
     pointer-events: none
-    > *
-      pointer-events: auto
-  > .face
+    animation: spin .5s ease-out 1
     position: absolute
-    width: 3rem
-    height: 1.2rem
-    margin-left: -1.2rem
-    text-align: center
-  > .face.cl
-    text-indent: -.29em
-    font-size: 1.2rem
-  > ul
-    display: flex
-    flex-wrap: wrap
-    justify-content: center
-    margin-top: -1.2rem
-    height: 1.2rem
-    > li > .Transient
-      color: red
-
-  // C O L L A P S E D
-  .collapsed
-    position: absolute
-    width: 3rem
-    height: 1.2rem
-    margin-left: -1.5rem
-    > .◇
-      width: 3rem
-      height: 1.2rem
-      text-align: center
-      > ul
-        display: none
-    > .◇:hover
-      background: red
-      // E X P A N D E D
-  ul.expanded
-    position: fixed
+    top: -.5rem
     left: 0
     width: 100%
-    > li
-      > .◇
-        > .face
-            position: relative
-            padding: 0
-            font-size: 4.8em
-            line-height: .6rem
-            font-family: 'Lato', sans-serif
-            font-weight: 300
-      > .◇:not(.t)
-        max-height: 3.2rem
-        > ul
-          width: 0
-          overflow: hidden
-          pointer-events: none
-          > li
-            display: none
-      > .◇.t
-        pointer-events: none
-        > * > *
-          pointer-events: auto
-        > .face:before
-          content: " "
-          border: .1rem dashed black
-          position: absolute
-          width: 1em
-          height: 1em
-          top: .15em
-          left: -.21em
-          border-radius: .5em
-        > ul
-          display: flex
-          flex-wrap: wrap
-          justify-content: center
-          position: fixed
-          bottom: 0
-          width: 100%
-          left: 0
-          z-index: 1
-          pointer-events: none
-          > *
-            pointer-events: auto
-          > li
-            border-top: .05rem solid rgb(200,180,10)
-            border-color: black
-            > .Option
-              position: relative;
-              background: rgb(200,180,10)
-              line-height: 1.2rem
-              height: 3.6rem
-              padding: .5rem
-              border: .025rem solid white
-              border-top-width: .05rem
-            > .Option:hover,
-            > .Option:focus
-              background: rgb(180,165,0)
-          > li:first-of-type
-            > .Option
-              border-left-width: 0
-          > li:last-of-type
-            > .Option
-              border-right-width: 0
-          
+  *:not(.option)>.focus
+    padding-left: 0
+    padding-right: 0
+  .clump>.focus
+    left: -.35em
+    font-size: 70%
+    text-indent: -.09em
+    top: -.23em
+  button:focus>.focus
+    opacity: 1
+
+
+  // UI - CLUMP //
+
+  .clump, button.clump
+    position: relative
+    outline: .5px dashed black
+    display: inline-block
+    height: 1em
+  .clump::after
+    width: 1.2em
+    height: 1.2em
+    border: 1px dashed black
+    content: ""
+    border-radius: .6em
+    position: absolute
+    left: calc(-.6em - 1px)
+    top: -.035em
+  .clump.opened::after
+    border: 3px solid black
+  .clump.opened
+    outline: 2px solid black
+    > .bar
+      padding-top: 3rem
+      overflow: scroll
+      width: 100vw
+      position: fixed
+      bottom: 0
+      left: 0
+      //background: rgba(242,242,242,.95)
+      //border-top: .5px solid rgba(0,0,0,.4)
+
+
+
+
+  .wire
+    background: white
+    line-height: calc(3rem - 1px)
+    letter-spacing: 0
+    font-size: .8rem
+    min-height: 3rem
+    position: relative
+    display: flex
+    justify-content: center
+    flex-wrap: wrap
+    max-width: 100vw
+    > *
+      position: relative
+    > *::before, > *::after
+      pointer-events: none
+      border-top: 2px solid black
+      position: absolute
+      top: 0
+      width: 50%
+      height: .5rem
+      content: ""
+    > *::after
+      right: 0
+    > *::before
+      left: 0
+    > *:first-child::after, .opened::after
+      border-top-left-radius: 5px
+    > *:last-child::before, .opened::before
+      border-top-right-radius: 5px
+    > *:first-child::before, > *:last-child::after
+      border-top-color: transparent
+    > *.opened::after
+      border-left: 1px solid black
+    > *.opened::before
+      border-right: 1px solid black
+    > *:first-child:last-child::before, *:first-child:last-child::after
+      border-top-color: transparent
+  .wire
+    z-index: 1
+    .opened > .item
+      height: calc(3rem - 1px)
+    .wire
+      z-index: 2
+      position: relative
+      left: 50%
+      width: 100vw
+      margin-right: -50vw
+      margin-left: -50vw
+      height: 3rem
+      overflow: visible
+      margin-bottom: -3rem
+    * > .label
+        position: relative
+        width: 100%
+    .R:hover
+      > .label
+        background: $R-transparent
+    .I
+      > .label
+        top: -1.49rem
+        font-size: 1rem
+        padding: 0 .3rem
+    .I:hover
+      background: $I-transparent
+    .C.opened
+      > .pipe
+        position: absolute
+        left: calc(50% - 1px)
+        height: .5rem
+        bottom: 0
+        border: 1px solid black
+      > .tag
+        position: absolute
+        width: 100%
+        bottom: 0
+        height: 1.2rem
+        line-height: 1.2rem
+        left: 0
+    .C.opened:hover
+      > .label
+        text-decoration: underline
+    .L.opened
+      > .label
+        background: $option
+        background-size: 5px 5px
+    .L.opened:hover
+      > .label
+        background: $option-transparent
+        color: $option
+      > .label::after
+        content: "×"
+        color: white
+        animation: blink-animation .1s steps(3, start) 3
+        position: absolute
+        left: calc(50% - .6rem)
+        top: 1.3rem
+        background: black
+        border-radius: 1rem
+        height: 1.2rem
+        width: 1.2rem
+    .stacked
+      position: relative
+      > *
+        height: 3rem
+      > .options
+        position: relative
+        display: flex
+        > .option:not(:first-child) > .label
+          padding-left: .4rem
+          border-top-left-radius: 3px
+          border-bottom-left-radius: 3px
+        > .option:not(:last-child) > .label
+          padding-right: .4rem
+          border-top-right-radius: 3px
+          border-bottom-right-radius: 3px
+        > .option:hover > .label
+          background: rgba(255,0,0,.1)
+          text-decoration: underline
+        > .option > .label
+          color: $option
+      > .O
+        width: 100%
+        position: absolute
+        height: .7em
+        top: 0
+        > .tag
+          position: relative
+          top: -.02em
+      > .M:hover, .S:hover
+        text-decoration: underline    

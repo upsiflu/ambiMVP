@@ -59,6 +59,7 @@ import History.Intent exposing ( Intent )
 
 import Helpers exposing ( .. )
 import Helpers.LZipper as LZipper exposing ( LZipper )
+import Helpers.Nonempty as Nonempty exposing ( Nonempty )
 
 import Compositron.Structure.EagerZipperTree as Structure
 import Compositron.Structure.Branch as Branch
@@ -237,7 +238,7 @@ type Edit
     = Target ( LiveSignature )
       
     -- creator: Signature.Creator of siblings that are to be created/removed.
-    | Choose Creator ( List TempSignature )
+    | Choose Creator ( Nonempty TempSignature )
     | Modify Creator Data
       
     | Freeze
@@ -259,16 +260,19 @@ target sig compositron =
 
                 
 {-| disambiguate some node. -}
-choose : Creator -> ( List TempSignature ) -> Map State
+choose : Creator -> ( Nonempty TempSignature ) -> Map State
 choose cre new_signatures compositron =
     let
         node = live compositron |> Structure.node
-        available_signatures =
+        new_sig_is_available =
             Item.alternatives ( node.item )
-                |> List.map ( Cogroup.assumptions ( node.prototype ) )
+                |> Maybe.map ( Nonempty.map ( Cogroup.assumptions ( node.prototype ) ) )
+                |> Maybe.map ( Nonempty.member new_signatures )
+                |> Maybe.withDefault False
     in
-        if List.member new_signatures available_signatures then
+        if new_sig_is_available then
             new_signatures
+                |> Nonempty.to_list
                 |> List.reverse
                 |> List.map ( dereference compositron )
                 |> filter_just
@@ -279,14 +283,8 @@ choose cre new_signatures compositron =
             compositron
                 |> trace
                      ( "Choice(s) "
-                       ++(List.map Signature.serialize new_signatures |> String.join ", ")
-                       ++" not available. Ignored. Possible choices: "
-                       ++(List.map
-                              ( List.map Signature.serialize >> String.join ", ")
-                              available_signatures
-                                  |> String.join " | "
-                              )
-                     )
+                       ++ ( Nonempty.map Signature.serialize new_signatures |> Nonempty.to_list |> String.join ", " )
+                       ++ " not available. Ignored." )
                
 {-| (TODO) undo any change done by a given Creator. -}
 revert : Creator -> TempSignature -> Map State
@@ -297,7 +295,7 @@ revert cre proto_ref comp =
 modify : Creator -> Data -> Map State
 modify cre new_dat compositron =
     compositron
-        |> mark ( Node.map_item ( Item.set_data new_dat ) )
+        |> mark ( Node.map_item ( Item.map_data ( \_->new_dat ) ) )
         |> manifest cre Nothing
             
 
@@ -417,17 +415,17 @@ view new_creator message compositron =
 
         to_choice :
             LiveNode
-            -> List TempSignature
+            -> Nonempty TempSignature
             -> { face : String, choice : Html.Attribute msg }
-        to_choice this protos =
-            { face = List.head protos
-                  |> Maybe.andThen ( dereference compositron )
+        to_choice this ( pro, tos ) =
+            { face = pro
+                  |> dereference compositron
                   |> Maybe.withDefault ( template compositron )
                   |> Structure.template_group
                   |> Group.first ( .item >> Item.option_face )
-                  |> Maybe.withDefault ( Item.default_face )
+                  |> Maybe.withDefault ( "*?*" )
             
-            , choice = protos
+            , choice = ( pro, tos )
                   --|> Debug.log "choose these on click"
                   |> Choose new_creator
                   |> to_message this >> onClickNoBubble
@@ -482,21 +480,21 @@ view new_creator message compositron =
                        if Manifestation.targeted this.manifestation
                        then to_attribute this action
                        else class ""
+                   Property string decoder ->
+                       property string decoder
                            
 
         view_live_branch :
             LiveBranch
             -> View LiveNode TempSignature
         view_live_branch branch =
-            View.live ( Branch.node branch )
-                |> Node.view ( Branch.node branch )
-                |> View.kids ( Branch.kids branch |> List.map view_live_branch )
-
-                
-        composition =
-            live compositron
-                |> Structure.tree
-                |> view_live_branch
-                |> View.view { to_choice = to_choice, to_attribute = to_attribute }
+            Node.view ( Branch.node branch )
+                |> case Branch.kids branch |> List.map view_live_branch |> Nonempty.from_list of
+                       Nothing -> identity
+                       Just kidz -> View.contain ( kidz )
     in
-        [ incipit, composition ]            
+        [ incipit
+        , live compositron
+            |> Structure.tree >> view_live_branch
+            |> View.view { to_choice = to_choice, to_attribute = to_attribute }
+        ] 

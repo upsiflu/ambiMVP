@@ -84,21 +84,21 @@ trivial : Node ( Signature codomain ) ( Signature codomain )
 trivial =
     { signature = Signature.root
     , prototype = Signature.root
-    , item = Item.Err "trivial"
+    , item = Item.Error "trivial"
     , manifestation = Notargeted
     }
 
 {-|-}
 error : Node ( Signature codomain ) ( Signature codomain )
 error =
-    trivial |> map_item ( \_-> Item.Err "Error: Check the console for details." )
+    trivial |> map_item ( \_-> Item.Error "Error: Check the console for details." )
 
 {-|-}
 primer : Signature.Creator -> Node ( Signature prime ) ( Signature prime )
 primer creator =
     { signature = Signature.prime creator
     , prototype = Signature.prime creator
-    , item = Item.Err "primer"
+    , item = Item.Error "primer"
     , manifestation = Notargeted
     }
 
@@ -249,8 +249,9 @@ deserialize str =
 {-|-}
 view :
     Node ( Signature domain ) ( Signature codomain ) ->
-        Map ( View ( Node ( Signature domain ) ( Signature codomain ) ) ( Signature codomain ) )
+        View ( Node ( Signature domain ) ( Signature codomain ) ) ( Signature codomain )
 view node =
-    Signature.view node.signature
-        >> Item.view node.prototype node.item
-        >> Manifestation.view node.manifestation
+    View.live
+        ( Signature.serialize node.signature ) node node.manifestation
+    |> Item.view
+        node.prototype node.item

@@ -1,0 +1,60 @@
+module Helpers.Ambiguation exposing
+  ( Ambiguation
+  , map
+  , from_list
+  , to_list
+  )
+
+{-|
+# Definition
+@docs Nonempty
+
+# Map
+@docs map
+
+# Convert (lossy!)
+@docs from_ambiguation
+@docs from_list
+@docs to_list
+|-}
+
+
+type alias Map a = a -> a
+
+{-| A list with at least one element.-}
+type alias Nonempty a =
+    ( a, List a )
+
+{-| Map a function over all members of nonempty.-}
+map : Map a -> Map ( Nonempty a )
+map fu ( head, tail ) =
+    ( fu head, List.map fu tail )
+
+{-| Mind: the distinction between "at least one" and "at least two" is lost.-}
+from_ambiguation : Ambiguation a -> Nonempty a
+from_ambiguation ambi =
+    case ambi of
+        Or x y -> ( x, Ambiguation.to_list y )
+        Of x -> ( x, [] )
+
+{-| Lossless conversion, adding a distinction between "at least 2" and "at least 1".-}
+from_nonempty : Nonempty a -> Ambiguation a
+from_nonempty n =
+    case n of
+        ( head, [] ) -> Of head
+        ( head, [tail] ) -> Of tail |> Or head
+        ( head, t::ail ) ->
+            ambiguation_from_nonempty ( t, ail ) |> Or head
+                
+{-| Mind: the information that it is nonempty is lost.-}
+to_list : Nonempty a -> List a
+to_list ( head, tail ) = head::tail
+
+{-| Fallable conversion from List.-}
+from_list : List a -> Maybe ( Nonempty a )
+from_list list =
+    case list of
+        l::ist -> Just ( l, ist )
+        _ -> Nothing
+
+

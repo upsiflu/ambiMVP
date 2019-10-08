@@ -2,11 +2,9 @@ module Compositron.Item exposing
     ( Item (..)
 
     -- create
-    , default_symbol
-    , default_face
-        
+    , accept
+          
     -- read
-    , data
     , option_face
     , to_symbol
     , is_self_assumption
@@ -14,12 +12,12 @@ module Compositron.Item exposing
     , equal
     , alternatives
     , assumptions
+    , data
         
     -- map
-    , set_data
-    , accept
     , freeze
     , unfreeze
+    , map_data
         
     -- view
     , view
@@ -33,13 +31,20 @@ module Compositron.Item exposing
 # Definition
 @docs Item
 
-# create
-@docs default_symbol
-@docs default_face
+# Create
 @docs accept
 
+
+# Map
+
+@docs map_data
+@docs freeze
+@docs unfreeze
+
 # Read
-@docs data
+
+## A
+
 @docs option_face
 @docs to_symbol
 
@@ -49,54 +54,52 @@ module Compositron.Item exposing
         
 @docs alternatives
 @docs assumptions
-        
-# Map
-@docs set_data
 
-@docs freeze
-@docs unfreeze
+## D
+
+@docs data
         
-# view
+# View
 @docs view
           
-# serial form
+# Serial Form
 @docs deserialize
 @docs serialize
 -}
         
 import Helpers exposing (..)
-import Maybe.Extra
-import Html exposing ( Html )
+import Helpers.Nonempty as Nonempty exposing ( Nonempty )
+import Helpers.Ambiguation as Ambiguation exposing ( Ambiguation (..) )
 
 import Compositron.Data as Data exposing ( Data )
-import Compositron.Signature as Signature exposing ( Signature )
+import Compositron.Role as Role exposing ( Role )
 
-import Compositron.View as View exposing ( View, Action (..) )
-import Compositron.Flow as Flow exposing ( Flow (..) )
 import Compositron.Cogroup as Cogroup exposing ( Cogroup (..) )
+
+import Compositron.View as View exposing ( View )
+
+
 
 
 {-|-}
 type Item l t
     = Assume ( Ambiguation ( Cogroup t ) )
-    | Body String Flow
-    | Err String
+    | Body String Role
+  --| Charge ( Ambiguation ( Cogroup l ) )
+    | Define Data
+    | Error String
 
+      
       
 -- create
 
 
-{-| creates a generic symbol to represent choices where the intended group has no symbol.-}
-default_symbol : Item l t
-default_symbol = Body "*" <| Flow.symbolic
-
-
-primer : Item l t
-primer = Err "primer"
+primer : Item p t
+primer = Error "primer"
 
 
 initial : Item l t
-initial = Err "root"
+initial = Error "root"
 
           
 {-|-}     
@@ -104,22 +107,27 @@ accept : Item t t -> Item l t
 accept itm =
     case itm of
         Assume ( ambiguation ) -> Assume ( ambiguation )
-        Body n f -> Body n f
-        Err str -> Err str
-          
+        Body n r -> Body n r
+        Define dat -> Define dat
+        Error message -> Error message
+
+                   
          
 -- read
 
 
 {-|-}
 data : Item l t -> Maybe Data
-data = flow >> Maybe.andThen Flow.data
+data itm =
+    case itm of
+        Define d -> Just d
+        _ -> Nothing
 
 {-|-}
-flow : Item l t -> Maybe Flow
-flow itm =
+role : Item l t -> Maybe Role
+role itm =
     case itm of
-        Body n f -> Just f
+        Body n r -> Just r
         _ -> Nothing
 
 
@@ -127,26 +135,19 @@ flow itm =
 option_face : Item l t -> Maybe String
 option_face itm =
     case itm of
-        Assume _ -> Nothing
-        Body n f ->
-            if Flow.is_symbolic f then
-                Just n
-            else
-                case Flow.data f of
-                    Just d -> 
-                        Just ( Data.serialize_constructor d )
-                    Nothing -> 
-                        Just ( Flow.serialize f )
-        Err _ -> Just "⚠"
-
-{-|-}
-default_face : String
-default_face = "***"
+        Assume _ ->
+            Nothing
+        Body n r ->
+            Just n
+        Define d ->
+            Just ( Data.serialize_constructor d )
+        Error _ ->
+            Just "⚠"
               
 {-| Maybe this item is a `Flow.Symbolic` Body?-}
 to_symbol : Item l t -> Maybe ( Item l t )
 to_symbol itm =
-    flow itm |> Maybe.andThen ( \f -> if Flow.is_symbolic f then Just itm else Nothing )
+    role itm |> Maybe.andThen ( \r -> if Role.is_symbolic r then Just itm else Nothing )
 
 {-|-}
 is_self_assumption : Item l t -> Bool
@@ -161,17 +162,17 @@ is_assumption itm =
         _ -> False
 
 {-|-}
-alternatives : Item l t -> List ( Cogroup t )
+alternatives : Item l t -> Maybe ( Nonempty ( Cogroup t ) )
 alternatives itm =
     case itm of
         Assume a ->
-            ambiguation_to_list a
-        _ -> []
+            Ambiguation.to_nonempty a |> Just
+        _ -> Nothing
 
 {-|-}
-assumptions : t -> Item l t -> List ( List t )
+assumptions : t -> Item l t -> Maybe ( Nonempty ( Nonempty t ) )
 assumptions prototype =
-    alternatives >> List.map ( Cogroup.assumptions prototype )
+    alternatives >> Maybe.map ( Nonempty.map ( Cogroup.assumptions prototype ) )
 
 {-|-}
 equal : Item l t -> Item t t -> Bool
@@ -182,36 +183,24 @@ equal live_itm temp_itm =
        
 -- map
 
-
-{-|-}
-set_data : Data -> Map ( Item l t )
-set_data = Flow.set_data >> map_flow 
-
        
 {-|-}
-map_flow : Map Flow -> Map ( Item l t )
-map_flow fu itm =
+map_data : Map Data -> Map ( Item l t )
+map_data fu itm =
     case itm of
-        Body n flw -> Body n ( fu flw )
+        Define d -> Define ( fu d )
         x -> x
              
 {-|-}
 freeze : Map ( Item l t )
 freeze =
-    map_flow Flow.freeze
+    map_data Data.freeze
     
 {-|-}
 unfreeze : Map ( Item l t )
 unfreeze =
-    map_flow Flow.unfreeze
+    map_data Data.unfreeze
                                    
-
-
-        
-
-
--- present
-
 
 
 
@@ -224,13 +213,15 @@ serialize : ( l -> String ) -> ( t -> String ) -> Item l t -> String
 serialize from_l from_t itm =
         case itm of
             Assume a ->
-                "<" ++ ( ambiguation_to_list a
+                "<" ++ ( Ambiguation.to_list a
                        |> List.map ( Cogroup.serialize from_t) |> String.join " |"
                        )
                     ++ "\t "        
-            Body n f ->
-                n ++ "\t" ++ Flow.serialize f
-            Err s -> "⚠ " ++ s ++ "\t "
+            Body n r ->
+                n ++ "\t" ++ Role.serialize r
+            Define d ->
+                Data.serialize d
+            Error s -> "⚠ " ++ s ++ "\t "
 
           
 {-|-}
@@ -248,24 +239,30 @@ deserialize to_l to_t str =
             ( "<", rest ) ->
                 rest |> String.split " | "
                      |> List.map ( Cogroup.deserialize to_t >> Maybe.withDefault Self )
-                     |> to_nonempty |> Maybe.withDefault ( Self, [] )
-                     |> ambiguation_from_nonempty
+                     |> Nonempty.from_list |> Maybe.withDefault ( Self, [] )
+                     |> Ambiguation.from_nonempty
                      |> Assume
                        
             ( "⚠", rest ) ->
-                Err rest
+                rest |> Error
 
-            _ ->
-                case String.split "\t" str
-                    |> List.reverse
-                    |> both
-                       ( List.head >> Maybe.andThen ( Flow.deserialize )
-                       , List.tail >> Maybe.map ( List.reverse >> String.join "" )
-                       )
-                of
-                    ( Just f, Just n ) ->
-                        Body n f
-                    _ -> "Unable to deserialize " ++ str ++ " to item" |> Err
+
+            _-> case Data.deserialize str of
+                    Just d ->
+                        Define d
+
+                    _-> case String.split "\t" str
+                          |> List.reverse
+                          |> both
+                             ( List.head >> Maybe.andThen ( Role.deserialize )
+                             , List.tail >> Maybe.map ( List.reverse >> String.join "" )
+                             )
+                        of
+                            ( Just r, Just n ) ->
+                                Body n r
+
+                            _-> Error <| "Unable to deserialize " ++ str ++ " to item"
+                                 
 
 
 
@@ -279,18 +276,20 @@ view :
     -> Map ( View node t )
 view prototype itm =
     case itm of
-        Assume tmp ->
-            case tmp of
-                  Of single ->
-                      Cogroup.view single
-                  Or head more ->
-                      View.options
-                          ( head::( ambiguation_to_list more )
-                          |> List.map ( Cogroup.assumptions prototype ) )
-        Body n f ->
-            View.face n
-                >> Flow.view f
-                        
-        Err string ->
-            View.err string
+        Assume ( Of special ) ->
+            Cogroup.view special
+                
+        Assume options ->
+            Ambiguation.to_nonempty options
+                |> Nonempty.map ( Cogroup.assumptions prototype )
+                |> View.offer
+                   
+        Body n r ->
+            View.play n r
+
+        Define d ->
+            View.generate d
+                
+        Error message ->
+            View.report message
                 
