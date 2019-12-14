@@ -5,6 +5,8 @@
      Within the main, we have either one or two columns, each 28rem wide.
  */
 
+
+
 body { height:100vh; width:100%;}
 main { overflow-x:hidden; }
 
@@ -19,58 +21,16 @@ main { overflow-x:hidden; }
 
 header { height:4.3rem; position:relative; width:100%;}
 
-/* standard controls (base styles) */
 
-p, span, input, h1, h2, h3 {
-  font-family: 'Alegreya', 'Cormorant Garamond', 'EB Garamond', serif;
-  color: #333;
-  line-height:1.25em;
-  font-size:1.2rem;
-  /*so total height is 1.5rem*/
-}
-
-figure { min-width:27rem;}
-
-p { 
-    padding: .8rem .5rem 1.2rem .5rem; 
-}
-h1 {
-    font-size: 3rem; margin-top:2rem; padding:0;
-    line-height: 1em;
-}
-h2 {
-    font-size: 2rem; margin-top:2rem; padding:0;
-    line-height: 1em;
-}
-h3 {
-    font-size: 1.5rem; margin-top:2rem; padding:0;
-}
 @import url(https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css);
-
 pre, code {
-    font-size:.7rem;
+    font-size:.6rem;
     font-family: 'Fira Code';
     tab-size:29;
     line-height:1.2rem;
     padding: .6rem;
     margin-bottom:1.2rem;
 }
-
-button, .caption, label {
-    font-family: sans-serif; font-weight: bold;
-    padding:.45rem .5rem .55rem .5rem;
-    line-height:1.25rem;
-    letter-spacing:-.05em;
-    font-size:.8rem;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-    outline: none;
-}
-
-
 
 
 /* on tiny screens, we just scale the layout down.

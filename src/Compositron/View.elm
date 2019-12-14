@@ -8,7 +8,6 @@ module Compositron.View exposing
     , contain
     
     -- Item (A, B, D, E)
-    , AssumptionTag (..)
     , indicate
     , offer
     , play
@@ -37,21 +36,6 @@ Self Assumptions and Symbolics produce _Tags_ relating to their container.
     
 The _Container_ originates from a Body with kids.
 In Html, it may require wrapping.
-
-- # ▓
-  _Page_: Exclusive container; will try to fill the available screen.
-- # ℌ
-  _Heading_: Outline Item; `h1`; related to the following contents.
-- # ¶ 
-  _Paragraph_: Sectioning container; similar to `p`, but more permissive in content type.
-- # ❦
-  _Figure_: Autonomous content; `figure`. The last _Caption_ within a figure will be a `figcaption`.
-- # ℭ
-  _Caption_: A commentary on (or description of) the surroundings.
-- # ⌇
-  _Aside_: Secondary content; `aside`.
-- # ⟷
-  _Span_: Grouping of a series of items; `span`.
 
 Additionally, a container responds to the size attribute of
 their kids and may need to clump groups of too_small kids:
@@ -83,7 +67,6 @@ Ignore children and just display a collapsible error message in place.
 @docs play
 
 ## Choices
-@docs AssumptionTag
 @docs indicate
 @docs offer
 
@@ -109,6 +92,8 @@ import Html exposing ( Html, label, text, del, figure, figcaption, h1, div, span
 
 import Compositron.Data as Data exposing ( Data (..) )
 import Compositron.Role as Role exposing ( Role (..) )
+import Compositron.Arrow as Arrow exposing ( Arrow (..) )
+import Compositron.Cogroup as Cogroup exposing ( Cogroup (..) )
 import Compositron.Manifestation as Manifestation exposing ( Manifestation )
 
 import Html.Events as Events exposing (..)
@@ -121,31 +106,24 @@ import Json.Encode as Encode exposing ( Value )
 type View node prototype
     = Placeholder
       ( Parameters node )
- -- A
+ -- Assumption Node
     | Indicator
-      ( Parameters node ) AssumptionTag
+      ( Parameters node ) ( Cogroup prototype )
     | Options
-      ( Parameters node ) ( Nonempty ( Option prototype ) )
- -- B
+      ( Parameters node ) ( Nonempty ( Cogroup prototype ) )
+ -- Body Node
     | Leaf
       ( Parameters node ) String Role
     | Container
       ( Parameters node ) String Role ( Nonempty ( Kid node prototype ) )
- -- D
+ -- Charge Node
+ -- Data Node
     | Renderer
       ( Parameters node ) Data
- -- E
+ -- Error Node
     | Error
       ( Parameters node ) String
-          
-type alias Option prototype =
-    Nonempty prototype
 
-{-|-}
-type AssumptionTag
-    = SelfAssumption
-    | InsatiableAssumption
-    | IrresolvableAssumption
     
 type alias Parameters node =
     { node : node
@@ -157,7 +135,8 @@ type alias Parameters node =
 type Action
     = Id String
     | Class String
-    | Navigate_here
+    | Target_here
+    | Tab_here
     | Focus_here
     | Input_url Data
     | Input_span Data
@@ -221,12 +200,14 @@ map_parameters fu v =
 
 
 {-|-}
-indicate : AssumptionTag -> Map ( View node prototype )
-indicate tag v = Indicator ( parameters v ) tag
+indicate : Cogroup prototype -> Map ( View node prototype )
+indicate cog v =
+    Indicator ( parameters v ) cog
                      
 {-|-}
 report : String -> Map ( View node prototype )
-report message v = Error ( parameters v ) message
+report message v =
+    Error ( parameters v ) message
 
                    
 {-|-}
@@ -253,25 +234,23 @@ action ac v =
         ( \p -> { p | actions = ac::p.actions } )
 
 
+            
 {-|-}            
 contain : Nonempty ( View node prototype ) -> Map ( View node prototype )
-contain ( v, vs ) =
-    kid v
-        >> case vs of
-               [] -> identity
-               [ w ] -> kid w
-               w::ws -> contain ( w, ws )
-        
+contain n v =
+    Nonempty.fold kid v n 
         
 {-|-}
-offer : Nonempty ( Option prototype ) -> Map ( View node prototype )
-offer ( o, os ) =
-    option o
-        >> case os of
-               [] -> identity
-               [ p ] -> option p
-               p::tions -> offer ( p, tions )
-
+offer : Nonempty ( Cogroup prototype ) -> Map ( View node prototype )
+offer n v =
+    Nonempty.fold option v n 
+                           
+option : Cogroup prototype -> Map ( View node prototype )
+option op v =
+    case v of
+        Options p ( o, os ) -> Options p ( op, o::os )
+        _ -> Options ( parameters v ) ( op, [] )
+            
 
 
 kid : View node prototype -> Map ( View node prototype )
@@ -322,12 +301,6 @@ kid new v =
             _ -> v
                      
 
-option : Option prototype -> Map ( View node prototype )
-option op v =
-    case v of
-        Options p ( o, os ) -> Options p ( op, o::os )
-        _ -> Options ( parameters v ) ( op, [] )
-            
             
     
 type Measure
@@ -346,7 +319,7 @@ type Kid node prototype
 {-|-}
 view :
     { to_attribute : node -> Action -> Html.Attribute msg
-    , to_choice : node -> Option prototype -> { choice : Html.Attribute msg, face : String }
+    , to_choice : node -> Cogroup prototype -> { choice : Html.Attribute msg, face : String }
     }
     -> View node prototype
     -> Html msg
@@ -354,18 +327,22 @@ view context v =
     let
         this = parameters v |> .node
 
-            
+        focus_indicator = label [ class "focus" ] [ text "✢" ]
+                          
         config =
-            let button_labeled tag txt attr ks =
-                    [ label [] [ text txt ]
-                    , span [ class tag ] [ text tag ]
-                    , label [ class "focus" ] [ text "✢" ]
+            let button_labeled tag face attr ks =
+                    [ case face of
+                          Nothing -> text ""
+                          Just txt -> label [] [ text txt ]
+                    , span [ class "tag", class tag ] [ text tag ]
+                    , focus_indicator
                     ] |> (++) ks
                       |> button attr
                          
                 default =
-                    { wrap = \ks element_with_attr -> element_with_attr ks
-                    , element = span
+                    { wrap = \ks element_with_attr ->
+                          element_with_attr ( focus_indicator::ks )
+                    , element = button
                     , actions = []
                     , children = []
                     }
@@ -376,35 +353,38 @@ view context v =
                 Indicator p i ->
                     { default
                     | element =
-                          ( case i of
-                              SelfAssumption -> "<"
-                              InsatiableAssumption -> "∞"
-                              IrresolvableAssumption -> "⁇"
-                          ) |> button_labeled ""
+                        i |> Cogroup.arrows
+                          |> List.map ( Arrow.serialize ( always "" ) )
+                          |> String.join ", "
+                          |> Just >> button_labeled ""
                     , actions =
-                          [ case i of
-                              SelfAssumption -> Class "SA"
-                              InsatiableAssumption -> Class "IA"
-                              IrresolvableAssumption -> Class "IrrA"
-                          ]
+                        i |> Cogroup.arrows
+                          |> List.map
+                             ( \j -> case j of
+                                       Self -> Class "SA"
+                                       Cyclic _ -> Class "CA"
+                                       Irresolvable _ -> Class "IrrA"
+                                       Open _ -> Class ""
+                             )
                     }
                 Options p ( o, os ) ->
-                    { wrap = \ks elem ->
-                          span [ class "stacked" ] [ span [ class "options" ] ks, elem [] ]
-                    , element = button_labeled "+" ""
-                    , actions = [ Class "M" ]
+                    { default
+                    | element = button_labeled "+" Nothing
+                    , actions = [ Class "M O" ]
                     , children =
                         let
-                            view_button op =
-                                button [ class "Option", op.choice ] [ span [ class "label" ] [ text op.face ] ]
+                            view_button cho =
+                                button [ class "option", cho.choice ]
+                                       [ span [ class "label" ] [ text cho.face ] ]
                         in
-                            List.map
-                                ( context.to_choice p.node >> view_button )
-                                ( o::os )
+                            ( o::os )
+                                |> List.filter ( not << Cogroup.is_self )
+                                |> List.map ( context.to_choice p.node >> view_button )
+                                |> \buttons -> [ span [ class "options" ] buttons ]
                     }
                 Leaf p n r ->
                     { default
-                    | element = button_labeled "" n
+                    | element = button_labeled "" ( Just n )
                     , actions = [ Class ( Role.serialize r ) ]
                     }
                 Container p n r ( k, ks ) ->
@@ -488,7 +468,7 @@ view context v =
                     
                 
     in
-        config.actions ++ .actions ( parameters v )
+        Target_here :: Tab_here :: config.actions ++ .actions ( parameters v )
             |> List.map ( context.to_attribute this )
             |> config.element
             |> config.wrap config.children

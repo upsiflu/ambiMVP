@@ -199,12 +199,7 @@ to_string = serialize identity
 -}
 deserialize : ( String -> a ) -> String -> Branch a
 deserialize to_node =
-    let
-        strip_empty lines =
-            if ( List.head lines |> Maybe.andThen String.Extra.nonBlank ) == Nothing then
-                strip_empty ( List.tail lines |> Maybe.withDefault [] )
-            else lines
-                
+    let        
         children lines =
             List.tail lines
                 |> Maybe.withDefault []
@@ -218,7 +213,7 @@ deserialize to_node =
                       li -> li |> children |> List.map unfold )
     in
         String.lines
-            >> strip_empty >> List.reverse >> strip_empty >> List.reverse
+            >> List.map String.Extra.nonBlank >> List.filterMap identity
             >> unfold
 
 

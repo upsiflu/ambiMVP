@@ -9,7 +9,6 @@ module Compositron.Node exposing
         
     -- read
     , equal_items
-    , self_reference
         
     -- set
     , set_item
@@ -37,7 +36,6 @@ Create by shifting domains:
 @docs adopt_domain
 
 # Read
-@docs self_reference
 @docs equal_items
 
 # Set
@@ -56,7 +54,10 @@ Create by shifting domains:
 @docs view
 
 -}
+import Maybe.Extra
+
 import Helpers exposing (..)
+import Helpers.Nonempty as Nonempty
 
 import Compositron.Item as Item exposing ( Item )
 import Compositron.Data as Data exposing ( Data )
@@ -128,11 +129,17 @@ equal_items :
 equal_items node conode =
     Item.equal node.item conode.item
 
-{-|-}
-self_reference : Node ( Signature d ) ( Signature c ) -> Maybe ( Signature c )
-self_reference nod =
-    if Item.is_self_assumption nod.item then Just nod.prototype else Nothing
+{- If an Assumption is unambiguous, it has `Just` one Cogroup.
 
+first_reference : Node ( Signature d ) ( Signature c ) -> Maybe ( Signature c )
+first_reference nod =
+    nod.item
+        |> Item.options
+        |> Nonempty.just_singleton -- weed out option ambiguations
+        |> Maybe.map Cogroup.first_arrow
+        |> Maybe.map
+           ( \arrow -> if arrow == Self then nod.prototype else 
+-}
         
 -- map
 

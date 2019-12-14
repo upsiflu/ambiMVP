@@ -138,15 +138,18 @@ $copy-font: 'EB Garamond', serif
     .C.¶
       padding: .6rem 1rem .8rem 1rem
       margin: 0
-    .C.¶:before
+    .C.¶:before //dummy to indicate text area
       content: ""
-      outline: 1px dashed rgba(255,0,0,.5)
+      outline: 1px dashed rgba(255,0,0,.2)
       width: calc(100% - 2rem)
       height: calc(100% - 1.2rem)
       position: absolute
       top: .4rem
       left: 1rem
       pointer-events: none
+    .C.T.¶:before
+      outline: 1px solid rgba(255,0,0,.4)
+      //border: 1px inset rgba(255,0,0,.5)
 
       
       
@@ -349,11 +352,13 @@ button:focus>*,
         border-radius: 1rem
         height: 1.2rem
         width: 1.2rem
-    .stacked
+    .M, .S
       position: relative
       > *
         height: 3rem
       > .options
+        height: 2.3rem
+        margin-top: .7rem
         position: relative
         display: flex
         > .option:not(:first-child) > .label
@@ -369,13 +374,14 @@ button:focus>*,
           text-decoration: underline
         > .option > .label
           color: $option
+      > .O:hover
+        outline: 1px solid red
       > .O
         width: 100%
         position: absolute
-        height: .7em
         top: 0
         > .tag
           position: relative
-          top: -.02em
+          top: -1.72em
       > .M:hover, .S:hover
         text-decoration: underline    

@@ -100,13 +100,15 @@ h1, h2, h3, h4, h5, h6, h7 {
     margin: 0; }
   .editing .C .C.¶:before {
     content: "";
-    outline: 1px dashed rgba(255, 0, 0, 0.5);
+    outline: 1px dashed rgba(255, 0, 0, 0.2);
     width: calc(100% - 2rem);
     height: calc(100% - 1.2rem);
     position: absolute;
     top: .4rem;
     left: 1rem;
     pointer-events: none; }
+  .editing .C .C.T.¶:before {
+    outline: 1px solid rgba(255, 0, 0, 0.4); }
 
 .blink {
   animation: blink-animation 0.15s steps(2, start) 23; }
@@ -300,33 +302,36 @@ button:focus > *,
     border-radius: 1rem;
     height: 1.2rem;
     width: 1.2rem; }
-  .editing .wire .stacked {
+  .editing .wire .M, .editing .wire .S {
     position: relative; }
-    .editing .wire .stacked > * {
+    .editing .wire .M > *, .editing .wire .S > * {
       height: 3rem; }
-    .editing .wire .stacked > .options {
+    .editing .wire .M > .options, .editing .wire .S > .options {
+      height: 2.3rem;
+      margin-top: .7rem;
       position: relative;
       display: flex; }
-      .editing .wire .stacked > .options > .option:not(:first-child) > .label {
+      .editing .wire .M > .options > .option:not(:first-child) > .label, .editing .wire .S > .options > .option:not(:first-child) > .label {
         padding-left: .4rem;
         border-top-left-radius: 3px;
         border-bottom-left-radius: 3px; }
-      .editing .wire .stacked > .options > .option:not(:last-child) > .label {
+      .editing .wire .M > .options > .option:not(:last-child) > .label, .editing .wire .S > .options > .option:not(:last-child) > .label {
         padding-right: .4rem;
         border-top-right-radius: 3px;
         border-bottom-right-radius: 3px; }
-      .editing .wire .stacked > .options > .option:hover > .label {
+      .editing .wire .M > .options > .option:hover > .label, .editing .wire .S > .options > .option:hover > .label {
         background: rgba(255, 0, 0, 0.1);
         text-decoration: underline; }
-      .editing .wire .stacked > .options > .option > .label {
+      .editing .wire .M > .options > .option > .label, .editing .wire .S > .options > .option > .label {
         color: #ac507d; }
-    .editing .wire .stacked > .O {
+    .editing .wire .M > .O:hover, .editing .wire .S > .O:hover {
+      outline: 1px solid red; }
+    .editing .wire .M > .O, .editing .wire .S > .O {
       width: 100%;
       position: absolute;
-      height: .7em;
       top: 0; }
-      .editing .wire .stacked > .O > .tag {
+      .editing .wire .M > .O > .tag, .editing .wire .S > .O > .tag {
         position: relative;
-        top: -.02em; }
-    .editing .wire .stacked > .M:hover, .editing .wire .stacked .S:hover {
+        top: -1.72em; }
+    .editing .wire .M > .M:hover, .editing .wire .M .S:hover, .editing .wire .S > .M:hover, .editing .wire .S .S:hover {
       text-decoration: underline; }

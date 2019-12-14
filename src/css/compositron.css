@@ -1,6 +1,8 @@
-@import url('compositron/visiting.css');
-@import url('compositron/editing.css');
+/*@import url('compositron/visiting.css');
 @import url('compositron/listing.css');
+*/
+
+@import url('compositron/editing.css');
 
 
 /*Compositron*/

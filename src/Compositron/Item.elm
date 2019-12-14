@@ -10,8 +10,7 @@ module Compositron.Item exposing
     , is_self_assumption
     , is_assumption
     , equal
-    , alternatives
-    , assumptions
+    , options
     , data
         
     -- map
@@ -52,8 +51,7 @@ module Compositron.Item exposing
 @docs is_assumption
 @docs equal
         
-@docs alternatives
-@docs assumptions
+@docs options
 
 ## D
 
@@ -73,8 +71,8 @@ import Helpers.Ambiguation as Ambiguation exposing ( Ambiguation (..) )
 
 import Compositron.Data as Data exposing ( Data )
 import Compositron.Role as Role exposing ( Role )
-
 import Compositron.Cogroup as Cogroup exposing ( Cogroup (..) )
+import Compositron.Arrow as Arrow exposing ( Arrow (..) )
 
 import Compositron.View as View exposing ( View )
 
@@ -144,35 +142,31 @@ option_face itm =
         Error _ ->
             Just "⚠"
               
-{-| Maybe this item is a `Flow.Symbolic` Body?-}
+{-| Body with _symbolic_ Role.-}
 to_symbol : Item l t -> Maybe ( Item l t )
 to_symbol itm =
     role itm |> Maybe.andThen ( \r -> if Role.is_symbolic r then Just itm else Nothing )
 
-{-|-}
-is_self_assumption : Item l t -> Bool
-is_self_assumption itm =
-    itm == Assume ( Of Self )
-
-{-|-}
-is_assumption : Item l t -> Bool
-is_assumption itm =
+assumption itm =
     case itm of
-        Assume _ -> True
-        _ -> False
-
-{-|-}
-alternatives : Item l t -> Maybe ( Nonempty ( Cogroup t ) )
-alternatives itm =
-    case itm of
-        Assume a ->
-            Ambiguation.to_nonempty a |> Just
+        Assume a -> Just a
         _ -> Nothing
 
 {-|-}
-assumptions : t -> Item l t -> Maybe ( Nonempty ( Nonempty t ) )
-assumptions prototype =
-    alternatives >> Maybe.map ( Nonempty.map ( Cogroup.assumptions prototype ) )
+is_assumption : Item l t -> Bool
+is_assumption =
+    assumption >> (/=) Nothing
+
+{-|-}
+is_self_assumption : Item l t -> Bool
+is_self_assumption =
+    options >> Maybe.andThen Nonempty.just_singleton >> Maybe.map Cogroup.is_self >>
+        Maybe.withDefault False
+        
+{-|`Just` the cogroup(s) that may be chosen, or `Nothing` if item is not Assumption.-}
+options : Item l t -> Maybe ( Nonempty ( Cogroup t ) )
+options =
+    assumption >> Maybe.map Ambiguation.to_nonempty
 
 {-|-}
 equal : Item l t -> Item t t -> Bool
@@ -238,10 +232,11 @@ deserialize to_l to_t str =
         of
             ( "<", rest ) ->
                 rest |> String.split " | "
-                     |> List.map ( Cogroup.deserialize to_t >> Maybe.withDefault Self )
-                     |> Nonempty.from_list |> Maybe.withDefault ( Self, [] )
-                     |> Ambiguation.from_nonempty
-                     |> Assume
+                     |> List.map ( Cogroup.deserialize to_t )
+                     |> fold_must -- discard if any error
+                     |> Maybe.andThen Nonempty.from_list
+                     |> Maybe.map ( Ambiguation.from_nonempty >> Assume )
+                     |> Maybe.withDefault ( Error "Invalid Assumption (Codomain format)" ) 
                        
             ( "⚠", rest ) ->
                 rest |> Error
@@ -277,13 +272,11 @@ view :
 view prototype itm =
     case itm of
         Assume ( Of special ) ->
-            Cogroup.view special
+            View.indicate special
                 
-        Assume options ->
-            Ambiguation.to_nonempty options
-                |> Nonempty.map ( Cogroup.assumptions prototype )
-                |> View.offer
-                   
+        Assume ambi ->
+            maybe View.offer ( options itm )
+                    
         Body n r ->
             View.play n r
 

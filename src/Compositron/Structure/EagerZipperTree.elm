@@ -170,9 +170,9 @@ group =
         >> \( b, f, a ) -> { before = b, focus = f, after = a }
 
                            
-{-| **🅁 Template Subgroups.** Toplevel template branches are not mutual neighbours.
+{-| **🅁 Template Subgroups.** Toplevel template branches are not mutual neighbours. This means, template_group will only include the focused branch if the latter's parent is root.
 
-Collect all branches in the group around the focus into a Group. If in root or one level below, exclude the siblings.
+Collect all branches around the focused branch into a Group. If in root or one level below, exclude the siblings.
 
     import Helpers.LZipper as LZipper exposing  ( LZipper )
     import Helpers exposing (..)
@@ -243,11 +243,11 @@ mark = Zipper.mapLabel
 
 {-| Merge a structure with a group of template branches. The **match** ( see [`Match`](Helpers#Match) ) between a neighbour of the focus and its corresponding **template branch** will yield
 
-- _Keep_: keep the existing branch and continue matching the stream, or
-- _Skip_: keep the existing branch but postpone the match
-- _Insert_: accept the template branch, thereby iterating a **primer**, and insert it.
+- `Keep` the live branch and reject the template.
+- `Skip` this comparison: keep the live branch, but postpone matching the template.
+- `Insert` the template branch, thereby iterating a **primer**, replacing the live branch.
 
-Excessive live branches are kept; errornous excessive template branches are discarded.
+Excessive live branches are kept; excessive (=errornous) template branches are discarded.
 
 The current node will be left unchanged!
     
@@ -416,7 +416,7 @@ each_in_group fu ( primer, struct ) =
         maybe_next ( x, s ) =
             case Zipper.nextSibling s of
                 Nothing -> Nothing
-                Just ns -> Just ( x, ns )
+                Just ns -> Just ( x, ns ) --|> Debug.log "next"
     in
         ( primer, first_sibling )
             |> while_just ( fu ) maybe_next
@@ -424,7 +424,7 @@ each_in_group fu ( primer, struct ) =
 
 
 
-{-| Apply a Map to each focus that traces up to root.-}
+{-| Apply a Map to each focus, including this, in the breadcrumbs up to root.-}
 up_the_ancestry : Map ( Map ( p, Structure a ) )
 up_the_ancestry fu ( primer, struct ) =
     let
@@ -437,27 +437,21 @@ up_the_ancestry fu ( primer, struct ) =
                 Just ancestor -> Just ( x, ancestor )
     in
         ( primer, struct )
-            |> while_just ( fu ) maybe_next
+            |> while_just ( each_in_group fu ) maybe_next
             |> Tuple.mapSecond ( perhaps <| Zipper.findNext ( (==) pivot ) )
 
                
-{-| Apply a Map to each focus that traces up to root.-}
+{-| Apply a Map to all the offspring of all group members.-}
 down_the_branch : Map ( Map ( p, Structure a ) )
 down_the_branch fu ( primer, struct ) =
-    let
-        pivot =
-            Zipper.fromTree ( branch struct )
+    case Zipper.firstChild struct of
 
-        maybe_next ( x, cur ) =
-            case Zipper.forward cur of
-                Nothing -> Nothing
-                Just successor -> Just ( x, successor )
-    in
-        ( primer, pivot )
-            |> while_just ( fu ) maybe_next
-            |> Tuple.mapSecond
-               ( Zipper.root >> branch >> with struct ( Zipper.replaceTree ) ) 
-            
+        Just pivot ->
+            ( primer, ( Debug.log "down the branch picot" pivot ) )
+                |> each_in_group ( down_the_branch fu )
+                |> fu
+                    
+        Nothing -> fu ( primer, struct )
 
                
 {-| Apply a Map to each focus that traces up to root as well as down each kid.-}

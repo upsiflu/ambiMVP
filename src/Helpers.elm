@@ -29,6 +29,7 @@ module Helpers exposing
     , list_to_tuple
 
     , onClickNoBubble
+    , onPressNoBubble
     )
 
 {-| Convenience functions and types for [debugging](#logging-and-debugging), [nonempty](#Nonempty) and [ambiguous](#Ambiguation) wrappers, [matching two streams](#Match), [parameter fu](#parameter-shuffling), as well as convenience functions for [tuples](#tuple-convenience), [maybes](#fallability), [lists](#list-convenience) and [Html](#html-convenience).
@@ -74,6 +75,7 @@ module Helpers exposing
 
 # Html Convenience
 @docs onClickNoBubble
+@docs onPressNoBubble
 -}
 
 import Html.Events exposing ( .. )
@@ -162,7 +164,7 @@ fold_must : List ( Maybe a ) -> Maybe ( List a )
 fold_must =
     List.foldl must_cons ( Just [] )
 
-{-| If any element is Nothing, the whole List is Nothing.-}
+{-| The first element in the list of `Just` elements.-}
 first_must : List ( Maybe a ) -> Maybe a
 first_must =
     List.foldl must_cons ( Just [] ) >> Maybe.andThen List.head
@@ -325,6 +327,18 @@ onClickNoBubble : msg -> Html.Attribute msg
 onClickNoBubble message =
         Html.Events.custom
             "click"
+            ( Decode.succeed
+                 { message = message
+                 , stopPropagation = True
+                 , preventDefault = False
+                 }
+
+            )
+{-| Stop propagation as well as default operation on a click.-}
+onPressNoBubble : msg -> Html.Attribute msg
+onPressNoBubble message =
+        Html.Events.custom
+            "mousedown"
             ( Decode.succeed
                  { message = message
                  , stopPropagation = True

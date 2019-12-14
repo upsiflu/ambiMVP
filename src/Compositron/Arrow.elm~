@@ -1,0 +1,79 @@
+module Compositron.Arrow exposing
+    ( Arrow (..)
+    , to_reference
+    , serialize
+    , deserialize
+    )
+
+
+{-|
+# Definition
+@docs Arrow
+
+# Read
+@docs to_reference
+
+# Serial Form
+@docs serialize
+@docs deserialize
+-}
+import Helpers exposing (..)
+
+
+
+{-| Pointer to a node.
+In a reference structure, all pointers are `Open` or `Self`.
+In a template structures, `Open` pointers that are not part of an Ambiguation are evaluated to either `Cyclic`, `Irresolvable`.
+All nodes are lexically scoped, which nescessitates a template separate from a live structure.
+-}
+type Arrow t
+    = Self              -- assumption assumes itself.
+    
+    -- in a reference structure:
+    | Open t            -- assumption not yet satisfied.
+
+    -- in a template structure:
+    | Cyclic t        -- satisfied in ancestor.
+    | Irresolvable t  -- dead reference.
+
+
+{-| Provide node's own prototype for the _Self_ case.-}
+to_reference : t -> Arrow t -> t
+to_reference default a =
+    case a of
+        Self -> default
+        Open t -> t
+        Cyclic t -> t
+        Irresolvable t -> t
+
+
+
+{-|-}
+serialize : ( t -> String ) -> Arrow t -> String
+serialize from_t a =
+    case a of
+        Self ->
+            ""
+        Open t ->
+            from_t t
+        Cyclic t ->
+            "∞ "++( from_t t )
+        Irresolvable t ->
+            "⍰ "++( from_t t )
+
+
+
+{-|-}
+deserialize : ( String -> Maybe t ) -> String -> Maybe ( Arrow t )
+deserialize to_t a =
+    case a of
+        "" ->
+            Just Self
+        _ ->
+            case a |> both ( String.left 2, String.dropLeft 2 >> to_t ) of
+                ( "∞ ", t ) ->
+                    Maybe.map Cyclic t
+                ( "⍰ ", t ) ->
+                    Maybe.map Irresolvable t
+                _ ->
+                    Maybe.map Open ( to_t a )

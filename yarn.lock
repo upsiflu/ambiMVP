@@ -424,10 +424,10 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
-elm-debug-transformer@^0.0.7:
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/elm-debug-transformer/-/elm-debug-transformer-0.0.7.tgz#38d34a8828c103ef0207d06f057bdd3cd3008f6e"
-  integrity sha512-UNCe7PHSLOf9DPAsBboMK3glGVXe8ORVOFf0lRqMpWKX8isR5TSHoX0UkIdhDBk8MMvx5uQgS8zNGq1ekWt2Sw==
+elm-debug-transformer@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/elm-debug-transformer/-/elm-debug-transformer-1.0.1.tgz#9c5f22d3048bb6c38230cd950ddd38875e2b2258"
+  integrity sha512-eN8C47Hrdk2b70iIzRP8V4Mrh5spmh5m7GTo/Ls1/hszPNDOW/7gLoPdtVJohKeP3/wc2lS8482cF7RjWuesfA==
 
 error-ex@^1.2.0:
   version "1.3.2"

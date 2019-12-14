@@ -1,12 +1,10 @@
 import './main.css';
 import { Elm } from './Main.elm';
-//import '../node_modules/elm-debug-transformer/dist\
-//elm-console-debug.js';
-//import registerServiceWorker from './registerServiceWorker';
 
+// improve console log output for elm tree types
 import * as ElmDebugger from 'elm-debug-transformer';
-
 ElmDebugger.register();
+
 
 Elm.Main.init({
   node: document.getElementById('root')
@@ -19,7 +17,7 @@ customElements.define
  class extends HTMLElement {
      constructor () {
 	 super()
-	 this._string = 'hello schworld'
+	 this._string = '~'
      }
      get string () {
 	 if (!this._editor) return ""
